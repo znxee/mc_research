@@ -1,0 +1,20 @@
+{
+  "name": "larecomp_local_build",
+  "kind": "docs",
+  "title": "midnight_club_la",
+  "platform": "xbox360",
+  "type": "docs",
+  "entry": "",
+  "summary": "how we built the upstream LARecomp (Xbox 360 static recompilation, github.com/mzzvxm/LARecomp) for study; not a copy of its code",
+  "os": [
+    "windows"
+  ],
+  "requires": [],
+  "origin": "mc3-alpha-decomp research (our analysis) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

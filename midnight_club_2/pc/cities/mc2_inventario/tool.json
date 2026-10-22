@@ -1,0 +1,22 @@
+{
+  "name": "mc2_inventario",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "pc",
+  "type": "cities",
+  "entry": "mc2_inventario.py",
+  "summary": "Inventory of the Midnight Club 2 city assets. (Midnight Club II PC files)",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

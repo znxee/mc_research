@@ -1,0 +1,3 @@
+import os
+from pathlib import Path
+s=Path(os.path.join(os.environ.get('RECOMP_DIR', ''), 'tests/verify_city_geometry.py')).read_text();s=s.replace("errors[label]=max(errors[label],*[abs(ev[k]-gv[k]) for k in range(lo,hi)])", "\n                    error=max(abs(ev[k]-gv[k]) for k in range(lo,hi))\n                    if label=='normal' and error>.01 and totals['bad_normals']<10:print(piece['name'],ev,gv);totals['bad_normals']+=1\n                    errors[label]=max(errors[label],error)");Path(os.path.join(os.environ.get('RECOMP_DIR', ''), 'research/city_research/verify_debug.py')).write_text(s)

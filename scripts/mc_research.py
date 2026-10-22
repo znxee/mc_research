@@ -25,7 +25,7 @@ KINDS = {"tool", "library", "module", "data", "docs", "research"}
 OSES = {"any", "windows", "linux", "macos"}
 # the convention's vocabulary (CONVENTION.md is the reference; keep the two in step)
 TITLES = {"midnight_club_2", "midnight_club_3", "midnight_club_la", "shared"}
-PLATFORMS = {"ps2", "psp", "xbox", "recomp", "any"}
+PLATFORMS = {"ps2", "psp", "xbox", "xbox360", "pc", "recomp", "shared", "any"}
 TYPES = {"audio", "cities", "collision", "docs", "emulator", "general", "geometry", "menu", "modloader",
          "mods", "races", "research", "reverse", "shaders", "textures", "traffic", "vehicles"}
 

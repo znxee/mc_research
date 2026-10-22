@@ -62,3 +62,7 @@ ps2dev toolchain, and Python.
 Midnight Club is a trademark of Take-Two Interactive / Rockstar Games. This is
 an unofficial, non-commercial fan project and is not affiliated with or
 endorsed by them.
+
+- **mzzvxm** - LARecomp, the static recompilation of Midnight Club: Los Angeles (Xbox 360) that our MCLA
+  analysis is built on: https://github.com/mzzvxm/LARecomp. The upstream code is not included here; only our
+  notes and scripts about it are.

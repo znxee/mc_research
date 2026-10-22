@@ -1,0 +1,22 @@
+{
+  "name": "verify_retail",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "vehicles",
+  "entry": "verify_retail.py",
+  "summary": "instruction differential: runs the retail SLUS_213.55 float code against reconstructed vehicle submodels",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-alpha-decomp research (our analysis) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

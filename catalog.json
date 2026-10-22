@@ -1,5 +1,35 @@
 [
   {
+    "name": "mc2_inventario",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "pc",
+    "type": "cities",
+    "entry": "mc2_inventario.py",
+    "summary": "Inventory of the Midnight Club 2 city assets. (Midnight Club II PC files)",
+    "status": "unverified",
+    "path": "midnight_club_2/pc/cities/mc2_inventario",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_career_manifest",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "pc",
+    "type": "races",
+    "entry": "mc2_career_manifest.py",
+    "summary": "mc2_career_manifest.py — Parse MC2 career data, validate graph rules and generate deterministic manifest. (Midnight Club II PC files)",
+    "status": "unverified",
+    "path": "midnight_club_2/pc/races/mc2_career_manifest",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc2_city_install",
     "kind": "tool",
     "title": "midnight_club_2",
@@ -30,36 +60,6 @@
     "last_verified": null
   },
   {
-    "name": "mc2_inventario",
-    "kind": "tool",
-    "title": "midnight_club_2",
-    "platform": "ps2",
-    "type": "cities",
-    "entry": "mc2_inventario.py",
-    "summary": "Inventory of the Midnight Club 2 city assets.",
-    "status": "unverified",
-    "path": "midnight_club_2/ps2/cities/mc2_inventario",
-    "maintainers": [
-      "znxee"
-    ],
-    "last_verified": null
-  },
-  {
-    "name": "mc2_inventory",
-    "kind": "tool",
-    "title": "midnight_club_2",
-    "platform": "ps2",
-    "type": "cities",
-    "entry": "mc2_inventory.py",
-    "summary": "Inventory of the Midnight Club 2 city assets.",
-    "status": "unverified",
-    "path": "midnight_club_2/ps2/cities/mc2_inventory",
-    "maintainers": [
-      "znxee"
-    ],
-    "last_verified": null
-  },
-  {
     "name": "mc2_props",
     "kind": "tool",
     "title": "midnight_club_2",
@@ -69,36 +69,6 @@
     "summary": "mc2_props.py - inventario dos props de uma cidade do Midnight Club 2.",
     "status": "unverified",
     "path": "midnight_club_2/ps2/cities/mc2_props",
-    "maintainers": [
-      "znxee"
-    ],
-    "last_verified": null
-  },
-  {
-    "name": "mc2_props_cidades",
-    "kind": "tool",
-    "title": "midnight_club_2",
-    "platform": "ps2",
-    "type": "cities",
-    "entry": "mc2_props_cidades.py",
-    "summary": "mc2_props_cidades.py - inventory of the props of EVERY Midnight Club 2 city",
-    "status": "unverified",
-    "path": "midnight_club_2/ps2/cities/mc2_props_cidades",
-    "maintainers": [
-      "znxee"
-    ],
-    "last_verified": null
-  },
-  {
-    "name": "mc2_props_cities",
-    "kind": "tool",
-    "title": "midnight_club_2",
-    "platform": "ps2",
-    "type": "cities",
-    "entry": "mc2_props_cities.py",
-    "summary": "mc2_props_cities.py - inventory of the props of EVERY Midnight Club 2 city",
-    "status": "unverified",
-    "path": "midnight_club_2/ps2/cities/mc2_props_cities",
     "maintainers": [
       "znxee"
     ],
@@ -240,21 +210,6 @@
     "last_verified": null
   },
   {
-    "name": "mc2_port",
-    "kind": "tool",
-    "title": "midnight_club_2",
-    "platform": "ps2",
-    "type": "general",
-    "entry": "mc2_port.py",
-    "summary": "mc2_port.py - bring Midnight Club 2 geometry into Midnight Club 3",
-    "status": "unverified",
-    "path": "midnight_club_2/ps2/general/mc2_port",
-    "maintainers": [
-      "znxee"
-    ],
-    "last_verified": null
-  },
-  {
     "name": "mc2_ps2_place",
     "kind": "tool",
     "title": "midnight_club_2",
@@ -330,21 +285,6 @@
     "last_verified": null
   },
   {
-    "name": "mc2_career_manifest",
-    "kind": "tool",
-    "title": "midnight_club_2",
-    "platform": "ps2",
-    "type": "races",
-    "entry": "mc2_career_manifest.py",
-    "summary": "mc2_career_manifest.py — Parse MC2 career data, validate graph rules and generate deterministic manifest.",
-    "status": "unverified",
-    "path": "midnight_club_2/ps2/races/mc2_career_manifest",
-    "maintainers": [
-      "znxee"
-    ],
-    "last_verified": null
-  },
-  {
     "name": "mc2_race_modes",
     "kind": "tool",
     "title": "midnight_club_2",
@@ -360,21 +300,6 @@
     "last_verified": null
   },
   {
-    "name": "mc2_race_names",
-    "kind": "tool",
-    "title": "midnight_club_2",
-    "platform": "ps2",
-    "type": "races",
-    "entry": "mc2_race_names.py",
-    "summary": "Give the converted MC2 races their MC2 names in MC3's string tables.",
-    "status": "unverified",
-    "path": "midnight_club_2/ps2/races/mc2_race_names",
-    "maintainers": [
-      "znxee"
-    ],
-    "last_verified": null
-  },
-  {
     "name": "mc2_race_obstacles",
     "kind": "tool",
     "title": "midnight_club_2",
@@ -384,21 +309,6 @@
     "summary": "Route legs of converted MC2 races that run into an MC2 obstacle prop.",
     "status": "unverified",
     "path": "midnight_club_2/ps2/races/mc2_race_obstacles",
-    "maintainers": [
-      "znxee"
-    ],
-    "last_verified": null
-  },
-  {
-    "name": "mc2_race_order",
-    "kind": "tool",
-    "title": "midnight_club_2",
-    "platform": "ps2",
-    "type": "races",
-    "entry": "mc2_race_order.py",
-    "summary": "Put the converted MC2 races of an MC3 city's .loc in MC2's own order.",
-    "status": "unverified",
-    "path": "midnight_club_2/ps2/races/mc2_race_order",
     "maintainers": [
       "znxee"
     ],
@@ -474,6 +384,111 @@
     "summary": "Add a car-lane shortcut to a converted MC2 race, for a leg the AI drives badly.",
     "status": "unverified",
     "path": "midnight_club_2/ps2/traffic/mc2_race_shortcut",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_inventory",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "shared",
+    "type": "cities",
+    "entry": "mc2_inventory.py",
+    "summary": "Inventory of the Midnight Club 2 city assets.",
+    "status": "unverified",
+    "path": "midnight_club_2/shared/cities/mc2_inventory",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_props_cidades",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "shared",
+    "type": "cities",
+    "entry": "mc2_props_cidades.py",
+    "summary": "mc2_props_cidades.py - inventory of the props of EVERY Midnight Club 2 city",
+    "status": "unverified",
+    "path": "midnight_club_2/shared/cities/mc2_props_cidades",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_props_cities",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "shared",
+    "type": "cities",
+    "entry": "mc2_props_cities.py",
+    "summary": "mc2_props_cities.py - inventory of the props of EVERY Midnight Club 2 city",
+    "status": "unverified",
+    "path": "midnight_club_2/shared/cities/mc2_props_cities",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_port",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "shared",
+    "type": "general",
+    "entry": "mc2_port.py",
+    "summary": "mc2_port.py - bring Midnight Club 2 geometry into Midnight Club 3",
+    "status": "unverified",
+    "path": "midnight_club_2/shared/general/mc2_port",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_race_names",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "shared",
+    "type": "races",
+    "entry": "mc2_race_names.py",
+    "summary": "Give the converted MC2 races their MC2 names in MC3's string tables.",
+    "status": "unverified",
+    "path": "midnight_club_2/shared/races/mc2_race_names",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_race_order",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "shared",
+    "type": "races",
+    "entry": "mc2_race_order.py",
+    "summary": "Put the converted MC2 races of an MC3 city's .loc in MC2's own order.",
+    "status": "unverified",
+    "path": "midnight_club_2/shared/races/mc2_race_order",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_xbox_analysis",
+    "kind": "research",
+    "title": "midnight_club_2",
+    "platform": "xbox",
+    "type": "research",
+    "entry": "",
+    "summary": "Midnight Club II (Xbox) analysis: ISO extraction, career clusters, symbol matching against MC3",
+    "status": "unverified",
+    "path": "midnight_club_2/xbox/research/mc2_xbox_analysis",
     "maintainers": [
       "znxee"
     ],
@@ -2775,6 +2790,21 @@
     "last_verified": null
   },
   {
+    "name": "city_research",
+    "kind": "research",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "research",
+    "entry": "",
+    "summary": "one-off analysis of the alpha SD city package: textures, props, graphs, collision and normals",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/research/city_research",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "research_scripts",
     "kind": "research",
     "title": "midnight_club_3",
@@ -3270,6 +3300,21 @@
     "last_verified": null
   },
   {
+    "name": "assembly_research",
+    "kind": "research",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "vehicles",
+    "entry": "",
+    "summary": "wheel and assembly inspection of the stock vp_350z car",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/vehicles/assembly_research",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_perf",
     "kind": "tool",
     "title": "midnight_club_3",
@@ -3330,6 +3375,21 @@
     "last_verified": null
   },
   {
+    "name": "verify_retail",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "vehicles",
+    "entry": "verify_retail.py",
+    "summary": "instruction differential: runs the retail SLUS_213.55 float code against reconstructed vehicle submodels",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/vehicles/verify_retail",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "recomp_harness",
     "kind": "tool",
     "title": "midnight_club_3",
@@ -3375,6 +3435,36 @@
     "last_verified": null
   },
   {
+    "name": "city_shaders_research",
+    "kind": "research",
+    "title": "midnight_club_3",
+    "platform": "xbox",
+    "type": "shaders",
+    "entry": "",
+    "summary": "IDA scripts on the Xbox executable: shader vtables, flags and parameters of the city shaders",
+    "status": "unverified",
+    "path": "midnight_club_3/xbox/shaders/city_shaders_research",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "psp_contract_check",
+    "kind": "tool",
+    "title": "midnight_club_la",
+    "platform": "psp",
+    "type": "general",
+    "entry": "check_archive.py",
+    "summary": "check the PSP archive contract against the native content tool",
+    "status": "unverified",
+    "path": "midnight_club_la/psp/general/psp_contract_check",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_mcla_vehicle_port",
     "kind": "tool",
     "title": "midnight_club_la",
@@ -3384,6 +3474,36 @@
     "summary": "Port the stock visual model of an MC:LA PSP car into an MC3 PS2 donor.",
     "status": "unverified",
     "path": "midnight_club_la/psp/vehicles/mc3_mcla_vehicle_port",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "larecomp_local_build",
+    "kind": "docs",
+    "title": "midnight_club_la",
+    "platform": "xbox360",
+    "type": "docs",
+    "entry": "",
+    "summary": "how we built the upstream LARecomp (Xbox 360 static recompilation, github.com/mzzvxm/LARecomp) for study; not a copy of its code",
+    "status": "unverified",
+    "path": "midnight_club_la/xbox360/docs/larecomp_local_build",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "xiso_extract",
+    "kind": "tool",
+    "title": "midnight_club_la",
+    "platform": "xbox360",
+    "type": "general",
+    "entry": "xiso_extract.py",
+    "summary": "read an XDVDFS (Xbox ISO) image: list files and extract those matching a regex",
+    "status": "unverified",
+    "path": "midnight_club_la/xbox360/general/xiso_extract",
     "maintainers": [
       "znxee"
     ],

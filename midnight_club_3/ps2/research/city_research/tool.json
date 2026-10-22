@@ -1,0 +1,20 @@
+{
+  "name": "city_research",
+  "kind": "research",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "research",
+  "entry": "",
+  "summary": "one-off analysis of the alpha SD city package: textures, props, graphs, collision and normals",
+  "os": [
+    "windows"
+  ],
+  "requires": [],
+  "origin": "mc3-alpha-decomp research (our analysis) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

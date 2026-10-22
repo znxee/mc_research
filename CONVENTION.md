@@ -23,7 +23,10 @@ tool into a second title to avoid a dependency: move it to `shared` instead.
 | `ps2` | PS2 files: `.pck`, `.bnd`, `.ppf`, the ELF, savestates |
 | `psp` | PSP files: `.psppck`, the PSP ELF |
 | `xbox` | original Xbox files: `.xbck`, `default.xbe`, `assets_x.dat` |
+| `xbox360` | Xbox 360 files: `.xex`, `.rpf`, `.bik`, the Xbox 360 ISO (MCLA, via LARecomp) |
+| `pc` | PC files: the Midnight Club II PC `assets_p`, `.tex`, `.xmod` text models |
 | `recomp` | the native recompilations (XboxXBERecomp and the other forks): hooks, runtime patches, `.mod` shims |
+| `shared` | a tool of one title that works on more than one of its platforms (for example PS2 and PC files of Midnight Club II) |
 | `any` | not tied to a platform (used with `shared`) |
 
 ## type

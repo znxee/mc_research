@@ -1,0 +1,22 @@
+{
+  "name": "mc2_race_order",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "shared",
+  "type": "races",
+  "entry": "mc2_race_order.py",
+  "summary": "Put the converted MC2 races of an MC3 city's .loc in MC2's own order.",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}
