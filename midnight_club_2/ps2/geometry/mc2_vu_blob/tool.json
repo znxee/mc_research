@@ -6,17 +6,17 @@
   "type": "geometry",
   "entry": "mc2_vu_blob.py",
   "summary": "mc2_vu_blob.py - turn one MC2 PS2 PMD0 into a DMA chain the MC3 VU1 can draw",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

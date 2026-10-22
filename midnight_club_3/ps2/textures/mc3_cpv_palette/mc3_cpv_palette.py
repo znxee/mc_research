@@ -68,7 +68,7 @@ def main():
                 e = entries(read_palette(f, a.source))
             except SystemExit:
                 continue        # _bnd.pck and friends are not cities
-            print('%-34s distinct=%3d  [1]=%s' % (
+            print('%-34s distintas=%3d  [1]=%s' % (
                 os.path.basename(f), len(set(e)),
                 tuple(round(x, 3) for x in e[1])))
         return
@@ -77,13 +77,13 @@ def main():
         raise SystemExit('give a city .pck, or --compare DIR')
     blob = read_palette(a.pck, a.source)
     e = entries(blob)
-    print('%s: %d entries, %d distinct, [0]=%s [255]=%s' % (
+    print('%s: %d entradas, %d distintas, [0]=%s [255]=%s' % (
         os.path.basename(a.pck), ENTRIES, len(set(e)),
         tuple(round(x, 3) for x in e[0]), tuple(round(x, 3) for x in e[255])))
     if a.out:
         with open(a.out, 'wb') as f:
             f.write(blob)
-        print('written %s (%d bytes)' % (a.out, len(blob)))
+        print('gravado %s (%d bytes)' % (a.out, len(blob)))
 
 
 if __name__ == '__main__':

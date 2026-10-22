@@ -1,115 +1,114 @@
-"""Put loose files into the root of a PS2 ISO without rebuilding it.
+"""Poe arquivos soltos na raiz de uma ISO de PS2 sem remonta-la.
 
-It is there to take the modloader to real hardware. In PCSX2 the files sit
-loose in HostFS; on a real PS2 there is no HostFS, and mc3boot looks for each
-file in host0: -> cdrom0: -> mass0:. With everything inside the ISO, cdrom0:
-answers, and the same binary runs in both places.
+Serve para levar o modloader para hardware real. No PCSX2 os arquivos ficam
+soltos no HostFS; num PS2 de verdade nao ha HostFS, e o mc3boot procura cada
+arquivo em host0: -> cdrom0: -> mass0:. Com tudo dentro da ISO o cdrom0:
+responde, e o mesmo binario roda nos dois lugares.
 
-WHY NOT REBUILD THE ISO. The MC3 image is 7.95 GB and there is no rebuilder in
-the toolkit. But it has room where it matters, and this was MEASURED on this
-image:
+POR QUE NAO REMONTAR A ISO. A imagem do MC3 tem 7,95 GB e nao ha remontador no
+toolkit. Mas ela tem folga onde interessa, e isto foi MEDIDO nesta imagem:
 
-    root directory   LBA 261, 732 bytes used of one sector -> 1316 free
-    free gap         LBA 9702, 445062 sectors (869 MB) zeroed
-    descriptors      only the primary one, no Joliet - a single place to update
+    diretorio raiz   LBA 261, 732 bytes usados de um setor -> 1316 livres
+    lacuna livre     LBA 9702, 445062 setores (869 MB) zerados
+    descritores      so o primario, sem Joliet - um lugar so para atualizar
 
-So the files can be written into a gap, the directory records added in the
-space left in the root sector, and the root size fixed in the two places where
-it appears. Nothing moves and the file does not change size.
+Entao da para escrever os arquivos numa lacuna, acrescentar os registros de
+diretorio no espaco que sobra do setor da raiz, e corrigir o tamanho da raiz nos
+dois lugares onde ele aparece. Nada se move e o arquivo nao muda de tamanho.
 
-WARNING: the MC3 image has TWO concatenated ISO volumes - the second starts at
-sector 2084960, with its own CD001. This script only touches the first and never
-writes past the volume declared in the PVD.
+AVISO: a imagem do MC3 tem DOIS volumes ISO concatenados - o segundo comeca no
+setor 2084960, com o seu proprio CD001. Este script so mexe no primeiro e nunca
+escreve alem do volume declarado no PVD.
 
-    python mc3_iso.py <iso> --add mc3boot.elf --add mc3mod.bin --apply
+    python mc3_iso.py <iso> --add mc3boot.elf --add mc3mod.bin --aplicar
 
-Without --apply it only reports what it would do, and even with --apply it
-checks that the target sectors are zeroed before writing a single byte.
+Sem --aplicar ele so relata o que faria, e mesmo com --aplicar ele confere que
+os setores de destino estao zerados antes de escrever um byte.
 """
 import argparse
 import os
 import struct
 
-SECTOR_SIZE = 2048
+SETOR = 2048
 PVD_LBA = 16
 
 
-def iso_name(base):
-    """core.mod -> CORE.MOD;1. ISO9660 level 1: 8.3, upper case."""
-    root, ext = os.path.splitext(os.path.basename(base))
-    def clean_(s):
+def nome_iso(base):
+    """core.mod -> CORE.MOD;1. ISO9660 nivel 1: 8.3, maiusculo."""
+    raiz, ext = os.path.splitext(os.path.basename(base))
+    def limpa(s):
         return ''.join(c if (c.isalnum() or c == '_') else '_' for c in s.upper())
-    return '%s.%s;1' % (clean_(root)[:8], clean_(ext[1:])[:3])
+    return '%s.%s;1' % (limpa(raiz)[:8], limpa(ext[1:])[:3])
 
 
-def read_records(d, size_):
+def le_registros(d, tam):
     out = []
     i = 0
-    while i < size_ and i < len(d) and d[i]:
+    while i < tam and i < len(d) and d[i]:
         out.append(bytes(d[i:i + d[i]]))
         i += d[i]
     return out
 
 
-def make_record(name, lba, size):
-    n = name.encode('ascii')
+def faz_registro(nome, lba, tamanho):
+    n = nome.encode('ascii')
     L = 33 + len(n)
     if L % 2:
-        L += 1                                 # the record has an EVEN length
+        L += 1                                 # o registro tem comprimento PAR
     r = bytearray(L)
     r[0] = L
     struct.pack_into('<I', r, 2, lba)
-    struct.pack_into('>I', r, 6, lba)          # the big-endian field too
-    struct.pack_into('<I', r, 10, size)
-    struct.pack_into('>I', r, 14, size)
-    r[25] = 0                                  # flags: regular file
-    struct.pack_into('<H', r, 28, 1)           # volume number
+    struct.pack_into('>I', r, 6, lba)          # o campo big-endian tambem
+    struct.pack_into('<I', r, 10, tamanho)
+    struct.pack_into('>I', r, 14, tamanho)
+    r[25] = 0                                  # flags: arquivo comum
+    struct.pack_into('<H', r, 28, 1)           # numero do volume
     struct.pack_into('>H', r, 30, 1)
     r[32] = len(n)
     r[33:33 + len(n)] = n
     return bytes(r)
 
 
-def key(reg):
-    """The order ISO9660 requires: by name, without the version."""
+def chave(reg):
+    """A ordem que o ISO9660 exige: por nome, sem a versao."""
     return reg[33:33 + reg[32]].split(b';')[0]
 
 
-def gaps(f, total):
-    """Free sectors inside the declared volume, by measuring what is in use."""
-    used_set = []
+def lacunas(f, total):
+    """Setores livres dentro do volume declarado, medindo o que esta em uso."""
+    usados = []
 
-    def walk(lba, size_):
-        ns = (size_ + SECTOR_SIZE - 1) // SECTOR_SIZE
-        used_set.append((lba, lba + ns))
-        f.seek(lba * SECTOR_SIZE)
-        d = f.read(ns * SECTOR_SIZE)
+    def anda(lba, tam):
+        ns = (tam + SETOR - 1) // SETOR
+        usados.append((lba, lba + ns))
+        f.seek(lba * SETOR)
+        d = f.read(ns * SETOR)
         i = 0
         while i < len(d) and d[i]:
             nl = d[i + 32]
             elba = struct.unpack_from('<I', d, i + 2)[0]
-            esize = struct.unpack_from('<I', d, i + 10)[0]
+            etam = struct.unpack_from('<I', d, i + 10)[0]
             if not (nl == 1 and d[i + 33] in (0, 1)):
                 if d[i + 25] & 2:
-                    walk(elba, esize)
+                    anda(elba, etam)
                 else:
-                    used_set.append((elba, elba + (esize + SECTOR_SIZE - 1) // SECTOR_SIZE))
+                    usados.append((elba, elba + (etam + SETOR - 1) // SETOR))
             i += d[i]
 
-    f.seek(PVD_LBA * SECTOR_SIZE)
-    pvd = f.read(SECTOR_SIZE)
+    f.seek(PVD_LBA * SETOR)
+    pvd = f.read(SETOR)
     r = pvd[156:190]
-    walk(struct.unpack_from('<I', r, 2)[0], struct.unpack_from('<I', r, 10)[0])
-    used_set.sort()
-    free = []
-    end = 32
-    for a, b in used_set:
-        if a > end:
-            free.append((end, a - end))
-        end = max(end, b)
-    if end < total:
-        free.append((end, total - end))
-    return free
+    anda(struct.unpack_from('<I', r, 2)[0], struct.unpack_from('<I', r, 10)[0])
+    usados.sort()
+    livres = []
+    fim = 32
+    for a, b in usados:
+        if a > fim:
+            livres.append((fim, a - fim))
+        fim = max(fim, b)
+    if fim < total:
+        livres.append((fim, total - fim))
+    return livres
 
 
 def main():
@@ -117,125 +116,125 @@ def main():
         description=__doc__.strip().splitlines()[0],
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('iso')
-    ap.add_argument('--add', action='append', default=[], metavar='FILE',
-                    help='file to put in the root; the 8.3 name comes from its own name')
-    ap.add_argument('--how', action='append', default=[], metavar='NAME.EXT',
-                    help='ISO name for the --add at the same position')
-    ap.add_argument('--boot', metavar='NAME.ELF',
-                    help='rewrite SYSTEM.CNF BOOT2 to this name')
-    ap.add_argument('--apply', dest='apply_', action='store_true', help='really write')
+    ap.add_argument('--add', action='append', default=[], metavar='ARQ',
+                    help='arquivo a por na raiz; o nome 8.3 sai do proprio nome')
+    ap.add_argument('--como', action='append', default=[], metavar='NOME.EXT',
+                    help='nome ISO para o --add na mesma posicao')
+    ap.add_argument('--boot', metavar='NOME.ELF',
+                    help='reescreve o BOOT2 do SYSTEM.CNF para este nome')
+    ap.add_argument('--aplicar', action='store_true', help='grava de verdade')
     a = ap.parse_args()
 
-    f = open(a.iso, 'r+b' if a.apply_ else 'rb')
-    f.seek(PVD_LBA * SECTOR_SIZE)
-    pvd = bytearray(f.read(SECTOR_SIZE))
+    f = open(a.iso, 'r+b' if a.aplicar else 'rb')
+    f.seek(PVD_LBA * SETOR)
+    pvd = bytearray(f.read(SETOR))
     total = struct.unpack_from('<I', pvd, 80)[0]
-    root_lba = struct.unpack_from('<I', pvd, 156 + 2)[0]
-    root_size = struct.unpack_from('<I', pvd, 156 + 10)[0]
-    print('%s: volume %d sectors, root LBA %d, %d bytes used of %d'
-          % (os.path.basename(a.iso), total, root_lba, root_size, SECTOR_SIZE))
-    if root_size > SECTOR_SIZE:
-        raise SystemExit('the root takes more than one sector; this script does not cover that')
+    raiz_lba = struct.unpack_from('<I', pvd, 156 + 2)[0]
+    raiz_tam = struct.unpack_from('<I', pvd, 156 + 10)[0]
+    print('%s: volume %d setores, raiz LBA %d, %d bytes usados de %d'
+          % (os.path.basename(a.iso), total, raiz_lba, raiz_tam, SETOR))
+    if raiz_tam > SETOR:
+        raise SystemExit('a raiz ocupa mais de um setor; este script nao cobre isso')
 
-    f.seek(root_lba * SECTOR_SIZE)
-    root_sector = bytearray(f.read(SECTOR_SIZE))
-    records_ = read_records(root_sector, root_size)
-    existing = set(key(r) for r in records_)
+    f.seek(raiz_lba * SETOR)
+    setor_raiz = bytearray(f.read(SETOR))
+    regs = le_registros(setor_raiz, raiz_tam)
+    existentes = set(chave(r) for r in regs)
 
-    free = [l for l in gaps(f, total) if l[1] > 4]
-    free.sort(key=lambda x: -x[1])
-    if not free:
-        raise SystemExit('no free gap in the volume')
-    free_lba, n_free = free[0]
-    print('  chosen gap: LBA %d, %d sectors (%.1f MB)'
-          % (free_lba, n_free, n_free * SECTOR_SIZE / 2.0 ** 20))
+    livres = [l for l in lacunas(f, total) if l[1] > 4]
+    livres.sort(key=lambda x: -x[1])
+    if not livres:
+        raise SystemExit('nenhuma lacuna livre no volume')
+    lba_livre, n_livres = livres[0]
+    print('  lacuna escolhida: LBA %d, %d setores (%.1f MB)'
+          % (lba_livre, n_livres, n_livres * SETOR / 2.0 ** 20))
 
-    new_items = []
-    cursor = free_lba
-    for k, path in enumerate(a.add):
-        if not os.path.isfile(path):
-            raise SystemExit('not found: %s' % path)
-        name = a.how[k] if k < len(a.how) else iso_name(path)
-        if ';' not in name:
-            name += ';1'
-        if name.split(';')[0].encode('ascii') in existing:
-            raise SystemExit('%s already exists in the ISO root' % name)
-        data = open(path, 'rb').read()
-        ns = (len(data) + SECTOR_SIZE - 1) // SECTOR_SIZE
-        if cursor + ns > free_lba + n_free:
-            raise SystemExit('the gap cannot fit %s' % name)
-        new_items.append((name, cursor, data))
-        print('     %-22s -> %-14s LBA %-8d %8d bytes (%d sectors)'
-              % (os.path.basename(path), name, cursor, len(data), ns))
+    novos = []
+    cursor = lba_livre
+    for k, caminho in enumerate(a.add):
+        if not os.path.isfile(caminho):
+            raise SystemExit('nao achei %s' % caminho)
+        nome = a.como[k] if k < len(a.como) else nome_iso(caminho)
+        if ';' not in nome:
+            nome += ';1'
+        if nome.split(';')[0].encode('ascii') in existentes:
+            raise SystemExit('%s ja existe na raiz da ISO' % nome)
+        dados = open(caminho, 'rb').read()
+        ns = (len(dados) + SETOR - 1) // SETOR
+        if cursor + ns > lba_livre + n_livres:
+            raise SystemExit('a lacuna nao cabe %s' % nome)
+        novos.append((nome, cursor, dados))
+        print('     %-22s -> %-14s LBA %-8d %8d bytes (%d setores)'
+              % (os.path.basename(caminho), nome, cursor, len(dados), ns))
         cursor += ns
 
-    all_ = records_ + [make_record(n, l, len(d)) for n, l, d in new_items]
-    all_.sort(key=key)
-    body = b''.join(all_)
-    print('  root: %d bytes -> %d bytes (limit %d)' % (root_size, len(body), SECTOR_SIZE))
-    if len(body) > SECTOR_SIZE:
-        raise SystemExit('the new records do not fit in the root sector')
+    todos = regs + [faz_registro(n, l, len(d)) for n, l, d in novos]
+    todos.sort(key=chave)
+    corpo = b''.join(todos)
+    print('  raiz: %d bytes -> %d bytes (limite %d)' % (raiz_tam, len(corpo), SETOR))
+    if len(corpo) > SETOR:
+        raise SystemExit('os registros novos nao cabem no setor da raiz')
 
     cnf = None
     if a.boot:
-        for r in records_:
-            if key(r) == b'SYSTEM.CNF':
+        for r in regs:
+            if chave(r) == b'SYSTEM.CNF':
                 lba = struct.unpack_from('<I', r, 2)[0]
-                size_ = struct.unpack_from('<I', r, 10)[0]
-                f.seek(lba * SECTOR_SIZE)
-                old = f.read(size_).decode('ascii', 'replace')
-                lines = []
-                for ln in old.splitlines():
+                tam = struct.unpack_from('<I', r, 10)[0]
+                f.seek(lba * SETOR)
+                velho = f.read(tam).decode('ascii', 'replace')
+                linhas = []
+                for ln in velho.splitlines():
                     if ln.upper().startswith('BOOT2'):
                         ln = 'BOOT2 = cdrom0:\\%s' % a.boot
-                    lines.append(ln)
-                new = ('\r\n'.join(lines) + '\r\n').encode('ascii')
-                cnf = (lba, new)
+                    linhas.append(ln)
+                novo = ('\r\n'.join(linhas) + '\r\n').encode('ascii')
+                cnf = (lba, novo)
                 print('  SYSTEM.CNF: %d -> %d bytes, BOOT2 = cdrom0:\\%s'
-                      % (size_, len(new), a.boot))
+                      % (tam, len(novo), a.boot))
                 break
         if cnf is None:
-            raise SystemExit('SYSTEM.CNF not found in the root')
+            raise SystemExit('nao achei SYSTEM.CNF na raiz')
 
-    if not a.apply_:
+    if not a.aplicar:
         print('')
-        print('  DRY RUN - nothing was written. Repeat with --apply.')
+        print('  ENSAIO - nada foi gravado. Repita com --aplicar.')
         return
 
-    for name, lba, data in new_items:
-        ns = (len(data) + SECTOR_SIZE - 1) // SECTOR_SIZE
-        f.seek(lba * SECTOR_SIZE)
-        if any(f.read(ns * SECTOR_SIZE)):
-            raise SystemExit('LBA %d is not empty; aborted without writing anything' % lba)
+    for nome, lba, dados in novos:
+        ns = (len(dados) + SETOR - 1) // SETOR
+        f.seek(lba * SETOR)
+        if any(f.read(ns * SETOR)):
+            raise SystemExit('LBA %d nao esta vazio; abortei sem escrever nada' % lba)
 
-    for name, lba, data in new_items:
-        f.seek(lba * SECTOR_SIZE)
-        f.write(data + bytes((-len(data)) % SECTOR_SIZE))
+    for nome, lba, dados in novos:
+        f.seek(lba * SETOR)
+        f.write(dados + bytes((-len(dados)) % SETOR))
     if cnf:
-        lba, new = cnf
-        f.seek(lba * SECTOR_SIZE)
-        f.write(new + bytes(SECTOR_SIZE - len(new)))
-        for i, r in enumerate(all_):
-            if key(r) == b'SYSTEM.CNF':
+        lba, novo = cnf
+        f.seek(lba * SETOR)
+        f.write(novo + bytes(SETOR - len(novo)))
+        for i, r in enumerate(todos):
+            if chave(r) == b'SYSTEM.CNF':
                 rb = bytearray(r)
-                struct.pack_into('<I', rb, 10, len(new))
-                struct.pack_into('>I', rb, 14, len(new))
-                all_[i] = bytes(rb)
-        body = b''.join(all_)
+                struct.pack_into('<I', rb, 10, len(novo))
+                struct.pack_into('>I', rb, 14, len(novo))
+                todos[i] = bytes(rb)
+        corpo = b''.join(todos)
 
-    new_sector = bytearray(SECTOR_SIZE)
-    new_sector[:len(body)] = body
-    struct.pack_into('<I', new_sector, 10, len(body))     # the "." entry itself
-    struct.pack_into('>I', new_sector, 14, len(body))
-    f.seek(root_lba * SECTOR_SIZE)
-    f.write(new_sector)
-    struct.pack_into('<I', pvd, 156 + 10, len(body))
-    struct.pack_into('>I', pvd, 156 + 14, len(body))
-    f.seek(PVD_LBA * SECTOR_SIZE)
+    novo_setor = bytearray(SETOR)
+    novo_setor[:len(corpo)] = corpo
+    struct.pack_into('<I', novo_setor, 10, len(corpo))     # o proprio "."
+    struct.pack_into('>I', novo_setor, 14, len(corpo))
+    f.seek(raiz_lba * SETOR)
+    f.write(novo_setor)
+    struct.pack_into('<I', pvd, 156 + 10, len(corpo))
+    struct.pack_into('>I', pvd, 156 + 14, len(corpo))
+    f.seek(PVD_LBA * SETOR)
     f.write(pvd)
     f.close()
     print('')
-    print('  written.')
+    print('  gravado.')
 
 
 if __name__ == '__main__':

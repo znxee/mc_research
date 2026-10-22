@@ -14,6 +14,7 @@ Panels:
 
 Usage:  python mc3_music_manager.py
 """
+import os
 from __future__ import annotations
 
 import subprocess
@@ -75,7 +76,7 @@ class App:
         try:
             with dpg.font_registry():
                 # DPG 2.x loads glyph ranges automatically from the ttf
-                f = dpg.add_font("C:/Windows/Fonts/segoeui.ttf", 17)
+                f = dpg.add_font(os.path.join(os.environ.get('SYSTEM_FONTS_DIR', ''), 'segoeui.ttf'), 17)
                 dpg.bind_font(f)
         except Exception:
             pass                                                   # default font

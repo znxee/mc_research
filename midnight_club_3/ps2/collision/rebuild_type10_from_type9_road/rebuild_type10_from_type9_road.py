@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Rebuild the type10 road quadtree from every type9 road floor.
+"""Reconstroi a quadtree viaria type10 com todos os pisos road do type9.
 
-The old converter fed type10 only with ``roadSG`` from the text BND. That left
-out ``alwaysdry*``, ``bridge*`` and all the drivable geometry that came from the
-.hood instances (asphalt, crosswalk, freeway, LAX and bridges). This adapter
-reuses the canonical writer/validator of ``mc2_roads_to_mc3`` and swaps only the
-selection step: the source becomes the already validated type9 and the
-selection becomes the global ``road`` physical material (17).
+O conversor antigo alimentava o type10 somente com ``roadSG`` do BND textual.
+Isso excluia ``alwaysdry*``, ``bridge*`` e toda a geometria dirigivel que veio
+das instancias do .hood (asphalt, crosswalk, freeway, LAX e pontes).  Este
+adaptador reutiliza o escritor/validador canonico de ``mc2_roads_to_mc3`` e
+troca apenas a etapa de selecao: a fonte passa a ser o type9 ja validado e a
+selecao passa a ser o material fisico global ``road`` (17).
 
-Only faces with |normal Y| >= 0.70 go into the network. Flipped faces are turned
-upwards, coplanar geometric duplicates are removed and the adjacency is rebuilt.
-The donor's type9 stays byte for byte intact.
+Somente faces com |normal Y| >= 0.70 entram na rede. Faces invertidas sao
+orientadas para cima, duplicatas geometricas coplanares sao removidas e a
+adjacencia e reconstruida. O type9 do doador permanece byte a byte intacto.
 """
 
 import argparse
@@ -61,7 +61,7 @@ def prepare_type9_roads(path, _suffixes):
         stats['source_road_polygons'] += 1
         old_indices = list(poly[2])
         points = [tuple(source_vertices[index]) for index in old_indices]
-        normal, area = roads.normal_and_area(points)
+        normal, area = roads.normal_e_area(points)
         if normal is None:
             stats['degenerate_polygons'] += 1
             continue
@@ -70,7 +70,7 @@ def prepare_type9_roads(path, _suffixes):
             continue
         if normal[1] < 0:
             points.reverse()
-            normal, area = roads.normal_and_area(points)
+            normal, area = roads.normal_e_area(points)
             stats['reversed_polygons'] += 1
         key = polygon_key(points)
         if key in seen:
@@ -90,9 +90,9 @@ def prepare_type9_roads(path, _suffixes):
         polygons.append((normal, area, tuple(indices), 'type9:road'))
 
     if not polygons:
-        raise ValueError('type9 provided no horizontal road floor')
+        raise ValueError('type9 nao forneceu nenhum piso road horizontal')
     if len(vertices) > 0xFFFF or len(polygons) > 0xFFFF:
-        raise ValueError('type10 exceeds u16: %d vertices, %d polygons' %
+        raise ValueError('type10 excede u16: %d vertices, %d poligonos' %
                          (len(vertices), len(polygons)))
 
     neighbors = [[0xFFFF] * len(poly[2]) for poly in polygons]
@@ -129,9 +129,9 @@ def prepare_type9_roads(path, _suffixes):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', required=True,
-                        help='PCK whose type9 road will feed type10')
+                        help='PCK cujo type9 road alimentara o type10')
     parser.add_argument('--donor', required=True,
-                        help='PCK whose type9 is kept and type10 replaced')
+                        help='PCK cujo type9 sera preservado e type10 substituido')
     parser.add_argument('--tools', required=True)
     parser.add_argument('--out', required=True)
     parser.add_argument('--audit')

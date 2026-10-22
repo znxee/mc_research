@@ -1,63 +1,63 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Rebuild the ``type10`` quadtree of a ``*_bnd.pck`` as a coarse ground plane,
-within the 2000/2000 ceiling of the ``phQuadtreeCell`` class.
+"""Reconstroi a quadtree ``type10`` de um ``*_bnd.pck`` como plano de chao
+grosseiro, dentro do teto de 2000/2000 da classe ``phQuadtreeCell``.
 
-WHY THIS EXISTS
-===============
+POR QUE ISTO EXISTE
+===================
 
-``mcPhysics::InitStaticData`` (0x002C2644) runs on every ``_bnd.pck`` load and does
+``mcPhysics::InitStaticData`` (0x002C2644) roda a cada carga de ``_bnd.pck`` e faz
 
-    phOctreeCell::ClassInit  (a1[1], a1[2], *a1);        // values FROM THE FILE
-    phQuadtreeCell::ClassInit(2000, 2000, 2000);          // CONSTANT
+    phOctreeCell::ClassInit  (a1[1], a1[2], *a1);        // valores DO ARQUIVO
+    phQuadtreeCell::ClassInit(2000, 2000, 2000);          // CONSTANTE
 
-``ClassInit`` (0x004A5A08) allocates ``smPolyTouched = new byte[(n+7)>>3]`` and
-``smVertTouched`` the same way: 250 bytes each for n=2000. Both bitmaps are
-indexed by the GLOBAL INDEX of the polygon and of the vertex, with no range
-check (``CullSpherePolysRecurse`` 0x004A6390, ``FinishCullingVerts`` 0x004A6AE8),
-and both cull entry points call ``ClearTouched`` = ``memset(buf, 0, (n+7)>>3)``
-with the bound's DECLARED count.
+``ClassInit`` (0x004A5A08) aloca ``smPolyTouched = new byte[(n+7)>>3]`` e
+``smVertTouched`` do mesmo jeito: 250 bytes cada para n=2000. Os dois bitmaps sao
+indexados pelo INDICE GLOBAL do poligono e do vertice, sem checagem de faixa
+(``CullSpherePolysRecurse`` 0x004A6390, ``FinishCullingVerts`` 0x004A6AE8), e os
+dois pontos de entrada de cull chamam ``ClearTouched`` = ``memset(buf, 0,
+(n+7)>>3)`` com a contagem DECLARADA do bound.
 
-    => a phBoundQuadtree with more than 2000 polys or 2000 verts does a memset
-       outside a 250-byte block on EVERY collision query.
+    => um phBoundQuadtree com mais de 2000 polys ou 2000 verts faz memset fora
+       de um bloco de 250 bytes em TODA consulta de colisao.
 
-The octree does not have this problem: ``header+0x80/+0x84`` are exactly the
-type9 counts and size its bitmaps. The quadtree has no such field.
+A octree nao tem esse problema: ``header+0x80/+0x84`` sao exatamente as contagens
+do type9 e dimensionam os bitmaps dela. A quadtree nao tem campo nenhum.
 
-That explains the three LA builds: v13 (1873 polys / 2652 verts) overruns 82
-bytes of the vertex bitmap and survives; v15 (2699/3832) overruns 88+229 and
-freezes; v14 (12378/12991) overruns 1298+1375 and hangs the loading.
+Isso explica os tres builds de LA: v13 (1873 polys / 2652 verts) estoura 82 bytes
+no bitmap de vertices e sobrevive; v15 (2699/3832) estoura 88+229 e da gelo; v14
+(12378/12991) estoura 1298+1375 e trava o loading.
 
-WHAT THIS GENERATOR DOES
-========================
+O QUE ESTE GERADOR FAZ
+======================
 
-It measures the shape retail gives type10 and reproduces it. In the four shipped
-cities, without a single exception across 604 polygons, every type10 face is
-perfectly horizontal, facing up, and large (median span of 102 to 280 units) -
-they are slabs on discrete height levels covering the whole city footprint.
+Mede a forma que o varejo da ao type10 e a reproduz. Nas quatro cidades shipadas,
+sem uma unica excecao em 604 poligonos, toda face do type10 e perfeitamente
+horizontal, virada para cima, e grande (vao mediano de 102 a 280 unidades) - sao
+lajes em patamares de altura discretos cobrindo a planta inteira da cidade.
 
-So: take the type9 floor faces with the ``road`` material (the truth about
-where there is road), rasterise their footprint into a grid, group them by
-height band, merge neighbouring cells into maximal rectangles (greedy meshing)
-and emit one flat quad per rectangle.
+Entao: pega as faces de piso de material ``road`` do type9 (que sao a verdade
+sobre onde ha pista), rasteriza a planta delas numa grade, agrupa por faixa de
+altura, funde celulas vizinhas em retangulos maximos (greedy meshing) e emite um
+quad plano por retangulo.
 
-A quad's height is ``band_index * band - sink``, the band floor and not the
-minimum of the rectangle itself, so that neighbouring slabs of the same band sit
-at the same height and can share vertices. Since every cell of band ``k`` has
-``min_y`` in ``[k*band, (k+1)*band)``, the quad always sits AT OR BELOW every
-type9 road face inside it, with an error bounded by ``band + sink``. That is
-deliberate and checked by the audit: this way it never steals a contact from
-type9 nor creates a step. Where type9 has a hole, it works as a safety net just
-below, instead of letting the car fall out of the world.
+A altura de um quad e ``indice_da_faixa * band - sink``, o piso da faixa e nao o
+minimo do proprio retangulo, para que lajes vizinhas da mesma faixa fiquem na
+mesma altura e possam compartilhar vertice. Como toda celula da faixa ``k`` tem
+``min_y`` em ``[k*band, (k+1)*band)``, o quad fica sempre NO OU ABAIXO de toda
+face de pista do type9 dentro dele, com erro limitado a ``band + sink``. Isso e
+deliberado e e verificado na auditoria: assim ele nunca rouba um contato do type9
+nem cria degrau. Onde o type9 tiver buraco, ele funciona como rede de seguranca
+logo abaixo, em vez de deixar o carro cair do mundo.
 
-The grid occupancy is conservative (see ``rasterize``): covering too little is
-harmless, covering too much would create an invisible platform in the air at
-the edge of elevated roads.
+A ocupacao da grade e conservadora (ver ``rasterize``): cobrir de menos e
+inofensivo, cobrir de mais criaria plataforma invisivel no ar na beira das vias
+elevadas.
 
-The type9 comes out byte for byte identical.
+O type9 sai byte a byte identico.
 
     python rebuild_type10_ground_plane.py --donor losangeles_bnd.pck \\
-        --out out.pck --audit audit.json
+        --out saida.pck --audit auditoria.json
 """
 
 import argparse
@@ -74,13 +74,13 @@ import mc3_bound as MB
 ROAD_GLOBAL_ID = MB.GLOBAL_MATERIAL_IDS['road']
 
 
-# ---------------------------------------------------------------- type9 source
+# ---------------------------------------------------------------- fonte type9
 
 def road_floors(bound, min_ny):
-    """type9 floor faces whose global material is ``road``.
+    """Faces de piso do type9 cujo material global e ``road``.
 
-    Returns (xz_y points, ...) per face. Only upward-facing faces are taken: a
-    face with a downward normal is the belly of an overpass, not road.
+    Devolve (pontos_xz_y, ...) por face. So entram faces viradas para cima: uma
+    face com normal para baixo e a barriga de um viaduto, nao pista.
     """
     node = bound.trees[9]
     verts, polys = bound.geometry(node)
@@ -101,10 +101,10 @@ def road_floors(bound, min_ny):
                      skipped_not_up=skipped_normal)
 
 
-# ------------------------------------------------------------- rasterisation
+# ------------------------------------------------------------- rasterizacao
 
 def tri_rect_overlap(tri, x0, z0, x1, z1):
-    """SAT between a 2D triangle and an axis-aligned rectangle."""
+    """SAT entre um triangulo 2D e um retangulo alinhado aos eixos."""
     tx = [p[0] for p in tri]
     tz = [p[1] for p in tri]
     if max(tx) < x0 or min(tx) > x1 or max(tz) < z0 or min(tz) > z1:
@@ -136,29 +136,29 @@ def point_in_tri(px, pz, tri):
 
 
 def rasterize(faces, cell, origin, sub, fill):
-    """XZ grid -> lowest road height in that cell, with measured coverage.
+    """Grade XZ -> menor altura de pista naquela celula, com cobertura medida.
 
-    The occupancy is CONSERVATIVE on purpose, and this is the most delicate
-    point of the generator. Marking the cell because "some face touched it"
-    makes the slab spill up to a whole cell off the road - and a slab spilling
-    over the edge of an elevated road becomes an invisible platform in the air,
-    with the car landing on it. Covering too little is harmless (type9 still
-    has the road); covering too much creates ground where there should be none.
+    A ocupacao e CONSERVADORA de proposito, e isto e o ponto mais delicado do
+    gerador. Marcar a celula porque "alguma face encostou nela" faz a laje
+    transbordar ate uma celula inteira para fora da pista - e uma laje que
+    transborda da beira de uma via elevada vira plataforma invisivel no ar, com
+    o carro pousando em cima dela. Cobrir de menos e inofensivo (o type9 continua
+    com a pista); cobrir de mais cria chao onde nao devia haver.
 
-    Sampling uses a LATTICE with step ``cell/sub`` whose points fall on the cell
-    edges, not at sub-cell centres. A cell only gets in if ``fill`` of its
-    ``(sub+1)^2`` points - **the four corners included** - are inside some
-    road face.
+    A amostragem e feita numa RETICULA de passo ``cell/sub`` cujos pontos caem
+    sobre as bordas da celula, e nao em centros de sub-celula. Uma celula so
+    entra se ``fill`` dos seus ``(sub+1)^2`` pontos - **os quatro cantos
+    inclusive** - estiver dentro de alguma face de pista.
 
-    This matters more than it seems. Sampling sub-cell centres, the extreme
-    points sit half a step from the edge: with ``sub=4`` the outer 12.5 % of the
-    cell are never tested, and a "fully covered" cell still spills over at the
-    corners. Measured: 0.52 % of the audit samples were exposed exactly like
-    that. With the lattice, the edge is tested.
+    Isso importa mais do que parece. Amostrando centros de sub-celula, os
+    pontos extremos ficam a meio passo da borda: com ``sub=4`` os 12,5 % mais
+    externos da celula nunca sao testados, e uma celula "totalmente coberta"
+    ainda transborda pelos cantos. Medido: 0,52 % das amostras de auditoria
+    ficavam expostas exatamente assim. Com a reticula, a borda e testada.
 
-    The height is the lowest Y among the covered points - the lowest, not the
-    mean: the quad has to pass under everything type9 has there, and a mean
-    would put the slab above part of the road.
+    A altura e o menor Y entre os pontos cobertos - a menor, nao a media: o
+    quad precisa passar por baixo de tudo que o type9 tem ali, e uma media
+    colocaria a laje acima de parte da pista.
     """
     ox, oz = origin
     step = cell / float(sub)
@@ -184,15 +184,15 @@ def rasterize(faces, cell, origin, sub, fill):
     need = max(1, int(round(fill * per_cell)))
     counts, lowest = {}, {}
     for (lx, lz), y in lattice.items():
-        # A lattice point belongs to every cell that touches it - four at the
-        # corners, two on the edges, one inside - which is why neighbouring cells
-        # agree on the edge instead of each judging its own half.
+        # Um ponto de reticula pertence a toda celula que o encosta - quatro nos
+        # cantos, duas nas bordas, uma no interior - e por isso celulas vizinhas
+        # concordam na borda em vez de cada uma julgar a sua metade.
         #
-        # The `set` is not decorative: for an interior point the two candidates
-        # `(lx-1)//sub` and `lx//sub` are the SAME index, and without
-        # deduplicating the point was counted four times for the same cell. The
-        # count went past 25 without the cell being covered, and the occupancy
-        # became looser than the one it was supposed to replace.
+        # O `set` nao e decorativo: para um ponto interior os dois candidatos
+        # `(lx-1)//sub` e `lx//sub` sao o MESMO indice, e sem deduplicar o ponto
+        # era contado quatro vezes para a mesma celula. A contagem passava de 25
+        # sem a celula estar coberta, e a ocupacao virava mais frouxa do que a
+        # que ela deveria substituir.
         cells_x = {(lx - 1) // sub, lx // sub}
         cells_z = {(lz - 1) // sub, lz // sub}
         for gx in cells_x:
@@ -210,11 +210,12 @@ def rasterize(faces, cell, origin, sub, fill):
 # -------------------------------------------------------- greedy rectangles
 
 def greedy_rectangles(cells):
-    """Merge cells with the same key into maximal rectangles.
+    """Funde celulas de mesma chave em retangulos maximos.
 
-    Row scan: find horizontal runs and extend them downwards while the next row
-    has exactly the same run. It is the classic greedy meshing algorithm; it
-    produces few large slabs, which is exactly the shape retail uses.
+    Varredura por linha: acha corridas horizontais e estende para baixo
+    enquanto a linha seguinte tiver exatamente a mesma corrida. E o algoritmo
+    classico de greedy meshing; produz poucas lajes grandes, que e justamente a
+    forma que o varejo usa.
     """
     remaining = dict(cells)
     rects = []
@@ -239,29 +240,29 @@ def greedy_rectangles(cells):
     return rects
 
 
-# ------------------------------------------------------------------- geometry
+# ------------------------------------------------------------------- geometria
 
 def build_geometry(rects, cell, origin, heights, sink, band):
-    """One flat quad per rectangle, with shared vertices.
+    """Um quad plano por retangulo, com vertices compartilhados.
 
-    A slab's height is ``band_index * band - sink``, and NOT the minimum of the
-    rectangle itself. The two properties this buys:
+    A altura de uma laje e ``indice_da_faixa * band - sink``, e NAO o minimo do
+    proprio retangulo. As duas propriedades que isso compra:
 
-    - **it is still guaranteed** that the slab sits at or below every type9 road
-      face inside it. By construction of the band, every cell of the group has
-      ``min_y`` in ``[k*band, (k+1)*band)``, so ``k*band <= min_y`` always.
+    - **continua garantido** que a laje fica no ou abaixo de toda face de pista
+      do type9 dentro dela. Por construcao da faixa, toda celula do grupo tem
+      ``min_y`` em ``[k*band, (k+1)*band)``, logo ``k*band <= min_y`` sempre.
 
-      Mind the reach of that guarantee: ``band + sink`` bounds how far the slab
-      sits below the cell's SAMPLED MINIMUM, not below the road at every point.
-      On a ramp the road rises inside the cell itself, and there the slab ends
-      up deeper - measured, about 8 % of the samples sit between 5 and 10 units
-      below. It stays buried, which is what matters; it is just not "at most
-      band+sink" at every point.
-    - **all slabs of the same band sit at exactly the same height**, so the
-      corners fall on the same grid lines and neighbouring rectangles share
-      vertices. Giving each slab its own Y, no corner coincides: it comes out at
-      4 vertices per polygon and zero reciprocal neighbours - it fits under the
-      ceiling, but wastes the vertex budget.
+      Cuidado com o alcance dessa garantia: ``band + sink`` limita o quanto a
+      laje fica abaixo do MINIMO AMOSTRADO da celula, nao abaixo da pista em
+      todo ponto. Numa rampa a pista sobe dentro da propria celula, e ali a laje
+      fica mais funda - medido, cerca de 8 % das amostras ficam entre 5 e 10
+      unidades abaixo. Continua enterrada, que e o que importa; so nao e "no
+      maximo band+sink" em todo ponto.
+    - **todas as lajes da mesma faixa ficam exatamente na mesma altura**, entao
+      os cantos caem sobre as mesmas linhas de grade e os retangulos vizinhos
+      passam a compartilhar vertice. Dando a cada laje o seu proprio Y, nenhum
+      canto coincide: sai 4 vertices por poligono e zero vizinho reciproco -
+      cabe no teto, mas gasta o orcamento de vertices a toa.
     """
     ox, oz = origin
     verts, vmap, polys = [], {}, []
@@ -269,8 +270,8 @@ def build_geometry(rects, cell, origin, heights, sink, band):
         y = band_index * band - sink
         x0, x1 = ox + gx * cell, ox + (gx + w) * cell
         z0, z1 = oz + gz * cell, oz + (gz + h) * cell
-        # Counter-clockwise seen from above, so the normal comes out +Y, which is
-        # the convention verified in the four shipped cities.
+        # Sentido anti-horario visto de cima, para a normal sair em +Y, que e a
+        # convencao verificada nas quatro cidades shipadas.
         corners = ((x0, y, z0), (x0, y, z1), (x1, y, z1), (x1, y, z0))
         idx = []
         for c in corners:
@@ -286,11 +287,11 @@ def build_geometry(rects, cell, origin, heights, sink, band):
 
 
 def all_floors(bound):
-    """Every upward-facing type9 face, of any material, in an XZ grid.
+    """Toda face do type9 virada para cima, de qualquer material, em grade XZ.
 
-    Any material, not only ``road``: a slab buried under the sidewalk is
-    correctly buried, and requiring road there would flag as exposed a slab that
-    is supported.
+    Qualquer material, nao so ``road``: uma laje enterrada sob a calcada esta
+    corretamente enterrada, e exigir pista ali marcaria como exposta uma laje
+    que esta apoiada.
     """
     node = bound.trees[9]
     verts, polys = bound.geometry(node)
@@ -310,17 +311,17 @@ def all_floors(bound):
 
 
 def drop_exposed(rects, cell, origin, band, sink, faces, grid, gcell, samples, near):
-    """Remove the slabs that would be EXPOSED, that is, with no type9 floor above.
+    """Remove as lajes que ficariam EXPOSTAS, isto e, sem piso do type9 acima.
 
-    The generator is already conservative in the grid occupancy, but the
-    rectangle is a union of cells and its edge can still escape the road here
-    and there. Instead of letting the audit fail over 0.02 % of the samples, the
-    slab that fails is simply dropped: it is redundant with type9 anyway, so
-    losing one costs nothing and guarantees the property by construction.
+    O gerador ja e conservador na ocupacao da grade, mas o retangulo e a uniao
+    de celulas e a borda dele ainda pode escapar da pista num ponto ou outro.
+    Em vez de deixar a auditoria reprovar por 0,02 % das amostras, a laje que
+    falha e simplesmente descartada: ela e redundante com o type9 de qualquer
+    modo, entao perder uma custa nada e garante a propriedade por construcao.
 
-    A point with no face containing it but WITH a type9 floor closer than `near`
-    is in a gap of LA's instanced mesh, not in the air - there the slab is
-    plugging a type9 hole, which is useful, and so it does not count as exposed.
+    Um ponto sem face que o contenha mas COM piso do type9 a menos de `near`
+    esta numa fresta da malha instanciada de LA, nao no ar - ali a laje esta
+    tapando um buraco do type9, que e util, e por isso nao conta como exposta.
     """
     ox, oz = origin
 
@@ -381,11 +382,11 @@ def drop_exposed(rects, cell, origin, band, sink, faces, grid, gcell, samples, n
 
 
 def build_neighbours(polys):
-    """Reciprocal neighbourhood by exactly coincident edges.
+    """Vizinhanca reciproca por aresta exatamente coincidente.
 
-    Rectangles of different sizes form a T-junction, and a T-junction has no
-    reciprocal neighbour. In those cases the edge stays 0xFFFF, which is what
-    retail does too (atlanta has polygons with all four sides loose).
+    Retangulos de tamanhos diferentes formam junta em T, e uma junta em T nao
+    tem vizinho reciproco. Nesses casos a aresta fica 0xFFFF, que e o que o
+    varejo tambem faz (atlanta tem poligonos com os quatro lados soltos).
     """
     neighbours = [[0xFFFF] * 4 for _ in polys]
     edges = {}
@@ -452,13 +453,13 @@ def walk_leaves(blocks, root):
     return result
 
 
-# ---------------------------------------------------------------- serialisation
+# ---------------------------------------------------------------- serializacao
 
 def serialise(donor, verts, polys, neighbours, blocks, root, depth, out_path):
     node = donor.trees[10]
     material_ids = donor.materials(node)
     if ROAD_GLOBAL_ID not in material_ids:
-        raise SystemExit('the donor type10 local palette does not contain road (17)')
+        raise SystemExit('paleta local do type10 doador nao contem road (17)')
     road_index = material_ids.index(ROAD_GLOBAL_ID)
     payload = donor.off(donor.u32(node + 0x78))
     before = donor.data
@@ -470,7 +471,7 @@ def serialise(donor, verts, polys, neighbours, blocks, root, depth, out_path):
         leaf.start, leaf.count = len(refs), len(leaf.ids)
         refs.extend(leaf.ids)
     if len(refs) > 0xFFFF:
-        raise SystemExit('%d refs overflow the u16 start' % len(refs))
+        raise SystemExit('%d refs passam do start u16' % len(refs))
 
     lo = [min(v[a] for v in verts) for a in range(3)]
     hi = [max(v[a] for v in verts) for a in range(3)]
@@ -502,15 +503,15 @@ def serialise(donor, verts, polys, neighbours, blocks, root, depth, out_path):
     vert_off = append(vblob)
     poly_off = append(bytes(pblob))
     index_off = append(struct.pack('<%dH' % len(refs), *refs))
-    # Each four-child vector was serialised by the game with the 16-byte array
-    # header in front of it: count=4 and 12 bytes of 0xCD. Reproduce it.
+    # Cada vetor de quatro filhos foi serializado pelo jogo com o cabecalho de
+    # array de 16 bytes antes dele: count=4 e 12 bytes 0xCD. Reproduzir.
     array4 = struct.pack('<I', 4) + bytes([0xCD]) * 12
     block_offs = [append(array4 + bytes(16)) + 16 for _ in blocks]
 
     def slot_value(item):
         if isinstance(item, Leaf):
             if item.count > 0x3FFF:
-                raise SystemExit('a leaf with %d refs overflows the 14-bit field'
+                raise SystemExit('folha com %d refs passa do campo de 14 bits'
                                  % item.count)
             return (item.start << 16) | (item.count << 2) | 1
         return virtual(block_offs[item[1]])
@@ -551,7 +552,7 @@ def serialise(donor, verts, polys, neighbours, blocks, root, depth, out_path):
     unexpected = [i for i, (old, new) in enumerate(zip(before, data))
                   if old != new and i not in allowed]
     if unexpected:
-        raise SystemExit('unexpected bytes changed: %s' % unexpected[:20])
+        raise SystemExit('bytes inesperados alterados: %s' % unexpected[:20])
 
     with open(out_path, 'wb') as stream:
         stream.write(data)
@@ -572,7 +573,7 @@ def run(args):
     donor_sha = hashlib.sha256(donor.data).hexdigest().upper()
     faces, source_stats = road_floors(donor, args.min_ny)
     if not faces:
-        raise SystemExit('no road face in type9')
+        raise SystemExit('nenhuma face de pista no type9')
     floors, fgrid, fcell = all_floors(donor)
 
     ox = min(min(p[0] for p in f) for f in faces)
@@ -609,7 +610,7 @@ def run(args):
             print('  cell=%-5g band=%-4g -> %5d cells %5d rects %5d verts %5d polys'
                   % (a['cell'], a['band'], a['cells'], a['rects'], a['verts'],
                      a['polys']))
-        raise SystemExit('no combination fit in %d verts / %d polys'
+        raise SystemExit('nenhuma combinacao coube em %d verts / %d polys'
                          % (args.max_verts, args.max_polys))
 
     cell, band, grid, rects, heights, verts, polys, dropped = chosen
@@ -639,20 +640,20 @@ def run(args):
                 nonmanifold_edges=nonmanifold, attempts=attempts,
                 cap_polys=args.max_polys, cap_verts=args.max_verts)
 
-    print('type9 road        : %d upward road faces (of %d polys)'
+    print('type9 pista       : %d faces road viradas para cima (de %d polys)'
           % (source_stats['road_floors'], source_stats['type9_polys']))
-    print('grid              : cell=%g, band=%g -> %d occupied cells'
+    print('grade             : cell=%g, band=%g -> %d celulas ocupadas'
           % (cell, band, len(grid)))
-    print('slabs             : %d rectangles -> %d polys, %d verts '
-          '(%d dropped for being exposed)'
+    print('lajes             : %d retangulos -> %d polys, %d verts '
+          '(%d descartadas por ficarem expostas)'
           % (len(rects), len(polys), len(verts), dropped))
-    print('class ceiling     : %d/2000 polys, %d/2000 verts  %s'
+    print('teto da classe    : %d/2000 polys, %d/2000 verts  %s'
           % (len(polys), len(verts),
-             'OK' if len(polys) <= 2000 and len(verts) <= 2000 else 'OVERFLOWS'))
-    print('quadtree          : %d blocks, %d leaves, %d refs, depth %d, cell %.4f'
+             'OK' if len(polys) <= 2000 and len(verts) <= 2000 else 'ESTOURA'))
+    print('quadtree          : %d blocos, %d folhas, %d refs, depth %d, cell %.4f'
           % (info['blocks'], info['leaves'], info['refs'], depth, info['cell_size']))
-    print('edges             : %d paired, %d non-manifold' % (paired, nonmanifold))
-    print('written           : %s  %d bytes' % (args.out, info['size']))
+    print('arestas           : %d pareadas, %d nao-manifold' % (paired, nonmanifold))
+    print('gravado           : %s  %d bytes' % (args.out, info['size']))
     print('SHA256            : %s' % info['sha256'])
     if args.audit:
         with open(args.audit, 'w', encoding='utf-8') as stream:
@@ -671,18 +672,18 @@ def main():
                     default=[16, 20, 24, 32, 40, 48, 64, 80])
     ap.add_argument('--bands', type=float, nargs='+', default=[2.0, 4.0, 8.0])
     ap.add_argument('--sink', type=float, default=0.05,
-                    help='how far below the lowest type9 floor the slab sits')
+                    help='quanto abaixo do menor piso type9 a laje fica')
     ap.add_argument('--min-ny', type=float, default=0.70)
     ap.add_argument('--sub', type=int, default=4,
-                    help='samples per side inside each cell')
+                    help='amostras por lado dentro de cada celula')
     ap.add_argument('--fill', type=float, default=1.00,
-                    help='minimum fraction of the cell lattice points '
-                         'covered by road; 1.0 requires all four corners')
+                    help='fracao minima dos pontos de reticula da celula '
+                         'cobertos por pista; 1.0 exige os quatro cantos')
     ap.add_argument('--verify', type=int, default=6,
-                    help='samples per side when checking each slab against '
-                         'type9; an exposed slab is dropped')
+                    help='amostras por lado ao conferir cada laje contra o '
+                         'type9; a laje exposta e descartada')
     ap.add_argument('--near', type=float, default=6.0,
-                    help='radius separating a gap in the type9 mesh from empty space')
+                    help='raio que separa fresta da malha do type9 de vazio')
     ap.add_argument('--max-polys', type=int, default=1800)
     ap.add_argument('--max-verts', type=int, default=1800)
     ap.add_argument('--depth', type=int, default=8)

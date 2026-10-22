@@ -30,6 +30,21 @@
     "last_verified": null
   },
   {
+    "name": "mc2_inventario",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc2_inventario.py",
+    "summary": "Inventory of the Midnight Club 2 city assets.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/cities/mc2_inventario",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc2_inventory",
     "kind": "tool",
     "title": "midnight_club_2",
@@ -51,9 +66,24 @@
     "platform": "ps2",
     "type": "cities",
     "entry": "mc2_props.py",
-    "summary": "mc2_props.py - inventory of the props of a Midnight Club 2 city.",
+    "summary": "mc2_props.py - inventario dos props de uma cidade do Midnight Club 2.",
     "status": "unverified",
     "path": "midnight_club_2/ps2/cities/mc2_props",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_props_cidades",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc2_props_cidades.py",
+    "summary": "mc2_props_cidades.py - inventory of the props of EVERY Midnight Club 2 city",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/cities/mc2_props_cidades",
     "maintainers": [
       "znxee"
     ],
@@ -75,13 +105,43 @@
     "last_verified": null
   },
   {
+    "name": "mc2_pvs",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc2_pvs.py",
+    "summary": "mc2_pvs.py - the potentially-visible set of a Midnight Club 2 city",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/cities/mc2_pvs",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_pvs_pack",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc2_pvs_pack.py",
+    "summary": "Pack MC2's per-cell PVS into a file small enough for the city renderer.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/cities/mc2_pvs_pack",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc2_roads_to_mc3",
     "kind": "tool",
     "title": "midnight_club_2",
     "platform": "ps2",
     "type": "cities",
     "entry": "mc2_roads_to_mc3.py",
-    "summary": "Replace only the type10 quadtree of a ``*_bnd.pck`` with MC2's streets.",
+    "summary": "Substitui apenas a quadtree type10 de um ``*_bnd.pck`` pelas ruas do MC2.",
     "status": "unverified",
     "path": "midnight_club_2/ps2/cities/mc2_roads_to_mc3",
     "maintainers": [
@@ -96,7 +156,7 @@
     "platform": "ps2",
     "type": "collision",
     "entry": "mc2_bnd_parse.py",
-    "summary": "Read MC2's text `.bnd` (`type: otgrid`) and return ONE global mesh.",
+    "summary": "Le o `.bnd` de texto do MC2 (`type: otgrid`) e devolve UMA malha global.",
     "status": "unverified",
     "path": "midnight_club_2/ps2/collision/mc2_bnd_parse",
     "maintainers": [
@@ -111,7 +171,7 @@
     "platform": "ps2",
     "type": "collision",
     "entry": "mc2_bnd_to_mc3.py",
-    "summary": "Convert MC2's text collision (`otgrid`) into MC3's `_bnd.pck`.",
+    "summary": "Converte a colisao de texto do MC2 (`otgrid`) para o `_bnd.pck` do MC3.",
     "status": "unverified",
     "path": "midnight_club_2/ps2/collision/mc2_bnd_to_mc3",
     "maintainers": [
@@ -150,15 +210,30 @@
     "last_verified": null
   },
   {
+    "name": "mc2_map_fit",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "mc2_map_fit.py",
+    "summary": "Which rectangle of the world a MC2 HUD map (assets/texture/hud_map_<x>.tex)",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/general/mc2_map_fit",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc2_pillar_legs",
     "kind": "tool",
     "title": "midnight_club_2",
     "platform": "ps2",
-    "type": "collision",
+    "type": "general",
     "entry": "mc2_pillar_legs.py",
     "summary": "Pillar feet of an MC2 city: the ones MC2 left without a collision box, and",
     "status": "unverified",
-    "path": "midnight_club_2/ps2/collision/mc2_pillar_legs",
+    "path": "midnight_club_2/ps2/general/mc2_pillar_legs",
     "maintainers": [
       "znxee"
     ],
@@ -186,7 +261,7 @@
     "platform": "ps2",
     "type": "general",
     "entry": "mc2_ps2_place.py",
-    "summary": "Bridge: MC2 PS2 city -> the place.tsv and .mod files mc3_city_build reads.",
+    "summary": "Ponte: cidade do MC2 de PS2 -> o place.tsv e os .mod que o mc3_city_build le.",
     "status": "unverified",
     "path": "midnight_club_2/ps2/general/mc2_ps2_place",
     "maintainers": [
@@ -255,15 +330,15 @@
     "last_verified": null
   },
   {
-    "name": "mc2_map_fit",
+    "name": "mc2_career_manifest",
     "kind": "tool",
     "title": "midnight_club_2",
     "platform": "ps2",
-    "type": "menu",
-    "entry": "mc2_map_fit.py",
-    "summary": "Which rectangle of the world a MC2 HUD map (assets/texture/hud_map_<x>.tex)",
+    "type": "races",
+    "entry": "mc2_career_manifest.py",
+    "summary": "mc2_career_manifest.py — Parse MC2 career data, validate graph rules and generate deterministic manifest.",
     "status": "unverified",
-    "path": "midnight_club_2/ps2/menu/mc2_map_fit",
+    "path": "midnight_club_2/ps2/races/mc2_career_manifest",
     "maintainers": [
       "znxee"
     ],
@@ -285,6 +360,21 @@
     "last_verified": null
   },
   {
+    "name": "mc2_race_names",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "races",
+    "entry": "mc2_race_names.py",
+    "summary": "Give the converted MC2 races their MC2 names in MC3's string tables.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/races/mc2_race_names",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc2_race_obstacles",
     "kind": "tool",
     "title": "midnight_club_2",
@@ -294,6 +384,21 @@
     "summary": "Route legs of converted MC2 races that run into an MC2 obstacle prop.",
     "status": "unverified",
     "path": "midnight_club_2/ps2/races/mc2_race_obstacles",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_race_order",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "races",
+    "entry": "mc2_race_order.py",
+    "summary": "Put the converted MC2 races of an MC3 city's .loc in MC2's own order.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/races/mc2_race_order",
     "maintainers": [
       "znxee"
     ],
@@ -411,7 +516,7 @@
     "platform": "ps2",
     "type": "audio",
     "entry": "mc3_audio_studio.py",
-    "summary": "MC3 Audio Studio - unified vehicle audio editor for Midnight Club 3.",
+    "summary": "MC3 Audio Studio - editor unificado de audio de veiculos do Midnight Club 3.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/audio/mc3_audio_studio",
     "maintainers": [
@@ -426,7 +531,7 @@
     "platform": "ps2",
     "type": "cities",
     "entry": "build_hood.py",
-    "summary": "Build losangeles with a subset of LA's neighbourhoods, reproducing the v9 recipe",
+    "summary": "Monta a losangeles com um subconjunto de bairros de LA, reproduzindo a receita",
     "status": "unverified",
     "path": "midnight_club_3/ps2/cities/build_hood",
     "maintainers": [
@@ -441,7 +546,7 @@
     "platform": "ps2",
     "type": "cities",
     "entry": "mc3_cellcount.py",
-    "summary": "Extend the per-cell arrays of props and peds to fit the city's cell_count.",
+    "summary": "Estende os arrays por-celula de props e peds para caber no cell_count da cidade.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/cities/mc3_cellcount",
     "maintainers": [
@@ -456,7 +561,7 @@
     "platform": "ps2",
     "type": "cities",
     "entry": "mc3_cellindex.py",
-    "summary": "mc3_cellindex.py - rebuild the per-cell index at MapRoot+0x1C",
+    "summary": "mc3_cellindex.py - reconstruir o indice por celula em MapRoot+0x1C",
     "status": "unverified",
     "path": "midnight_club_3/ps2/cities/mc3_cellindex",
     "maintainers": [
@@ -531,7 +636,7 @@
     "platform": "ps2",
     "type": "cities",
     "entry": "mc3_cityaudit.py",
-    "summary": "mc3_cityaudit.py - the instance -> kind association, checked one by one",
+    "summary": "mc3_cityaudit.py - a associacao instancia -> tipo, conferida uma a uma",
     "status": "unverified",
     "path": "midnight_club_3/ps2/cities/mc3_cityaudit",
     "maintainers": [
@@ -600,6 +705,21 @@
     "last_verified": null
   },
   {
+    "name": "mc3_instala_cidade",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_instala_cidade.py",
+    "summary": "Instala um .pck de cidade nas variantes de clima - e SO nelas.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_instala_cidade",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_install_city",
     "kind": "tool",
     "title": "midnight_club_3",
@@ -651,7 +771,7 @@
     "platform": "ps2",
     "type": "collision",
     "entry": "audit_collision_v18.py",
-    "summary": "Audit of a candidate in which TYPE9 changed (and type10 with it).",
+    "summary": "Auditoria de um candidato em que o TYPE9 mudou (e o type10 junto).",
     "status": "unverified",
     "path": "midnight_club_3/ps2/collision/audit_collision_v18",
     "maintainers": [
@@ -666,7 +786,7 @@
     "platform": "ps2",
     "type": "collision",
     "entry": "audit_type10_groundplane.py",
-    "summary": "Audit of a candidate ``*_bnd.pck`` whose ONLY change is the type10 quadtree.",
+    "summary": "Auditoria de um ``*_bnd.pck`` candidato cuja mudanca e SO a quadtree type10.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/collision/audit_type10_groundplane",
     "maintainers": [
@@ -681,7 +801,7 @@
     "platform": "ps2",
     "type": "collision",
     "entry": "compact_bnd.py",
-    "summary": "Rewrite a ``*_bnd.pck`` in a compact layout, without changing any content.",
+    "summary": "Reescreve um ``*_bnd.pck`` em layout compacto, sem mudar nada do conteudo.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/collision/compact_bnd",
     "maintainers": [
@@ -711,7 +831,7 @@
     "platform": "ps2",
     "type": "collision",
     "entry": "mc3_occlude.py",
-    "summary": "mc3_occlude.py - the city culling that is NOT in the .pck",
+    "summary": "mc3_occlude.py - o culling da cidade que NAO esta no .pck",
     "status": "unverified",
     "path": "midnight_club_3/ps2/collision/mc3_occlude",
     "maintainers": [
@@ -726,7 +846,7 @@
     "platform": "ps2",
     "type": "collision",
     "entry": "rebuild_type10_from_type9_road.py",
-    "summary": "Rebuild the type10 road quadtree from every type9 road floor.",
+    "summary": "Reconstroi a quadtree viaria type10 com todos os pisos road do type9.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/collision/rebuild_type10_from_type9_road",
     "maintainers": [
@@ -741,7 +861,7 @@
     "platform": "ps2",
     "type": "collision",
     "entry": "rebuild_type10_ground_plane.py",
-    "summary": "Rebuild the ``type10`` quadtree of a ``*_bnd.pck`` as a coarse ground plane,",
+    "summary": "Reconstroi a quadtree ``type10`` de um ``*_bnd.pck`` como plano de chao",
     "status": "unverified",
     "path": "midnight_club_3/ps2/collision/rebuild_type10_ground_plane",
     "maintainers": [
@@ -756,7 +876,7 @@
     "platform": "ps2",
     "type": "collision",
     "entry": "rebuild_type10_targeted_road.py",
-    "summary": "Rebuild type10 from the global network and explicitly chosen type9 batches.",
+    "summary": "Reconstroi o type10 com a rede global e lotes type9 explicitamente escolhidos.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/collision/rebuild_type10_targeted_road",
     "maintainers": [
@@ -786,7 +906,7 @@
     "platform": "ps2",
     "type": "emulator",
     "entry": "freecam_input.py",
-    "summary": "freecam_input package",
+    "summary": "freecam_input package from the live kit",
     "status": "unverified",
     "path": "midnight_club_3/ps2/emulator/freecam_input",
     "maintainers": [
@@ -810,13 +930,28 @@
     "last_verified": null
   },
   {
+    "name": "mc3_campos",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "mc3_campos.py",
+    "summary": "mc3_campos.py - que offsets de uma estrutura o jogo REALMENTE toca",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/mc3_campos",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_heap_dump",
     "kind": "tool",
     "title": "midnight_club_3",
     "platform": "ps2",
     "type": "emulator",
     "entry": "mc3_heap_dump.py",
-    "summary": "Rebuild the heap block the `mesh_dump` mod dumped to the EE console.",
+    "summary": "Reconstroi o bloco de heap que o mod `mesh_dump` despejou no console do EE.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/emulator/mc3_heap_dump",
     "maintainers": [
@@ -831,7 +966,7 @@
     "platform": "ps2",
     "type": "emulator",
     "entry": "mc3_heap_to_pck.py",
-    "summary": "Turn the `mesh_dump` heap dump into a mesh `.pck`.",
+    "summary": "Transforma o despejo de heap do `mesh_dump` num `.pck` de malha.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/emulator/mc3_heap_to_pck",
     "maintainers": [
@@ -846,7 +981,7 @@
     "platform": "ps2",
     "type": "emulator",
     "entry": "mc3_pcsx2.py",
-    "summary": "Run PCSX2 from the command line and return what the EE/IOP console said.",
+    "summary": "Roda o PCSX2 pela linha de comando e devolve o que o console do EE/IOP disse.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/emulator/mc3_pcsx2",
     "maintainers": [
@@ -936,7 +1071,7 @@
     "platform": "ps2",
     "type": "emulator",
     "entry": "mc3_savestate.py",
-    "summary": "Take a PCSX2 savestate unattended, through PINE.",
+    "summary": "Tira um savestate do PCSX2 sozinho, via PINE.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/emulator/mc3_savestate",
     "maintainers": [
@@ -951,7 +1086,7 @@
     "platform": "ps2",
     "type": "emulator",
     "entry": "",
-    "summary": "ReShade telemetry addon for the mc3_telemetry module (C++ and HLSL, built with build_addon.cmd)",
+    "summary": "reshade_telemetry package from the live kit",
     "status": "unverified",
     "path": "midnight_club_3/ps2/emulator/reshade_telemetry",
     "maintainers": [
@@ -966,7 +1101,7 @@
     "platform": "ps2",
     "type": "general",
     "entry": "",
-    "summary": "experimental package",
+    "summary": "experimental package from the live kit",
     "status": "unverified",
     "path": "midnight_club_3/ps2/general/experimental",
     "maintainers": [
@@ -981,24 +1116,9 @@
     "platform": "ps2",
     "type": "general",
     "entry": "graft_sky_group.py",
-    "summary": "Append a retail donor's embedded sky group to a generated PCK.",
+    "summary": "Anexa a um PCK gerado o grupo de ceu embutido de um doador retail.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/general/graft_sky_group",
-    "maintainers": [
-      "znxee"
-    ],
-    "last_verified": null
-  },
-  {
-    "name": "mc3_alpha_map",
-    "kind": "tool",
-    "title": "midnight_club_3",
-    "platform": "ps2",
-    "type": "general",
-    "entry": "mc3_alpha_map.py",
-    "summary": "mc3_alpha_map.py - read the October 2004 alpha's linker map (MC.MAP)",
-    "status": "unverified",
-    "path": "midnight_club_3/ps2/general/mc3_alpha_map",
     "maintainers": [
       "znxee"
     ],
@@ -1041,7 +1161,7 @@
     "platform": "ps2",
     "type": "general",
     "entry": "mc3_extent_ab.py",
-    "summary": "mc3_extent_ab.py - why two decoders disagree about the extent",
+    "summary": "mc3_extent_ab.py - por que dois decodificadores discordam da extensao",
     "status": "unverified",
     "path": "midnight_club_3/ps2/general/mc3_extent_ab",
     "maintainers": [
@@ -1080,6 +1200,21 @@
     "last_verified": null
   },
   {
+    "name": "mc3_shadinggroup",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "mc3_shadinggroup.py",
+    "summary": "mc3_shadinggroup.py - extracts the index->shader table (shadinggroup) from an",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/general/mc3_shadinggroup",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_view",
     "kind": "tool",
     "title": "midnight_club_3",
@@ -1101,9 +1236,24 @@
     "platform": "ps2",
     "type": "geometry",
     "entry": "mc3_build_iso_assets.py",
-    "summary": "Build the console ASSETS.DAT without compressing the losangeles PCK/PPF files.",
+    "summary": "Constroi o ASSETS.DAT de console sem comprimir PCK/PPF de losangeles.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/geometry/mc3_build_iso_assets",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_cobertura",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_cobertura.py",
+    "summary": "mc3_cobertura.py - quanto do .pck de cidade a gente ja sabe ler",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_cobertura",
     "maintainers": [
       "znxee"
     ],
@@ -1125,13 +1275,28 @@
     "last_verified": null
   },
   {
+    "name": "mc3_compacta",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_compacta.py",
+    "summary": "mc3_compacta.py - reclaim the dead geometry a hood fill leaves behind",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_compacta",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_iso",
     "kind": "tool",
     "title": "midnight_club_3",
     "platform": "ps2",
     "type": "geometry",
     "entry": "mc3_iso.py",
-    "summary": "Put loose files into the root of a PS2 ISO without rebuilding it.",
+    "summary": "Poe arquivos soltos na raiz de uma ISO de PS2 sem remonta-la.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/geometry/mc3_iso",
     "maintainers": [
@@ -1161,7 +1326,7 @@
     "platform": "ps2",
     "type": "geometry",
     "entry": "mc3_iso_repack_root.py",
-    "summary": "Repack the modified root files into the tail of an ISO9660 image.",
+    "summary": "Reempacota os arquivos modificados da raiz na cauda de uma ISO9660.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/geometry/mc3_iso_repack_root",
     "maintainers": [
@@ -1191,7 +1356,7 @@
     "platform": "ps2",
     "type": "geometry",
     "entry": "mc3_mod_split.py",
-    "summary": "Slice a text .mod into INTERNALLY CONSISTENT pieces.",
+    "summary": "Fatia um .mod de texto em pedacos INTERNAMENTE CONSISTENTES.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/geometry/mc3_mod_split",
     "maintainers": [
@@ -1266,7 +1431,7 @@
     "platform": "ps2",
     "type": "geometry",
     "entry": "mc3_v7_to_current.py",
-    "summary": "Port new VIF packets into a modern city without rebuilding its structure.",
+    "summary": "Porta pacotes VIF novos para uma cidade moderna sem reconstruir sua estrutura.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/geometry/mc3_v7_to_current",
     "maintainers": [
@@ -1281,7 +1446,7 @@
     "platform": "ps2",
     "type": "geometry",
     "entry": "mc3_v7_to_current_v2.py",
-    "summary": "Conservative transplant of v7/forge VIF into the modern PCK.",
+    "summary": "Transplante conservador de VIF v7/forge para o PCK moderno.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/geometry/mc3_v7_to_current_v2",
     "maintainers": [
@@ -1311,7 +1476,7 @@
     "platform": "ps2",
     "type": "geometry",
     "entry": "mc3_vifparse.py",
-    "summary": "A real VIF parser: STCYCL/STROW/UNPACK with masking.",
+    "summary": "Parser de VIF de verdade: STCYCL/STROW/UNPACK com mascara.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/geometry/mc3_vifparse",
     "maintainers": [
@@ -1440,6 +1605,36 @@
     "last_verified": null
   },
   {
+    "name": "mc3_swf",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "menu",
+    "entry": "mc3_swf.py",
+    "summary": "mc3_swf.py - the flash .pck of Midnight Club 3, read completely and written",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/menu/mc3_swf",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_swf2pck",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "menu",
+    "entry": "mc3_swf2pck.py",
+    "summary": "mc3_swf2pck.py - the way back: a .swf compiled into the alpha's flash .pck",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/menu/mc3_swf2pck",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_elfpatch",
     "kind": "tool",
     "title": "midnight_club_3",
@@ -1485,6 +1680,21 @@
     "last_verified": null
   },
   {
+    "name": "mc3_obrigatorio",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "modloader",
+    "entry": "mc3_obrigatorio.py",
+    "summary": "mc3_obrigatorio.py - que campo do .pck de cidade NUNCA vem nulo no varejo",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/modloader/mc3_obrigatorio",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_output",
     "kind": "library",
     "title": "midnight_club_3",
@@ -1500,6 +1710,21 @@
     "last_verified": null
   },
   {
+    "name": "mc3_pnach",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "modloader",
+    "entry": "mc3_pnach.py",
+    "summary": "mc3_pnach.py - audit the pnach files PCSX2 will load for one game",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/modloader/mc3_pnach",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_required",
     "kind": "tool",
     "title": "midnight_club_3",
@@ -1509,6 +1734,21 @@
     "summary": "mc3_required.py - which city .pck fields are NEVER null in retail",
     "status": "unverified",
     "path": "midnight_club_3/ps2/modloader/mc3_required",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_saida",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "modloader",
+    "entry": "mc3_saida.py",
+    "summary": "mc3_saida.py - where generated files go",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/modloader/mc3_saida",
     "maintainers": [
       "znxee"
     ],
@@ -1536,7 +1776,7 @@
     "platform": "ps2",
     "type": "modloader",
     "entry": "",
-    "summary": "mc3allin package",
+    "summary": "mc3allin package from the live kit",
     "status": "unverified",
     "path": "midnight_club_3/ps2/modloader/mc3allin",
     "maintainers": [
@@ -2505,6 +2745,21 @@
     "last_verified": null
   },
   {
+    "name": "generate_mc2_career_data",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "races",
+    "entry": "generate_mc2_career_data.py",
+    "summary": "generate_mc2_career_data.py — Generate mc2_career_data.h and mc2_career_data.cpp from manifest.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/races/generate_mc2_career_data",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_race_tour",
     "kind": "tool",
     "title": "midnight_club_3",
@@ -2541,9 +2796,24 @@
     "platform": "ps2",
     "type": "reverse",
     "entry": "",
-    "summary": "two Ghidra exporters (Java), run inside Ghidra, not from this runner",
+    "summary": "ghidra_scripts package from the live kit",
     "status": "unverified",
     "path": "midnight_club_3/ps2/reverse/ghidra_scripts",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_alpha_map",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "reverse",
+    "entry": "mc3_alpha_map.py",
+    "summary": "mc3_alpha_map.py - read the October 2004 alpha's linker map (MC.MAP)",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/reverse/mc3_alpha_map",
     "maintainers": [
       "znxee"
     ],
@@ -2586,7 +2856,7 @@
     "platform": "ps2",
     "type": "reverse",
     "entry": "mc3_mipsx.py",
-    "summary": "Tiny capstone helpers for the retail ELF, meant for an interactive session.",
+    "summary": "import struct",
     "status": "unverified",
     "path": "midnight_club_3/ps2/reverse/mc3_mipsx",
     "maintainers": [
@@ -2601,7 +2871,7 @@
     "platform": "ps2",
     "type": "reverse",
     "entry": "mc3_parser.py",
-    "summary": "mc3_parser.py - pull the field NAMES out of the FileIO(datParser&) functions",
+    "summary": "mc3_parser.py - arrancar os NOMES dos campos das funcoes FileIO(datParser&)",
     "status": "unverified",
     "path": "midnight_club_3/ps2/reverse/mc3_parser",
     "maintainers": [
@@ -2625,28 +2895,13 @@
     "last_verified": null
   },
   {
-    "name": "mc3_shadinggroup",
-    "kind": "tool",
-    "title": "midnight_club_3",
-    "platform": "ps2",
-    "type": "reverse",
-    "entry": "mc3_shadinggroup.py",
-    "summary": "mc3_shadinggroup.py - extracts the index->shader table (shadinggroup) from an",
-    "status": "unverified",
-    "path": "midnight_club_3/ps2/reverse/mc3_shadinggroup",
-    "maintainers": [
-      "znxee"
-    ],
-    "last_verified": null
-  },
-  {
     "name": "mc3_vtables",
     "kind": "tool",
     "title": "midnight_club_3",
     "platform": "ps2",
     "type": "reverse",
     "entry": "mc3_vtables.py",
-    "summary": "mc3_vtables.py - NAME the .pck structures without opening IDA",
+    "summary": "mc3_vtables.py - dar NOME as estruturas do .pck, sem abrir a IDA",
     "status": "unverified",
     "path": "midnight_club_3/ps2/reverse/mc3_vtables",
     "maintainers": [
@@ -2706,7 +2961,7 @@
     "platform": "ps2",
     "type": "shaders",
     "entry": "mc3_shaderprog.py",
-    "summary": "mc3_shaderprog.py - read the byte program of an rmcShaderComplex",
+    "summary": "mc3_shaderprog.py - ler o programa de bytes de um rmcShaderComplex",
     "status": "unverified",
     "path": "midnight_club_3/ps2/shaders/mc3_shaderprog",
     "maintainers": [
@@ -2754,6 +3009,21 @@
     "summary": "Fog factor per textured draw group in a PCSX2 GS dump.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/textures/mc3_gsdump_fog",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_paleta",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "textures",
+    "entry": "mc3_paleta.py",
+    "summary": "Troca as duas paletas de cor por vertice de um .pck de cidade ja montado.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/textures/mc3_paleta",
     "maintainers": [
       "znxee"
     ],
@@ -2856,7 +3126,7 @@
     "platform": "ps2",
     "type": "traffic",
     "entry": "mc3_city_aib.py",
-    "summary": "mc3_city_aib.py - generate the .graph and the _pvs.aib of a new city.",
+    "summary": "mc3_city_aib.py - gera o .graph e o _pvs.aib de uma cidade nova.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/traffic/mc3_city_aib",
     "maintainers": [
@@ -2940,6 +3210,21 @@
     "last_verified": null
   },
   {
+    "name": "mc3_traffic_opponents",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc3_traffic_opponents.py",
+    "summary": "Build optional *_traffic_vpo.pck packs from real opponent *_o.pck donors.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/mc3_traffic_opponents",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_traffic_trains",
     "kind": "tool",
     "title": "midnight_club_3",
@@ -2955,6 +3240,36 @@
     "last_verified": null
   },
   {
+    "name": "mc3_traffic_wheels",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc3_traffic_wheels.py",
+    "summary": "Stock VP wheel geometry and mounting points for optional ambient packs.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/mc3_traffic_wheels",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "test_traffic_opponents",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "test_traffic_opponents.py",
+    "summary": "Read-only integration checks for staged opponent traffic artifacts.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/test_traffic_opponents",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_perf",
     "kind": "tool",
     "title": "midnight_club_3",
@@ -2964,6 +3279,21 @@
     "summary": "mc3_perf.py - read/write the performance parameters of a car PCK.",
     "status": "unverified",
     "path": "midnight_club_3/ps2/vehicles/mc3_perf",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_perf_bench",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "vehicles",
+    "entry": "mc3_perf_bench.py",
+    "summary": "Benchmark the game under PCSX2: host frames per second, with the frame",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/vehicles/mc3_perf_bench",
     "maintainers": [
       "znxee"
     ],
@@ -3000,6 +3330,36 @@
     "last_verified": null
   },
   {
+    "name": "mc3_xbox_mod",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "xbox",
+    "type": "general",
+    "entry": "mc3_xbox_mod.py",
+    "summary": "Build/inspect native relocatable i386 .xmod containers. Never accepts PS2 .mod.",
+    "status": "unverified",
+    "path": "midnight_club_3/xbox/general/mc3_xbox_mod",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_xbox_boot",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "xbox",
+    "type": "modloader",
+    "entry": "mc3_xbox_boot.py",
+    "summary": "MC3 Remix Xbox bootstrap + runtime INI/external i386 XMOD loader.",
+    "status": "unverified",
+    "path": "midnight_club_3/xbox/modloader/mc3_xbox_boot",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_mcla_vehicle_port",
     "kind": "tool",
     "title": "midnight_club_la",
@@ -3021,7 +3381,7 @@
     "platform": "any",
     "type": "audio",
     "entry": "",
-    "summary": "bnk_tool package",
+    "summary": "bnk_tool package from the live kit",
     "status": "unverified",
     "path": "shared/any/audio/bnk_tool",
     "maintainers": [
@@ -3099,6 +3459,21 @@
     "summary": "mc3_symbols.py - carry the alpha build's function names over to the retail ELF",
     "status": "unverified",
     "path": "shared/any/general/mc3_symbols",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_tasks",
+    "kind": "tool",
+    "title": "shared",
+    "platform": "any",
+    "type": "general",
+    "entry": "mc3_tasks.py",
+    "summary": "TASKS.md - canonical work queue shared by the MC3 forks.",
+    "status": "unverified",
+    "path": "shared/any/general/mc3_tasks",
     "maintainers": [
       "znxee"
     ],

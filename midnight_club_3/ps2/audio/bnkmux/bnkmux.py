@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """Entry point: interactive MUX/DEMUX tool for Sony .bnk (989SND/SCREAM) files.
 
-Interactive use:
+Uso interativo:
     python bnkmux.py
 
-Command-line use:
-    python bnkmux.py demux file.bnk out_folder [--td file.td]
-    python bnkmux.py mux original.bnk out_folder/manifest.json out.bnk [--replace 2=new.genh]
-    python bnkmux.py build out.bnk --dir folder_with_genh
-    python bnkmux.py build out.bnk --spec spec.json
-    python bnkmux.py info file.bnk
+Uso via linha de comando:
+    python bnkmux.py demux arquivo.bnk pasta_saida [--td arquivo.td]
+    python bnkmux.py mux original.bnk pasta_saida/manifest.json saida.bnk [--replace 2=novo.genh]
+    python bnkmux.py build saida.bnk --dir pasta_com_genh
+    python bnkmux.py build saida.bnk --spec spec.json
+    python bnkmux.py info arquivo.bnk
 """
 import sys
 import os

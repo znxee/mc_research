@@ -22,9 +22,9 @@ at +0x08, aimed at the object right behind it, so relocating one is a single
 fixup. Nothing else in it points anywhere - the rest is vtables, which are
 absolute ELF addresses and stay valid wherever the object lands.
 
-    python mc3_city_build.py --donor atlanta_midnight_clear.pck --out-path novo.pck
-    python mc3_city_build.py --donor ... --xmod M.xmod --out-path novo.pck
-    python mc3_city_build.py --verify- novo.pck
+    python mc3_city_build.py --doador atlanta_midnight_clear.pck --saida novo.pck
+    python mc3_city_build.py --doador ... --xmod M.xmod --saida novo.pck
+    python mc3_city_build.py --verificar novo.pck
 
 The default content is a test cube, which is the smallest thing that proves the
 whole chain: if a cube appears at a known place with a known size, the header,
@@ -39,179 +39,181 @@ import os
 import struct
 import sys
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
+_AQUI = os.path.dirname(os.path.abspath(__file__))
 _SPEC = importlib.util.spec_from_file_location(
-    'mc2_to_mc3', os.path.join(_HERE, 'experimental', 'mc2_to_mc3.py'))
+    'mc2_to_mc3', os.path.join(_AQUI, 'experimental', 'mc2_to_mc3.py'))
 mc2 = importlib.util.module_from_spec(_SPEC)
 sys.modules['mc2_to_mc3'] = mc2
 _SPEC.loader.exec_module(mc2)
 
-BASE_VA = 0x06800000        # the same for every retail city
-CITY_KIND = 67
-VERSION = 1
+BASE_VA = 0x06800000        # a mesma de toda cidade do retail
+TIPO_CIDADE = 67
+VERSAO = 1
 
-# THE TOKEN SPACE IS PER CITY, and ignoring that was a bug of mine.
+# O ESPACO DE TOKEN E POR CIDADE, e ignorar isso foi um bug meu.
 #
-# The VT_* constants in this file were all measured on ATLANTA. Measured:
-# atlanta, detroit and sd share one space (MapRoot+0x00 = 0x007A0138) but
-# TOKYO uses the same space shifted by +0x488 (0x007A05C0). When building a city
-# hosted on tokyo I wrote MapRoot+0x00 and the 18 group descriptors with ATLANTA
-# tokens - the file came out with tokyo structure and atlanta tokens mixed.
+# As constantes VT_* deste arquivo foram todas medidas no ATLANTA. Medido:
+# atlanta, detroit e sd usam o mesmo espaco (MapRoot+0x00 = 0x007A0138) mas o
+# TOKYO usa o mesmo espaco deslocado de +0x488 (0x007A05C0). Gerando uma cidade
+# hospedada no tokyo eu escrevia MapRoot+0x00 e os 18 descritores de grupo com
+# os tokens do ATLANTA - o arquivo saia com estrutura em tokyo e tokens de
+# atlanta misturados.
 #
-# The shift is discovered from the donor itself in `donor_token`, and every
-# emitted token goes through `tok()`. There is no table of cities: MapRoot+0x00
-# of the donor is read and compared with the constant measured here.
-TOKEN_SHIFT = 0            # filled in by donor_token()
+# O deslocamento e descoberto do proprio doador em `token_do_doador`, e todo
+# token emitido passa por `tok()`. Nao ha tabela de cidades: le-se o
+# MapRoot+0x00 do doador e compara-se com a constante medida aqui.
+DESLOC_TOKEN = 0            # preenchido por token_do_doador()
 
 
 def tok(v):
-    """A class token in the donor's token space."""
-    return v + TOKEN_SHIFT
+    """Um token de classe no espaco do doador."""
+    return v + DESLOC_TOKEN
 
 
-def donor_token(donor):
-    """Find the shift of the donor's token space from MapRoot+0x00."""
-    with open(donor, 'rb') as f:
+def token_do_doador(doador):
+    """Descobre o deslocamento do espaco de token do doador pelo MapRoot+0x00."""
+    with open(doador, 'rb') as f:
         f.seek(0x80)
         v = struct.unpack('<I', f.read(4))[0]
     d = v - VT_MAPROOT
     if d not in (0, 0x488):
         raise SystemExit(
-            'unknown token space in the donor: MapRoot+0x00 = 0x%08X, '
-            'expected 0x%08X (atlanta/detroit/sd) or 0x%08X (tokyo)'
+            'espaco de token desconhecido no doador: MapRoot+0x00 = 0x%08X, '
+            'esperava 0x%08X (atlanta/detroit/sd) ou 0x%08X (tokyo)'
             % (v, VT_MAPROOT, VT_MAPROOT + 0x488))
     return d
 
 
 VT_MAPROOT = 0x007A0138
 VT_MAPROOT_40 = 0x007A01E8
-VT_ARRAY = 0x007A1FB8       # the object [vtable][ptr][count][count][0]
-# GENERAL RULE, learned the hard way: an object that I create does not enter the
-# list the game walks to translate token -> address. Measured in RAM: 607 retail
-# meshes became 0x00626D98 and mine kept 0x007A1E18; 240 ComponentData became
-# 0x00625098 and mine kept 0x0079FF88. A generated object has to be BORN with the
-# translated address.
+VT_ARRAY = 0x007A1FB8       # o objeto [vtable][ptr][count][count][0]
+# REGRA GERAL, aprendida dolorosamente: um objeto que EU crio nao entra na lista
+# que o jogo percorre pra traduzir token -> endereco. Medido na RAM: 607 meshes do
+# retail viraram 0x00626D98 e o meu ficou com 0x007A1E18; 240 ComponentData
+# viraram 0x00625098 e o meu ficou com 0x0079FF88. Objeto gerado tem que JA
+# NASCER com o endereco traduzido.
 #
-# This does not apply to objects the Place CONSTRUCTS (MapRoot, group descriptor,
-# shader): those get their vtable stamped by their own constructor, so whatever
-# is in the file is overwritten.
+# Isto nao vale pros objetos que o Place CONSTROI (MapRoot, descritor de grupo,
+# shader): esses tem a vtable carimbada pelo proprio construtor, entao o que
+# estiver no arquivo e sobrescrito.
 VT_MESH_TOKEN = 0x007A1E18
 VT_MESH = 0x00626D98
-VT_SHADER = 0x007A1EF8      # the default class: 1951 of the 4105 objects in atlanta
-# ComponentData+0x28 is a real VTABLE, called when the camera gets close. In the
-# FILE it is 0x0079FF88 in atlanta's 651 components, but that is a TOKEN:
-# measured in RAM, the retail components become **0x00625098** and the only one
-# left with the raw token was mine. The translator walks a list the generated
-# component is not in, so writing the token makes the virtual call jump into the
-# game's UTF-16 string table - the `Jump to unaligned address (PC: 0x0061004d)`
-# is literally "Ma" from a car name, read from slot +0x38 of that "vtable".
+VT_SHADER = 0x007A1EF8      # a classe padrao: 1951 dos 4105 objetos do atlanta
+# ComponentData+0x28 e uma VTABLE de verdade, chamada quando a camera chega
+# perto. No ARQUIVO ela vale 0x0079FF88 nos 651 componentes do atlanta, mas isso
+# e um TOKEN: medido na RAM, os componentes do retail viram **0x00625098** e o
+# unico que ficou com o token cru era o meu. O tradutor percorre uma lista em que
+# o componente gerado nao entra, entao escrever o token deixa a chamada virtual
+# saltar pra dentro da tabela de strings UTF-16 do jogo - o `Jump to unaligned
+# address (PC: 0x0061004d)` e literalmente "Ma" de um nome de carro, lido do
+# slot +0x38 dessa "vtable".
 #
-# Writing the ALREADY TRANSLATED address fixes it without relying on the translator.
-# WRITE THE TOKEN, NOT THE RAM ADDRESS - and this REVERSES the previous decision,
-# with the measurement that overturns it.
+# Escrever o endereco JA TRADUZIDO resolve sem depender do tradutor.
+# ESCREVER O TOKEN, NAO O ENDERECO DE RAM - e isto e uma REVERSAO da decisao
+# anterior, com a medicao que a derruba.
 #
-# The old note said: 'the translator walks a list the generated component is not
-# in, so writing the token makes the virtual call jump into the string table'.
-# That was measured while the generated component was NOT yet in a hood's unique
-# array the way retail's are. Now it is, and retail is unambiguous: tokyo has
-# ComponentData+0x28 = 0x007A0410 and Component+0x10 = 0x007A0438 in 650 of 650,
-# atlanta 0x0079FF88 and 0x0079FFB0 in 651 of 651 - always a TOKEN, never a RAM
-# address.
+# A nota antiga dizia: 'o tradutor percorre uma lista em que o componente
+# gerado nao entra, entao escrever o token deixa a chamada virtual saltar pra
+# dentro da tabela de strings'. Isso foi medido quando o componente gerado
+# ainda NAO estava no array de uniques de um hood como o do varejo. Agora esta,
+# e o varejo e inequivoco: o tokyo tem ComponentData+0x28 = 0x007A0410 e
+# Componente+0x10 = 0x007A0438 em 650 de 650, o atlanta 0x0079FF88 e 0x0079FFB0
+# em 651 de 651 - sempre TOKEN, nunca endereco de RAM.
 #
-# Writing the already translated address into an object the translator DOES reach
-# is worse than writing the token: it translates it again, and the result is
-# garbage. The symptom that settled it was the hood1 graft, which hung with
-# PC=0x00650073 - UTF-16 text, i.e. a jump into the string table, exactly the
-# signature of a virtual call through the wrong vtable.
-VT_COMPDATA_TOKEN = 0x0079FF88   # as it appears in the retail file
-VT_COMPDATA = 0x00625098         # as it ends up in RAM: this is the one that counts
-# The component record's `type_va` (+0x10). In the atlanta file it is 0x0079FFB0
-# in all 651; in the RAM of the San Diego savestate it is 0x006250C0 (mcCityModel)
-# in 628. Same token/vtable relation as VT_COMPDATA, so the RAM version applies
-# here for the same reason.
-VT_COMPONENT_TOKEN = 0x0079FFB0
-VT_COMPONENT = 0x006250C0
-# Instances have three classes of their own, measured in savestate RAM:
-#   Instance (the 0x60 record)             mcInstCityModel      0x006251B8
-#   ComponentData of the type (+0x28)      mcInstCityModelType  0x00625190
-# and the Instance record itself carries the token 0x007A00B8 at +0x10.
-VT_INST = 0x006251B8            # mcInstCityModel, goes in Instance+0x10
-VT_INST_KIND = 0x00625190      # mcInstCityModelType, goes in ComponentData+0x28
-# THE TOKENS OF THESE TWO CLASSES, measured by counting and not by analogy. The
-# affine relation that works for COMPDATA/COMPONENT (token = RAM - 0x625098 +
-# 0x79FF88) does NOT hold here: it predicted 0x007A0080/0x007A00A8 and those
-# values appear ZERO times in the files. The right ones were found by counting: in
-# atlanta 0x007A00B8 appears 3608 times (the number of instances) and 0x007A0090
-# 231 times (the number of types); in tokyo 0x007A0540 x7688 and 0x007A0518 x317,
-# the same +0x488 as the rest of the token space.
-VT_INST_TOKEN = 0x007A00B8       # goes in Instance+0x10
-VT_INST_KIND_TOKEN = 0x007A0090  # goes in the kind's ComponentData, +0x28
-INSTANCE_SIZE = 0x60
-# How many slots of the shader group receive a real object. Atlanta's props
-# index from 0 to 91; 128 covers that with room to spare. The rest of the array
-# stays null, like the 81.5%% of null slots in retail.
+# Escrever o endereco ja traduzido num objeto que o tradutor ALCANCA e pior que
+# escrever o token: ele traduz de novo, e o resultado e lixo. O sintoma que
+# fechou isso foi o enxerto hood1, que travou com PC=0x00650073 - texto UTF-16,
+# ou seja salto pra dentro da tabela de strings, exatamente a assinatura de
+# chamada virtual por vtable errada.
+VT_COMPDATA_TOKEN = 0x0079FF88   # como aparece no arquivo do retail
+VT_COMPDATA = 0x00625098         # como fica na RAM: e este que vale
+# O `type_va` do registro de componente (+0x10). No arquivo do atlanta e
+# 0x0079FFB0 nos 651; na RAM do savestate de San Diego e 0x006250C0
+# (mcCityModel) nos 628. Mesma relacao token/vtable do VT_COMPDATA, entao aqui
+# vale a versao de RAM pelo mesmo motivo.
+VT_COMPONENTE_TOKEN = 0x0079FFB0
+VT_COMPONENTE = 0x006250C0
+# As instancias tem tres classes proprias, medidas na RAM do savestate:
+#   Instance (o registro de 0x60)        mcInstCityModel      0x006251B8
+#   ComponentData do tipo (+0x28)        mcInstCityModelType  0x00625190
+# e o proprio registro Instance carrega o token 0x007A00B8 em +0x10.
+VT_INST = 0x006251B8            # mcInstCityModel, vai em Instance+0x10
+VT_INST_TIPO = 0x00625190      # mcInstCityModelType, vai em ComponentData+0x28
+# OS TOKENS DESSAS DUAS CLASSES, medidos por contagem e nao por analogia. A
+# relacao afim que serve para COMPDATA/COMPONENTE (token = RAM - 0x625098 +
+# 0x79FF88) NAO vale aqui: ela previa 0x007A0080/0x007A00A8 e esses valores
+# aparecem ZERO vezes nos arquivos. Os certos foram achados contando: no
+# atlanta 0x007A00B8 aparece 3608 vezes (o numero de instancias) e 0x007A0090
+# 231 vezes (o numero de tipos); no tokyo, 0x007A0540 x7688 e 0x007A0518 x317,
+# os mesmos +0x488 do resto do espaco de token.
+VT_INST_TOKEN = 0x007A00B8       # vai em Instance+0x10
+VT_INST_TIPO_TOKEN = 0x007A0090  # vai no ComponentData do tipo, +0x28
+TAM_INSTANCE = 0x60
+# Quantos slots do grupo de shader recebem um objeto de verdade. Os props do
+# atlanta indexam de 0 a 91; 128 cobre com folga. O resto do array fica nulo,
+# como os 81,5%% de slots nulos do retail.
 SLOTS_PREENCHIDOS = 128
-TEST_PADDING = 0            # see the layout control in constroi_place
-# Size of the CellIndex object (MapRoot+0x1C). Measured the same in atlanta and sd.
-CELLINDEX_SIZE = 0x7130
+PADDING_TESTE = 0            # ver o controle de layout em constroi_place
+# Tamanho do objeto CellIndex (MapRoot+0x1C). Medido igual no atlanta e no sd.
+TAM_CELLINDEX = 0x7130
 
-SHADER_SIZE = 0xAC           # measured: the pointer at +0x08 points to the end of the object
-# The MapRoot is 0x290 bytes: atlanta's first palette sits at file offset 0x310,
-# i.e. MapRoot+0x290. I used 0x230, and `mcCity+0x268` - the COUNT of the two
-# scratch arrays of +0x1C - fell outside it and was read as garbage.
-# The MapRoot goes up to 0x2290, not 0x290: BOTH 256-colour palettes live inside
-# it, at +0x290 and +0x1290. In the four retail cities the pointers at +0x2C and
-# +0x30 are exactly 0x06800290 and 0x06801290 - always inline, never in a
-# separate block. Putting the palettes elsewhere kept the pointer right but the
-# layout different, and there is no reason to bet nobody reads MapRoot+0x290
-# directly when imitating it costs nothing.
-MAPROOT_SIZE = 0x2290
-OFF_LIVE_PALETTE = 0x290
-SRC_PALETTE_OFF = 0x1290
-COMPONENT_SIZE = 28
-HOOD_REC_SIZE = 176
-HOOD_ENTRY_SIZE = 20
+TAM_SHADER = 0xAC           # medido: o ponteiro de +0x08 aponta pro fim do objeto
+# O MapRoot tem 0x290 bytes: a primeira paleta do atlanta fica no offset 0x310
+# do arquivo, ou seja MapRoot+0x290. Eu usava 0x230, e `mcCity+0x268` - a
+# CONTAGEM dos dois arrays de scratch do +0x1C - caia fora dele, lida como lixo.
+# O MapRoot vai ate 0x2290, nao 0x290: as DUAS paletas de 256 cores moram
+# dentro dele, em +0x290 e +0x1290. Nas quatro cidades do varejo os ponteiros
+# de +0x2C e +0x30 valem exatamente 0x06800290 e 0x06801290 - sempre inline,
+# nunca em bloco separado. Colocar as paletas em outro lugar deixava o ponteiro
+# certo mas o layout diferente, e nao ha por que apostar que ninguem le
+# MapRoot+0x290 direto quando imitar sai de graca.
+TAM_MAPROOT = 0x2290
+OFF_PALETA_VIVA = 0x290
+OFF_PALETA_FONTE = 0x1290
+TAM_COMPONENTE = 28
+TAM_HOOD_REC = 176
+TAM_ENTRADA_HOOD = 20
 
 
-class Writer:
-    """Assemble the .pck body and resolve the pointers at the end.
+class Escritor:
+    """Monta o corpo do .pck e resolve os ponteiros no fim.
 
-    A .pck is a memory image: what is stored are VIRTUAL ADDRESSES, and
-    `file_offset = VA - base + 0x80`. Writing that front to back requires
-    knowing the address of something before it exists, so pointers enter here as
-    pending entries (`aponta`) and are filled in by `fecha`.
+    Um .pck e uma imagem de memoria: o que esta gravado sao ENDERECOS VIRTUAIS,
+    e `file_offset = VA - base + 0x80`. Escrever isso de frente pra tras exige
+    saber o endereco de uma coisa antes de ela existir, entao aqui os ponteiros
+    entram como pendencias (`aponta`) e sao preenchidos no `fecha`.
     """
 
     def __init__(self):
-        # The MapRoot is NOT 0x80 bytes. `mcCity::mcCity` touches +0x190, +0x194,
-        # +0x198, +0x19C, +0x1CC and +0x228, and a loop of 20 pointers starting at
-        # +0x1D8. Reserving only 0x80 left all of those fields landing on whatever
-        # was appended next - the simulator caught the constructor reading a
-        # shader float (0x3D80000B) as a pointer. Zero in them is safe: each one is
-        # guarded by `if (ptr)` before it is walked.
-        self.d = bytearray(0x80 + MAPROOT_SIZE)
-        self.pend = []                        # [(field_offset, key)]
-        self.marks = {}                       # chave -> offset
+        # O MapRoot NAO tem 0x80 bytes. `mcCity::mcCity` mexe em +0x190, +0x194,
+        # +0x198, +0x19C, +0x1CC e +0x228, e num laco de 20 ponteiros a partir de
+        # +0x1D8. Reservando so 0x80 eu deixava todos esses campos caindo em cima
+        # do que fosse anexado em seguida - o simulador pegou o construtor lendo
+        # um float do shader (0x3D80000B) como ponteiro. Zero neles e seguro:
+        # cada um e guardado por `if (ptr)` antes de ser percorrido.
+        self.d = bytearray(0x80 + TAM_MAPROOT)
+        self.pend = []                        # [(offset_do_campo, chave)]
+        self.marca = {}                       # chave -> offset
 
-    # ---- placement
-    def align_to(self, n=16):
+    # ---- posicionamento
+    def alinha(self, n=16):
         while len(self.d) % n:
             self.d += b'\x00'
 
-    def put(self, blob, map_key=None, align=16):
-        self.align_to(align)
+    def poe(self, blob, chave=None, align=16):
+        self.alinha(align)
         at = len(self.d)
-        if map_key:
-            self.marks[map_key] = at
+        if chave:
+            self.marca[chave] = at
         self.d += blob
         return at
 
-    def label(self, map_key, off):
-        self.marks[map_key] = off
+    def rotula(self, chave, off):
+        self.marca[chave] = off
 
-    def point(self, field, map_key):
-        """Later, write the VA of `key` into `field`."""
-        self.pend.append((field, map_key))
+    def aponta(self, campo, chave):
+        """Grava depois, em `campo`, o VA de `chave`."""
+        self.pend.append((campo, chave))
 
     def u32(self, off, v):
         struct.pack_into('<I', self.d, off, v)
@@ -219,104 +221,103 @@ class Writer:
     def va(self, off):
         return off - 0x80 + BASE_VA
 
-    def close(self, path):
-        for field, map_key in self.pend:
-            if map_key not in self.marks:
-                raise KeyError('pointer without a target: %s' % map_key)
-            self.u32(field, self.va(self.marks[map_key]))
-        self.align_to(16)                       # all 6718 retail .pck are aligned
+    def fecha(self, path):
+        for campo, chave in self.pend:
+            if chave not in self.marca:
+                raise KeyError('ponteiro sem destino: %s' % chave)
+            self.u32(campo, self.va(self.marca[chave]))
+        self.alinha(16)                       # todos os 6718 .pck do retail sao alinhados
         struct.pack_into('<I', self.d, 0x00, BASE_VA)
-        struct.pack_into('<I', self.d, 0x04, CITY_KIND)
-        struct.pack_into('<I', self.d, 0x08, VERSION)
+        struct.pack_into('<I', self.d, 0x04, TIPO_CIDADE)
+        struct.pack_into('<I', self.d, 0x08, VERSAO)
         struct.pack_into('<I', self.d, 0x0C, len(self.d) - 0x80)
         with open(path, 'wb') as f:
             f.write(bytes(self.d))
         return len(self.d)
 
 
-def cube(side=40.0):
-    """A cube centred on the origin, as the converter delivers it: strip blocks.
+def cubo(lado=40.0):
+    """Um cubo centrado na origem, como o conversor entrega: blocos de tira.
 
-    Face by face, each one its own 4-vertex strip, and the degenerate stitching
-    joins everything into a single block. The winding follows the game's rule -
-    triangle i is (i-2,i-1,i) with i even - and the faces point outwards.
+    Face a face, cada uma sua propria tira de 4 vertices, e a costura de
+    degenerados junta tudo num bloco so. O enrolamento segue a regra do jogo -
+    triangulo i e (i-2,i-1,i) com i par - e as faces apontam pra fora.
     """
-    h = side / 2.0
+    h = lado / 2.0
     v = [(-h, -h, -h), (h, -h, -h), (h, -h, h), (-h, -h, h),
          (-h, h, -h), (h, h, -h), (h, h, h), (-h, h, h)]
     faces = [(7, 6, 4, 5), (0, 1, 3, 2), (4, 5, 0, 1),
              (5, 6, 1, 2), (6, 7, 2, 3), (7, 4, 3, 0)]
     uv = [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)]
-    strip_list = []
+    tiras = []
     for f in faces:
         pos = [v[i] for i in f]
         nr = [(0.0, 1.0, 0.0)] * 4
-        strip_list.append((pos, list(uv), nr, False))
-    # same stitching as the converter: a bridge of degenerates between strips
+        tiras.append((pos, list(uv), nr, False))
+    # mesma costura do conversor: ponte de degenerados entre tiras
     cp, cu, cn = [], [], []
-    for pos, u, nr, _odd in strip_list:
+    for pos, u, nr, _impar in tiras:
         if not cp:
             cp, cu, cn = list(pos), list(u), list(nr)
             continue
-        bridge = 2 if len(cp) % 2 == 0 else 3
-        cp += [cp[-1]] + [pos[0]] * (bridge - 1)
-        cu += [cu[-1]] + [u[0]] * (bridge - 1)
-        cn += [cn[-1]] + [nr[0]] * (bridge - 1)
+        ponte = 2 if len(cp) % 2 == 0 else 3
+        cp += [cp[-1]] + [pos[0]] * (ponte - 1)
+        cu += [cu[-1]] + [u[0]] * (ponte - 1)
+        cn += [cn[-1]] + [nr[0]] * (ponte - 1)
         cp += pos
         cu += u
         cn += nr
     return [(cp, cu, cn, False)]
 
 
-def read_model(file_path, scale, keep_origin=False):
-    """Blocks from an MC2 .xmod, through the already validated path.
+def le_modelo(caminho, escala, preservar_origem=False):
+    """Blocos a partir de um .xmod do MC2, pelo caminho ja validado.
 
-    `strips_to_blocks` anchors the mesh on its own box for the component path.
-    Instances, however, already carry in place.tsv the matrix written for the
-    ORIGINAL pivot of the .mod. Recentring the mesh and reapplying that matrix
-    without compensation shifts the world: on the LAX emissive cards the measured
-    error reaches 1825.77 units and puts huge planes near the camera. For
-    instances, restore the origin before quantisation; that is exactly the
-    geometry the original matrix was computed for.
+    `strips_to_blocks` ancora a malha na propria caixa para o caminho de
+    componentes. Instancias, porem, ja trazem no place.tsv a matriz escrita
+    para o pivô ORIGINAL do .mod. Recentrar a malha e reaplicar essa matriz sem
+    compensacao desloca o mundo: nos emissive cards de LAX o erro medido chega
+    a 1825.77 unidades e poe planos enormes perto da camera. Para instancias,
+    restaure a origem antes da quantizacao; e exatamente a geometria para a
+    qual a matriz original foi calculada.
     """
-    v, t1, adj, strips = mc2.read_xmod(file_path)
-    bl, anchor = mc2.strips_to_blocks(v, t1, adj, strips)
-    if keep_origin:
-        bl = [([tuple(q[i] + anchor[i] for i in range(3)) for q in pos],
+    v, t1, adj, strips = mc2.read_xmod(caminho)
+    bl, ancora = mc2.strips_to_blocks(v, t1, adj, strips)
+    if preservar_origem:
+        bl = [([tuple(q[i] + ancora[i] for i in range(3)) for q in pos],
                u, nr, o) for pos, u, nr, o in bl]
-    if scale != 1.0:
-        bl = [([tuple(c * scale for c in q) for q in pos], u, nr, o)
+    if escala != 1.0:
+        bl = [([tuple(c * escala for c in q) for q in pos], u, nr, o)
               for pos, u, nr, o in bl]
     return bl
 
 
-def shader_slots(donor):
-    """[slot] of the donor that has a typical shader, by the SAME test as shader_block.
+def slots_de_shader(doador):
+    """[slot] do doador que tem um shader tipico, pelo MESMO teste do bloco_shader.
 
-    The first version of this inherited the model from `modelo_shader`, which
-    Fork City MODS itself documents as wrong - sub-object at +0xAC, the 3-in-1900
-    case - and so it listed zero slots in a donor that has hundreds. The test is
-    by STRUCTURE (type 0, sub at +0x10, byte +0x04 of the sub in 0..3), which is
-    also what lets tokyo pass: it has the same class with the token space shifted
-    by +0x488, and comparing against the vtable rejected it.
+    A primeira versao disto herdou o modelo do `modelo_shader`, que a propria
+    Fork City MODS documenta como errado - sub-objeto em +0xAC, o caso de 3 em
+    1900 - e por isso listava zero slots num doador que tem centenas. O teste
+    e por ESTRUTURA (tipo 0, sub em +0x10, byte +0x04 do sub em 0..3), que
+    tambem e o que faz o tokyo passar: ele tem a mesma classe com o espaco de
+    tokens deslocado de +0x488, e comparar contra a vtable o rejeitava.
 
-    AND THERE IS A SECOND TEST, which was missing and cost me a round. Accepting
-    byte +0x04 of the sub in 0..3 says the LOADER dispatches (0x2BA718:
-    0 rmcTexturePS2, 1 skip, 2 rmcTextureReference, 3 rmcDictionaryReference,
-    anything else = infinite loop). It does not say the SHADER SURVIVES MY COPY.
-    `shader_block` takes 0xB0 bytes and `clean_pointers` zeroes every pointer except
-    +0x08; in a type-0 sub that is harmless, because rmcTexturePS2 is
-    self-contained, but in a type-2 one it zeroes the fallback at sub+0x0C -
-    exactly the pointer the texture fork documented as mandatory - and the game
-    jumps into CDCDCDCD.
+    E TEM UM SEGUNDO TESTE, que faltava e me custou uma rodada. Aceitar o byte
+    +0x04 do sub em 0..3 diz que o LOADER despacha (0x2BA718: 0 rmcTexturePS2,
+    1 pula, 2 rmcTextureReference, 3 rmcDictionaryReference, outra coisa = laco
+    infinito). Nao diz que o SHADER SOBREVIVE A MINHA COPIA. O `bloco_shader`
+    leva 0xB0 bytes e o `limpa` zera todo ponteiro menos o +0x08; num sub do
+    tipo 0 isso e inofensivo, porque a rmcTexturePS2 e auto-contida, mas num do
+    tipo 2 zera o fallback em sub+0x0C - exatamente o ponteiro que a fork de
+    textura documentou como obrigatorio - e o jogo salta em CDCDCDCD.
 
-    Measured on atlanta: of the 92 slots the old test approved, 88 are type 0 and
-    4 are type 2, and those 4 lose a pointer of the sub. 84 safe ones remain.
-    Slot 65, which was the only candidate of the paired experiment, is one of the
-    four - the test I ran with it does not count as a negative result, it counts
-    as a voided test.
+    Medido no atlanta: dos 92 slots que o teste antigo aprovava, 88 sao tipo 0
+    e 4 sao tipo 2, e os 4 do tipo 2 perdem ponteiro do sub. Sobram 84 seguros.
+    O slot 65, que era o unico candidato do experimento emparelhado, e um dos
+    quatro - o teste que rodei com ele nao vale como resultado negativo, vale
+    como teste anulado.
     """
-    p = mc2.Pck(donor)
+    p = mc2.Pck(doador)
     d = p.data
     a18 = p.F(struct.unpack_from('<I', d, 0x80 + 0x0C)[0])
     g0 = p.F(struct.unpack_from('<I', d, a18 + 4)[0])
@@ -333,65 +334,65 @@ def shader_slots(donor):
             continue
         if d[o + 0x14] not in (0, 1, 2, 3):
             continue
-        # The WHOLE block has to survive `limpa`, not just the sub-object.
-        # My first version of this test looked from +0x10 onwards and so it
-        # approved slot 30 - which was the default, the "first that fits", and
-        # therefore the shader of EVERY city I had generated so far.
+        # O BLOCO INTEIRO tem que sobreviver ao `limpa`, nao so o sub-objeto.
+        # A minha primeira versao deste teste olhava de +0x10 em diante e por
+        # isso aprovava o slot 30 - que era o default, o "primeiro que serve", e
+        # portanto o shader de TODAS as cidades que eu gerei ate agora.
         #
-        # The field it missed is +0x0C. Census on atlanta, 110 type-0 shaders:
-        # 86 hold 0xCDCDCDCD (the fill pattern), 14 hold a class token, 2 are
-        # null and EIGHT point to a real object inside the pck. Slot 30 is one
-        # of the eight, and `limpa` zeroed that pointer - the copied block ended
-        # up with a shader that promises a sub-object and delivers null.
+        # O campo que ele perdia e o +0x0C. Censo no atlanta, 110 shaders de
+        # tipo 0: 86 tem 0xCDCDCDCD (o preenchimento), 14 tem token de classe,
+        # 2 sao nulos e OITO apontam para um objeto real dentro do pck. O slot
+        # 30 e um dos oito, e o `limpa` zerava esse ponteiro - o bloco copiado
+        # ficava com um shader que promete um sub-objeto e entrega nulo.
         #
-        # Who paid for it: Fork City MODS 2's shader guard refused those calls
-        # (80,907 in 1472 frames) and the city loaded but stayed INVISIBLE; with
-        # the guard off, the same call hangs on frame 1. The two symptoms I
-        # chased for days were the same defect seen from two sides.
+        # Quem pagava a conta: o guard de shader da Fork City MODS 2 recusava
+        # essas chamadas (80.907 em 1472 frames) e a cidade entrava mas ficava
+        # INVISIVEL; com o guard desligado, a mesma chamada trava no frame 1.
+        # Os dois sintomas que eu persegui por dias eram o mesmo defeito visto
+        # de dois lados.
         #
-        # 0xCDCDCDCD and tokens are not touched by `limpa` (they are not in the
-        # donor's VA range), so a slot whose +0x0C is one of those is copied
-        # byte for byte. There are 78 such slots in atlanta, against the 84 the
-        # old test approved; the first safe one is 39, not 30.
-        raw_ = bytes(d[o:o + 0xB0])
-        clean = clean_(raw_, donor, keep=(0x08,))[0]
-        if any(raw_[i:i + 4] != clean[i:i + 4]
+        # 0xCDCDCDCD e token nao sao tocados pelo `limpa` (nao estao na faixa
+        # de VA do doador), entao um slot cujo +0x0C seja um dos dois e copiado
+        # byte a byte. Sao 78 slots assim no atlanta, contra os 84 que o teste
+        # antigo aprovava; o primeiro seguro e o 39, nao o 30.
+        bruto = bytes(d[o:o + 0xB0])
+        limpo = limpa(bruto, doador, manter=(0x08,))[0]
+        if any(bruto[i:i + 4] != limpo[i:i + 4]
                for i in range(0, 0xB0, 4) if i != 0x08):
             continue
         out.append(k)
     return out
 
 
-def shader_model(donor, slot=None):
-    """COPIED: a donor shader object, ready to be relocated.
+def modelo_shader(doador, slot=None):
+    """COPIADO: um objeto de shader do doador, pronto pra ser realocado.
 
-    Returns (shader_bytes, sub_object_bytes, slot). The shader is 0xAC bytes with
-    a single pointer, at +0x08, pointing to the object right behind it;
-    everything else is an ELF vtable (absolute, still valid anywhere) or inline
-    GS register data we have not decoded yet.
+    Devolve (bytes_do_shader, bytes_do_sub_objeto, slot). O shader tem 0xAC
+    bytes e um unico ponteiro, em +0x08, que aponta pro objeto logo atras dele;
+    todo o resto e vtable do ELF (absoluta, continua valida em qualquer lugar)
+    ou dado inline de registrador de GS, que ainda nao decodificamos.
 
-    Without `slot`, takes the FIRST one that fits - which in atlanta is 30, and
-    which does NOT read the ITOP+2 stream. With `slot`, takes that one and fails
-    loudly if it does not fit, because a silently swapped donor is worse than an
-    error.
+    Sem `slot`, pega o PRIMEIRO que serve - que no atlanta e o 30, e que NAO le
+    o stream de ITOP+2. Com `slot`, pega aquele e falha alto se ele nao servir,
+    porque um doador silenciosamente trocado e pior que um erro.
     """
-    p = mc2.Pck(donor)
+    p = mc2.Pck(doador)
     d = p.data
     a18 = p.F(struct.unpack_from('<I', d, 0x80 + 0x0C)[0])
     g0 = p.F(struct.unpack_from('<I', d, a18 + 4)[0])
     if slot is not None:
-        good = shader_slots(donor)
-        if slot not in good:
-            near_check = [k for k in good if abs(k - slot) <= 8]
+        bons = slots_de_shader(doador)
+        if slot not in bons:
+            perto = [k for k in bons if abs(k - slot) <= 8]
             raise SystemExit(
-                'slot %d has no shader of the default class in %s.%s'
-                % (slot, os.path.basename(donor),
-                   ('  Near: %s' % near_check) if near_check else
-                   '  Use --shader-list to see the %d that fit.' % len(good)))
-        range_ = range(slot, slot + 1)
+                'slot %d nao tem shader da classe padrao em %s.%s'
+                % (slot, os.path.basename(doador),
+                   ('  Perto: %s' % perto) if perto else
+                   '  Use --lista-shaders pra ver os %d que servem.' % len(bons)))
+        faixa = range(slot, slot + 1)
     else:
-        range_ = range(1329)
-    for k in range_:
+        faixa = range(1329)
+    for k in faixa:
         v = struct.unpack_from('<I', d, g0 + 4 * k)[0]
         if not (v and p.inside(p.F(v))):
             continue
@@ -399,41 +400,42 @@ def shader_model(donor, slot=None):
         if struct.unpack_from('<I', d, o)[0] != VT_SHADER:
             continue
         sub = struct.unpack_from('<I', d, o + 8)[0]
-        if not p.inside(p.F(sub)) or p.F(sub) != o + SHADER_SIZE:
+        if not p.inside(p.F(sub)) or p.F(sub) != o + TAM_SHADER:
             continue
         so = p.F(sub)
-        return bytes(d[o:o + SHADER_SIZE]), bytes(d[so:so + 0xA0]), k
-    raise SystemExit('no shader of the default class with the expected layout in %s'
-                     % os.path.basename(donor))
+        return bytes(d[o:o + TAM_SHADER]), bytes(d[so:so + 0xA0]), k
+    raise SystemExit('nenhum shader da classe padrao com o layout esperado em %s'
+                     % os.path.basename(doador))
 
 
-# Textures from .tex.pck that THE GAME built. Name -> pck body.
-GAME_TEXTURES = {}
-TEXTURE_ORDER = []          # name at the position = shader slot
-TEXTURE_POS = {}            # nome -> slot
-GAME_INDICES = None
-FLIP_WINDING = False        # reverse the vertex order of each UNPACK (winding)
+# Texturas vindas de .tex.pck que O JOGO construiu. Nome -> corpo do pck.
+TEXTURAS_DO_JOGO = {}
+ORDEM_TEXTURA = []          # nome na posicao = slot de shader
+POS_TEXTURA = {}            # nome -> slot
+INDICES_DO_JOGO = None
+FLIP_WINDING = False        # inverte a ordem dos vertices de cada UNPACK (winding)
 
 
 def flip_winding_payload(payload):
-    """Flip the winding by reversing the vertex order of each VIF batch.
+    """Inverte o winding revertendo a ordem dos vertices de cada batch de VIF.
 
-    Works PER BATCH (header 0x60/num2 -> MSCAL). Reverses, in lockstep, every
-    per-vertex UNPACK (position, uv, colour, normal), which flips the orientation
-    of every triangle. Handles both of LA's position formats:
+    Opera POR BATCH (header 0x60/num2 -> MSCAL). Reverte, em lockstep, todos os
+    UNPACK por-vertice (posicao, uv, cor, normal), o que inverte a orientacao de
+    todo triangulo. Trata os dois formatos de posicao de LA:
 
-      - ABSOLUTE (0x69 V3-16 / 0x68 V3-32): reverses the raw records.
-      - DELTA (0x6A V3-8, STMOD mode 2): decodes with the batch's STROW, reverses
-        the absolute positions, and RE-ENCODES the deltas pointing the STROW at
-        the new first vertex (every LA delta batch has its own STROW, so there is
-        no carry between batches). |delta| is preserved and fits in int8.
+      - ABSOLUTO (0x69 V3-16 / 0x68 V3-32): reverte os registros crus.
+      - DELTA (0x6A V3-8, STMOD mode 2): decodifica com o STROW do batch,
+        reverte as posicoes absolutas, e RE-CODIFICA os deltas apontando o
+        STROW para o novo primeiro vertice (cada batch delta de LA tem STROW
+        proprio, entao nao ha carry entre batches). |delta| e preservado, cabe
+        em int8.
 
-    See FORKS: the packets came with MC2's winding, opposite to the VU culler's.
+    Ver FORKS: os pacotes vinham com o winding do MC2, oposto ao do culler VU.
     """
     import mc3_vifpos as _vp
     d = bytearray(payload)
     cmds = list(_vp._commands(bytes(d)))
-    # group into batches: each header starts one; MSCAL/next header closes it
+    # agrupa em batches: cada header inicia um; MSCAL/proximo header fecha
     batches = []
     cur = None
     for c in cmds:
@@ -467,13 +469,13 @@ def flip_winding_payload(payload):
     for bt in batches:
         pos = bt['pos']
         cnt = bt['count']
-        # ONLY reverse a batch with ABSOLUTE position in a single UNPACK (num==count).
-        # Delta (0x6A mode 2) and position split over several UNPACKs stay intact:
-        # reversing raw delta bytes would corrupt them, and reversing only part of
-        # a batch misaligns the streams. Those keep MC2's winding (the game culls
-        # them), which is better than the whole city inverted.
+        # SO reverte batch de posicao ABSOLUTA num unico UNPACK (num==count).
+        # Delta (0x6A mode 2) e posicao dividida em varios UNPACK ficam intactos:
+        # reverter os bytes crus de delta corromperia, e reverter so parte de um
+        # batch desalinha os streams. Esses continuam com o winding do MC2 (o
+        # jogo os culla), o que e melhor que a cidade inteira invertida.
         if pos is None or pos['mode'] == 2 or (pos['cmd'] & 0x6F) not in (0x68, 0x69):
-            flip_winding_payload.skipped += 1
+            flip_winding_payload.pulados += 1
             continue
         cmd = pos['cmd']
         vn = (cmd >> 2) & 3
@@ -496,438 +498,437 @@ def _s32_local(v):
     return v - (1 << 32) if v >= (1 << 31) else v
 
 
-flip_winding_payload.skipped = 0
+flip_winding_payload.pulados = 0
 
-RUNTIME_BINDING = False
-
-
-TEXTURE_LEVELS = {}     # name -> levels from the .ppf manifest
+LIGACAO_RUNTIME = False
 
 
-def load_ppf_manifest(file_path):
-    """page/page_offset/page_word per level, for the streaming datChunkRef."""
+NIVEIS_TEXTURA = {}     # nome -> niveis do manifesto do .ppf
+
+
+def carrega_manifesto_ppf(caminho):
+    """page/page_offset/page_word por nivel, para o datChunkRef de streaming."""
     import json
-    m = json.load(open(file_path))
+    m = json.load(open(caminho))
     for t in m['textures']:
-        name = t['texture']
-        if name.endswith('.tex'):
-            name = name[:-4]
-        TEXTURE_LEVELS[name.lower()] = t['levels']
-    return len(TEXTURE_LEVELS)
+        nome = t['texture']
+        if nome.endswith('.tex'):
+            nome = nome[:-4]
+        NIVEIS_TEXTURA[nome.lower()] = t['levels']
+    return len(NIVEIS_TEXTURA)
 
 
-def load_textures(folder, identity_map=None):
-    """Read the dumps BY IDENTITY, not by file name.
+def carrega_texturas(pasta, mapa_identidade=None):
+    """Le os dumps POR IDENTIDADE, nao pelo nome do arquivo.
 
-    447 of the 510 files in `la_tex_pck` have the wrong EXTERNAL name - the real
-    name is in the pointer at TexturePS2+0x78 (`tNNN`). I "verified" that mapping
-    by comparing each object with the `.tex` of the SAME FILE NAME, which is
-    circular, and the samples matched by chance (almost everything is 64x64). The
-    texture fork measured it and delivered `native_texture_map.tsv` with the
-    correct association; use that.
+    447 dos 510 arquivos de `la_tex_pck` tem o nome EXTERNO errado - o nome real
+    esta no ponteiro em TexturePS2+0x78 (`tNNN`). Eu "verifiquei" esse mapeamento
+    comparando cada objeto com o `.tex` de MESMO NOME DE ARQUIVO, que e circular,
+    e as amostras batiam por acaso (quase tudo e 64x64). A fork de textura mediu
+    e entregou `native_texture_map.tsv` com a associacao correta; usar isso.
     """
-    global GAME_TEXTURES, TEXTURE_ORDER
-    GAME_TEXTURES, TEXTURE_ORDER = {}, []
-    if identity_map and os.path.isfile(identity_map):
-        for ln in open(identity_map, encoding='utf-8', errors='replace'):
+    global TEXTURAS_DO_JOGO, ORDEM_TEXTURA
+    TEXTURAS_DO_JOGO, ORDEM_TEXTURA = {}, []
+    if mapa_identidade and os.path.isfile(mapa_identidade):
+        for ln in open(mapa_identidade, encoding='utf-8', errors='replace'):
             c = ln.rstrip().split(chr(9))
             if len(c) < 3 or not c[0].endswith('.tex'):
                 continue
-            name = c[0][:-4].lower()          # REAL identity of the texture
-            file_path = c[2]                    # file that holds this object
-            if not os.path.isfile(file_path):
+            nome = c[0][:-4].lower()          # identidade REAL da textura
+            caminho = c[2]                    # arquivo que contem esse objeto
+            if not os.path.isfile(caminho):
                 continue
-            GAME_TEXTURES[name] = open(file_path, 'rb').read()[0x80:]
-            TEXTURE_ORDER.append(name)
-            TEXTURE_POS[name] = len(TEXTURE_ORDER) - 1
-        return len(TEXTURE_ORDER)
-    for f in sorted(os.listdir(folder)):
+            TEXTURAS_DO_JOGO[nome] = open(caminho, 'rb').read()[0x80:]
+            ORDEM_TEXTURA.append(nome)
+            POS_TEXTURA[nome] = len(ORDEM_TEXTURA) - 1
+        return len(ORDEM_TEXTURA)
+    for f in sorted(os.listdir(pasta)):
         if not f.endswith('.tex.pck'):
             continue
-        name = f[:-len('.tex.pck')]
-        d = open(os.path.join(folder, f), 'rb').read()
-        GAME_TEXTURES[name.lower()] = d[0x80:]
-        TEXTURE_ORDER.append(name.lower())
-        TEXTURE_POS[name.lower()] = len(TEXTURE_ORDER) - 1
-    return len(TEXTURE_ORDER)
+        nome = f[:-len('.tex.pck')]
+        d = open(os.path.join(pasta, f), 'rb').read()
+        TEXTURAS_DO_JOGO[nome.lower()] = d[0x80:]
+        ORDEM_TEXTURA.append(nome.lower())
+        POS_TEXTURA[nome.lower()] = len(ORDEM_TEXTURA) - 1
+    return len(ORDEM_TEXTURA)
 
 
-def put_textured_shader(e, cab16, tex_body, levels=None):
-    """A shader whose texture is the one the game assembled.
+def poe_shader_com_textura(e, cab16, corpo_tex, niveis=None):
+    """Um shader cuja textura e a que o jogo montou.
 
-    The retail shader block is 0xB0 bytes = a 16-byte header + a 160-byte texture
-    object embedded at +0x10, and the shader's `+0x08` points to that +0x10. The
-    rmcTexturePS2 is exactly 160 bytes, so [header][.tex.pck body] already has
-    the right shape - and since the body stays CONTIGUOUS, a single delta is
-    enough for all of its internal pointers.
+    O bloco de shader do varejo tem 0xB0 bytes = cabecalho de 16 + objeto de
+    textura de 160 embutido em +0x10, e o `+0x08` do shader aponta para esse
+    +0x10. O rmcTexturePS2 tem exatamente 160 bytes, entao [cabecalho][corpo do
+    .tex.pck] ja tem a forma certa - e como o corpo fica CONTIGUO, um delta
+    unico basta para todos os ponteiros internos dele.
 
-    Only the pointers OF THE OBJECT are translated (the four datChunkRef at
-    +0x48). Pixel blocks carry no pointers, and rewriting words inside them would
-    repeat the mistake that already produced 19 meshes with absurd qw.
+    So os ponteiros DO OBJETO sao traduzidos (os quatro datChunkRef em +0x48).
+    Os blocos de pixel nao levam ponteiro, e reescrever palavra dentro deles
+    seria repetir o erro que ja produziu 19 malhas com qw absurdo.
     """
-    block = bytearray(cab16) + bytearray(tex_body[:160] if levels is not None
-                                                 else tex_body)
-    # TOKEN, NOT VTABLE, at +0x00 of the object. The .tex.pck was emitted with
-    # --token 0, so it holds the runtime vtable (0x00627280); but inside a resource
-    # .pck +0x00 has to be the serialised TOKEN (0x007A2320) - the resource ctor
-    # rmcTexturePS2(datResource&) swaps token for vtable on load, and finding the
-    # vtable already there it reads every following field (resolution, bpp,
-    # datChunkRef) shifted and hangs (the 90 cpuTlbMiss / infinite loading).
-    struct.pack_into('<I', block, 0x10, VT_TEXTURE_TOKEN)
-    off = e.put(bytes(block), align=16)
+    bloco = bytearray(cab16) + bytearray(corpo_tex[:160] if niveis is not None
+                                                 else corpo_tex)
+    # TOKEN, NAO VTABLE, no +0x00 do objeto. O .tex.pck foi emitido com
+    # --token 0, entao guarda a vtable de runtime (0x00627280); mas dentro de um
+    # .pck de recurso o +0x00 tem que ser o TOKEN serializado (0x007A2320) - o
+    # ctor de recurso rmcTexturePS2(datResource&) troca token por vtable na
+    # carga, e achando ja a vtable ele le todos os campos seguintes (resolucao,
+    # bpp, datChunkRef) deslocados e trava (os 90 cpuTlbMiss / loading infinito).
+    struct.pack_into('<I', bloco, 0x10, VT_TEXTURA_TOKEN)
+    off = e.poe(bytes(bloco), align=16)
     va_obj = e.va(off + 0x10)
     delta = va_obj - 0x06800000
-    # THE OBJECT'S POINTER FIELDS, measured and not assumed: scanning 60 textures,
-    # only three offsets point inside the body - +0x48 and +0x54 (two of the four
-    # datChunkRef) and **+0x78**, which is ZERO in the donor and which I therefore
-    # did not expect. Leaving +0x78 untranslated is what produced
-    # `cpuTlbMiss pc:2ba874 addr:1f00c978` - the PC is right after
-    # rmcTexturePS2::rmcTexturePS2(datResource&) 0x002BA830, i.e. the game reached
-    # my texture and followed a pointer of the dump.
-    if levels is not None:
-        # STREAMING FORM. The object the RUNTIME constructor builds is RESIDENT
-        # (datChunkRef with a pointer, pixels on the heap) and the resource ctor
-        # 0x002BA830 **only relocates and expects streaming** - feeding it the
-        # resident form gave 90 cpuTlbMiss at 0x2BA760..0x2BA874. So I keep the GS
-        # descriptors the game computed and swap only the refs.
+    # OS CAMPOS DE PONTEIRO DO OBJETO, medidos e nao supostos: varrendo 60
+    # texturas, so tres offsets apontam para dentro do corpo - +0x48 e +0x54
+    # (dois dos quatro datChunkRef) e **+0x78**, que no doador e ZERO e por isso
+    # eu nao esperava. Deixar o +0x78 sem traduzir foi o que produziu
+    # `cpuTlbMiss pc:2ba874 addr:1f00c978` - o PC fica logo depois do
+    # rmcTexturePS2::rmcTexturePS2(datResource&) 0x002BA830, ou seja o jogo
+    # chegou na minha textura e seguiu um ponteiro do dump.
+    if niveis is not None:
+        # FORMA DE STREAMING. O objeto que o construtor de RUNTIME monta e
+        # RESIDENTE (datChunkRef com ponteiro, pixels no heap) e o ctor de
+        # recurso 0x002BA830 **so reloca e espera streaming** - alimentar ele
+        # com a forma residente deu 90 cpuTlbMiss em 0x2BA760..0x2BA874. Entao
+        # fico com os descritores de GS que o jogo calculou e troco so os refs.
         #
-        # The paged ref, decoded on atlanta (8793 of them) and confirmed on sd
-        # (8048): `[ptr=0][offset in the page][page_word]`, with page_word = 0x3D80
-        # in the high u16 and the PAGE in the low one. The high half is constant in
-        # both cities. The `page_word` my .ppf compiler already wrote in the
-        # manifest IS that whole field.
+        # O ref paginado, decodificado no atlanta (8793 deles) e confirmado no
+        # sd (8048): `[ptr=0][offset na pagina][page_word]`, com page_word =
+        # 0x3D80 no u16 alto e a PAGINA no baixo. O alto e constante nas duas
+        # cidades. O `page_word` que o meu compilador de .ppf ja gravava no
+        # manifesto E esse campo inteiro.
         for k in range(4):
             q = off + 0x10 + 0x48 + 12 * k
-            if k < len(levels):
-                n = levels[k]
+            if k < len(niveis):
+                n = niveis[k]
                 struct.pack_into('<III', e.d, q, 0, n['page_offset'], n['page_word'])
             else:
                 struct.pack_into('<III', e.d, q, 0, 0, 0)
-        # +0x78 was a runtime heap pointer; in the donor it is ZERO.
+        # +0x78 era ponteiro do heap de runtime; no doador e ZERO.
         struct.pack_into('<I', e.d, off + 0x10 + 0x78, 0)
     else:
-        fields = [0x48 + 12 * k for k in range(4)] + [0x78]
-        for c in fields:
+        campos = [0x48 + 12 * k for k in range(4)] + [0x78]
+        for c in campos:
             q = off + 0x10 + c
             v = struct.unpack_from('<I', e.d, q)[0]
-            if 0x06800000 <= v < 0x06800000 + len(tex_body):
+            if 0x06800000 <= v < 0x06800000 + len(corpo_tex):
                 struct.pack_into('<I', e.d, q, v + delta)
     struct.pack_into('<I', e.d, off + 0x08, va_obj)
     return off
 
 
-def emit_shader_groups(e, donor_shader, n_groups, n_slots, slot=None,
-                        material_index=0):
-    """The city's shader groups, in the retail format.
+def emite_grupos_shader(e, doador_shader, n_grupos, n_slots, slot=None,
+                        indice_material=0):
+    """Os grupos de shader da cidade, no formato do varejo.
 
-    Atlanta has 18 groups of 1329 slots and the city's objects index GROUP 0 to
-    17 and SLOT 0 to 1328. More importantly: the city is not the only one that
-    indexes the slots - the props (`atlanta_midnight_clear_props.pck` and its 22
-    siblings) carry a `material_index` from 0 to 91 and that index goes into the
-    group's slot array. Emitting 1 group of 64 slots, index 80 of
-    `a_prop_stlt_02x` read past the end of the array: null vtable and `jalr v0` to
-    an invalid address.
+    O atlanta tem 18 grupos de 1329 slots e os objetos da cidade indexam GRUPO
+    de 0 a 17 e SLOT de 0 a 1328. Mais importante: quem indexa os slots nao e
+    so a cidade - os props (`atlanta_midnight_clear_props.pck` e os 22 irmaos)
+    trazem `material_index` de 0 a 91 e esse indice entra no array de slots do
+    grupo. Emitindo 1 grupo de 64 slots, o indice 80 do `a_prop_stlt_02x` lia
+    depois do fim do array: vtable nula e `jalr v0` para endereco invalido.
 
-    Each filled slot gets ITS OWN object: the Place loop (0x2AF9E8) runs once per
-    slot and would add the delta N times to a shared object. Slots above
-    SLOTS_PREENCHIDOS stay null, like the 81.5%% of null slots in retail.
+    Cada slot preenchido recebe o SEU proprio objeto: o laco de Place
+    (0x2AF9E8) roda uma vez por slot e somaria o delta N vezes num objeto
+    compartilhado. Os slots acima de SLOTS_PREENCHIDOS ficam nulos, como os
+    81,5%% de slots nulos do retail.
 
-    Returns (key of the descriptor array, donor slot of the shader).
+    Devolve (chave do array de descritores, slot doador do shader).
     """
-    # The shader donor HAS to be in the same token space as the main donor,
-    # otherwise the file comes out with one city's structure and another's shader.
-    # That is what happened with tokyo + atlanta's shader.
-    # WARNING, NOT ERROR: the user tested it and the tokens are INERT - different
-    # spaces resolve to the same vtable at run time. Keeping both in the same
-    # space is still hygiene (retail never mixes them), but blocking it would
-    # impose a theory his measurement already overturned.
-    if donor_shader and donor_token(donor_shader) != TOKEN_SHIFT:
-        print('  warning: --donor-shader is in another token space '
-              '(0x%X vs 0x%X); harmless, but retail does not mix them'
-              % (donor_token(donor_shader), TOKEN_SHIFT))
-    # A DIFFERENT DONOR PER FILLED SLOT. A page chunk has a SINGLE OWNER.
+    # O doador de shader TEM que estar no mesmo espaco de token do doador
+    # principal, senao o arquivo sai com estrutura de uma cidade e shader de
+    # outra. Foi o que aconteceu com tokyo + shader do atlanta.
+    # AVISO, NAO ERRO: o usuario testou e os tokens sao INERTES - espacos
+    # diferentes resolvem para a mesma vtable em tempo de execucao. Manter os
+    # dois no mesmo espaco continua sendo higiene (o varejo nunca mistura), mas
+    # bloquear seria impor uma teoria que a medicao dele ja derrubou.
+    if doador_shader and token_do_doador(doador_shader) != DESLOC_TOKEN:
+        print('  aviso: --doador-shader esta em outro espaco de token '
+              '(0x%X contra 0x%X); inofensivo, mas o varejo nao mistura'
+              % (token_do_doador(doador_shader), DESLOC_TOKEN))
+    # UM DOADOR DIFERENTE POR SLOT PREENCHIDO. Chunk de pagina tem DONO UNICO.
     #
-    # The shader's texture carries no pixels: it carries four 12-byte datChunkRef
-    # at +0x48, and the pixels live in the sibling .ppf. datPageFile::PageIn
-    # writes a back-pointer into the paged data pointing to THE datChunkRef that
-    # resolved it, and evicting the page clears exactly ONE. Two refs to the same
-    # (page, offset) means a dangling pointer as soon as the page is recycled.
+    # A textura do shader nao carrega pixel: ela carrega quatro datChunkRef de
+    # 12 bytes em +0x48, e o pixel mora no .ppf irmao. O datPageFile::PageIn
+    # grava um retro-ponteiro no dado paginado apontando para O datChunkRef que
+    # o resolveu, e o despejo da pagina anula exatamente UM. Dois refs para o
+    # mesmo (pagina, offset) e ponteiro pendurado assim que a pagina reciclar.
     #
-    # I emitted 128 copies of the SAME shader per group, i.e. 2304 texture objects
-    # pointing to ONE chunk (offset 0x2E00, page 3). Measured on retail: atlanta
-    # has 4105 shaders and 4105 DISTINCT textures, tokyo 5970 and 5970 - ZERO
-    # sharing, neither of chunk nor of object. Their exporter does not deduplicate,
-    # on purpose.
+    # Eu emitia 128 copias do MESMO shader por grupo, ou seja 2304 objetos de
+    # textura apontando para UM chunk (offset 0x2E00, pagina 3). Medido no
+    # varejo: atlanta tem 4105 shaders e 4105 texturas DISTINTAS, tokyo 5970 e
+    # 5970 - ZERO compartilhamento, nem de chunk nem de objeto. O exportador
+    # deles nao deduplica de proposito.
     #
-    # So each filled slot takes a shader from a DIFFERENT donor slot, which brings
-    # its own chunk. When donors run out, the slot stays NULL instead of repeating
-    # - null is the majority form in retail (81.5% of slots) and creates no
-    # duplicate owner. As a bonus the city stops having a single texture.
-    safe = shader_slots(donor_shader)
+    # Entao cada slot preenchido leva um shader de um SLOT DIFERENTE do doador,
+    # que traz o seu proprio chunk. Quando os doadores acabam, o slot fica NULO
+    # em vez de repetir - nulo e a forma majoritaria do varejo (81,5% dos slots)
+    # e nao cria dono duplicado. De brinde a cidade deixa de ter uma textura so.
+    seguros = slots_de_shader(doador_shader)
     if slot is not None:
-        safe = [slot] + [k for k in safe if k != slot]
-    if not safe:
-        raise SystemExit('no usable shader in %s'
-                         % os.path.basename(donor_shader))
-    n_full = min(n_slots, SLOTS_PREENCHIDOS, len(safe) // max(1, n_groups))
-    n_full = max(n_full, 1)
-    came_from = safe[0]
-    next_ = 0
+        seguros = [slot] + [k for k in seguros if k != slot]
+    if not seguros:
+        raise SystemExit('nenhum shader utilizavel em %s'
+                         % os.path.basename(doador_shader))
+    n_cheios = min(n_slots, SLOTS_PREENCHIDOS, len(seguros) // max(1, n_grupos))
+    n_cheios = max(n_cheios, 1)
+    veio_de = seguros[0]
+    prox = 0
     shaders_tex = {}
-    for g in range(n_groups):
+    for g in range(n_grupos):
         vas = []
         for k in range(n_slots):
-            if TEXTURE_ORDER:
-                # A SINGLE GROUP, and a DISTINCT object per slot. I shared the
-                # same Basic pointer across the 18 groups to save RAM, and THAT was
-                # the cause of the infinite loading: the serialised ctor 2AFF20 runs
-                # once PER VISIT and RELOCATES shader+0x08 again each time (measured
-                # by the texture fork: 068022A0 -> 010022A0 -> FB8022A0). My builds
-                # had 9180 slots for 510 objects = 8670 extra visits; the city that
-                # loads has ZERO.
-                # Emitting 510 x 18 distinct objects does not work because each
-                # chunk needs an exclusive owner, so the way out is fewer groups:
-                # group 0 takes the slots, the others stay null.
-                if g == 0 and k < len(TEXTURE_ORDER):
-                    if True:   # one object per (group, slot); never reuse
-                        bl, _came = shader_block(donor_shader,
-                                                 safe[k % len(safe)])
-                        hdr = bl
-                        name_t = TEXTURE_ORDER[k]
-                        if RUNTIME_BINDING:
-                            # ATLANTA SLOT INTACT, for the mod to overwrite
-                            # later. Zeroing the datChunkRef made the page-in hang
-                            # on LOADING; keeping them (valid, pointing to atlanta's
-                            # .ppf) makes the slot load exactly like the downtown
-                            # atlanta that already loads. The chunk duplication
-                            # (when k repeats a donor) only bites when the page is
-                            # RECYCLED, and tex_bind overwrites shader+0x08 with the
-                            # LA texture before that. Only the token is guaranteed
-                            # (atlanta's block already has it).
-                            o = e.put(bytes(bl))
+            if ORDEM_TEXTURA:
+                # UM GRUPO SO, e um objeto DISTINTO por slot. Eu compartilhava o
+                # mesmo ponteiro de Basic entre os 18 grupos para poupar RAM, e
+                # ESSA era a causa do loading infinito: o ctor serializado 2AFF20
+                # roda uma vez POR VISITA e RELOCA shader+0x08 de novo a cada
+                # uma (medido pela fork de textura: 068022A0 -> 010022A0 ->
+                # FB8022A0). Nos meus builds davam 9180 slots para 510 objetos =
+                # 8670 visitas extras; a cidade que carrega tem ZERO.
+                # Emitir 510 x 18 objetos distintos nao serve porque cada chunk
+                # precisa de dono exclusivo, entao a saida e reduzir os grupos:
+                # o grupo 0 leva os slots, os outros ficam nulos.
+                if g == 0 and k < len(ORDEM_TEXTURA):
+                    if True:   # um objeto por (grupo, slot); nunca reusar
+                        bl, _veio = bloco_shader(doador_shader,
+                                                 seguros[k % len(seguros)])
+                        cab = bl
+                        nome_t = ORDEM_TEXTURA[k]
+                        if LIGACAO_RUNTIME:
+                            # SLOT DO ATLANTA INTACTO, para o mod sobrescrever
+                            # depois. Zerar os datChunkRef fazia o page-in travar
+                            # no LOADING; mante-los (validos, apontando pro .ppf
+                            # do atlanta) faz o slot carregar exatamente como a
+                            # downtown-atlanta que ja carrega. A duplicacao de
+                            # chunk (quando k repete um doador) so morde na
+                            # RECICLAGEM da pagina, e o tex_bind sobrescreve
+                            # shader+0x08 com a textura de LA antes disso. So o
+                            # token e garantido (o bloco do atlanta ja tem).
+                            o = e.poe(bytes(bl))
                             shaders_tex[k] = e.va(o)
                         else:
-                            shaders_tex[k] = e.va(put_textured_shader(
-                                e, hdr[:16], GAME_TEXTURES[name_t],
-                                TEXTURE_LEVELS.get(name_t)))
+                            shaders_tex[k] = e.va(poe_shader_com_textura(
+                                e, cab[:16], TEXTURAS_DO_JOGO[nome_t],
+                                NIVEIS_TEXTURA.get(nome_t)))
                     vas.append(shaders_tex[k])
                 else:
                     vas.append(0)
-            elif k < n_full and next_ < len(safe):
-                block, _ = shader_block(donor_shader, safe[next_])
-                next_ += 1
-                o = e.put(block)
-                # each shader with its texture inline at +0x10, like retail
+            elif k < n_cheios and prox < len(seguros):
+                bloco, _ = bloco_shader(doador_shader, seguros[prox])
+                prox += 1
+                o = e.poe(bloco)
+                # cada shader com a sua textura inline em +0x10, como o retail
                 struct.pack_into('<I', e.d, o + 0x08, e.va(o + 0x10))
                 vas.append(e.va(o))
             else:
                 vas.append(0)
-        if RUNTIME_BINDING and g == 0:
-            # MARKER. The mod has to find the slots in RAM and has no way to know
-            # the address; scanning for a signature is cheaper than discovering
-            # the MapRoot at run time. It sits right BEFORE group 0's array, with
-            # the count, so finding the signature means finding the slots.
-            e.align_to(16)
-            e.put(b'MC3TEXSLOTS' + bytes(1) + struct.pack('<I', len(TEXTURE_ORDER)))
-        e.put(b''.join(struct.pack('<I', v) for v in vas), 'group%d_data' % g)
-    print('  shaders: %d slot(s) per group, %d distinct donors used '
-          '(one chunk per texture)' % (n_full, next_))
-    # The geometry's material index HAS to land in a filled slot. With distinct
-    # donors per slot, how many slots fill now depends on how many safe shaders
-    # the donor has - and a thin donor leaves the index pointing to NULL without
-    # warning. This test is the safety net.
-    if TEXTURE_ORDER:
-        n_full = len(TEXTURE_ORDER)
-    if not TEXTURE_ORDER and material_index >= n_full:
+        if LIGACAO_RUNTIME and g == 0:
+            # MARCADOR. O mod precisa achar os slots na RAM e nao tem como
+            # saber o endereco; varrer por uma assinatura e mais barato que
+            # descobrir o MapRoot em runtime. Fica logo ANTES do array do grupo
+            # 0, com a contagem, entao achar a assinatura e achar os slots.
+            e.alinha(16)
+            e.poe(b'MC3TEXSLOTS' + bytes(1) + struct.pack('<I', len(ORDEM_TEXTURA)))
+        e.poe(b''.join(struct.pack('<I', v) for v in vas), 'grupo%d_dados' % g)
+    print('  shaders: %d slot(s) por grupo, %d doadores distintos usados '
+          '(chunk unico por textura)' % (n_cheios, prox))
+    # O indice de material da geometria TEM que cair num slot preenchido. Com
+    # doadores distintos por slot, quantos slots enchem passou a depender de
+    # quantos shaders seguros o doador tem - e um doador magro deixa o indice
+    # apontando para NULO sem avisar. Este teste e a rede.
+    if ORDEM_TEXTURA:
+        n_cheios = len(ORDEM_TEXTURA)
+    if not ORDEM_TEXTURA and indice_material >= n_cheios:
         raise SystemExit(
-            'material %d but only %d slot(s) per group get filled (the donor has %d '
-            'safe shaders for %d groups). Use a --material smaller than %d, '
-            'fewer groups, or a donor with more shaders.'
-            % (material_index, n_full, len(safe), n_groups, n_full))
+            'material %d mas so %d slot(s) por grupo enchem (o doador tem %d '
+            'shaders seguros para %d grupos). Use --material menor que %d, '
+            'menos grupos, ou um doador com mais shaders.'
+            % (indice_material, n_cheios, len(seguros), n_grupos, n_cheios))
 
-    # the descriptors HAVE to be contiguous: MapRoot+0x0C points to the array
-    descs = e.put(bytes(0x10 * n_groups), 'groups')
-    for g in range(n_groups):
+    # os descritores TEM que ser contiguos: MapRoot+0x0C aponta para o array
+    descs = e.poe(bytes(0x10 * n_grupos), 'grupos')
+    for g in range(n_grupos):
         off = descs + 0x10 * g
         struct.pack_into('<IIHHI', e.d, off, tok(VT_ARRAY), 0, n_slots, n_slots, 0)
-        e.point(off + 4, 'group%d_data' % g)
-    return 'groups', came_from
+        e.aponta(off + 4, 'grupo%d_dados' % g)
+    return 'grupos', veio_de
 
 
-def texture_with_pixels(e, donor):
-    """COPY the donor's root texture WITH its pixel block, relocating the
-    internal pointers. Returns the texture's key.
+def textura_com_pixels(e, doador):
+    """COPIA a textura raiz do doador COM o bloco de pixels, relocando os
+    ponteiros internos. Devolve a chave da textura.
 
-    This is the missing piece that hung the city built from scratch: the copied
-    shader pointed to a texture without pixels (level[].data null, stamp
-    0x80000000 = not placed in GS), and most of the city's textures take their
-    pixels from the .aib stream, which does not exist in a generated city. In
-    Bind, the game tried to place a texture with no pixel source and hung on the
-    first frame - the same hang the cube only showed when the camera turned.
+    Esta e a peca que faltava e travava a cidade do zero: o shader copiado
+    apontava para uma textura sem pixels (nivel[].dados nulos, carimbo
+    0x80000000 = nao colocada no GS), e a maioria das texturas da cidade pega
+    os pixels do streaming .aib, que nao existe numa cidade gerada. No Bind, o
+    jogo tentava colocar uma textura sem fonte de pixel e travava no primeiro
+    frame - a mesma trava que o cubo so mostrava ao virar a camera.
 
-    The MapRoot's root (+0x1D4) is one of the 18 atlanta textures with INLINE
-    pixels: 256x256 PSMT8, a MipBuffer of 0x10500 bytes (0x100 header + 0x10000
-    pixels + 0x400 CLUT). Copying it with the pixels, Bind places the texture
-    from the file itself.
+    A raiz do MapRoot (+0x1D4) e uma das 18 texturas do atlanta com pixels
+    INLINE: 256x256 PSMT8, um MipBuffer de 0x10500 bytes (0x100 cabecalho +
+    0x10000 pixels + 0x400 CLUT). Copiando ela com os pixels, o Bind coloca a
+    textura a partir do proprio arquivo.
     """
-    p = mc2.Pck(donor)
+    p = mc2.Pck(doador)
     d = p.data
     tva = struct.unpack_from('<I', d, 0x80 + 0x1D4)[0]
     t = p.F(tva)
-    mbva = struct.unpack_from('<I', d, t + 0x48)[0]   # level[0].data
+    mbva = struct.unpack_from('<I', d, t + 0x48)[0]   # nivel[0].dados
     mb = p.F(mbva)
-    size_ = struct.unpack_from('<I', d, mb + 0x0C)[0]    # 0x10500
+    tam = struct.unpack_from('<I', d, mb + 0x0C)[0]    # 0x10500
 
-    # 1) the pixel block (MipBuffer + pixels + CLUT), cleared of pointers
-    buf = bytearray(d[mb:mb + size_])
+    # 1) o bloco de pixels (MipBuffer + pixels + CLUT), limpo dos ponteiros
+    buf = bytearray(d[mb:mb + tam])
     struct.pack_into('<I', buf, 0x00, 0)               # zero_00
-    struct.pack_into('<I', buf, 0x04, 0)               # shared_node (runtime)
-    struct.pack_into('<I', buf, 0x08, 0)               # owner: repointed below
+    struct.pack_into('<I', buf, 0x04, 0)               # no_compartilhado (runtime)
+    struct.pack_into('<I', buf, 0x08, 0)               # dono: reaponta abaixo
     struct.pack_into('<I', buf, 0x10, 0)               # unk_10 (era CDCD)
-    off_buf = e.put(bytes(buf), 'tex_pixels')
+    off_buf = e.poe(bytes(buf), 'tex_pixels')
 
-    # 2) the 0x90 texture object, with its pointers zeroed except level[0]
+    # 2) o objeto de textura de 0x90, com os ponteiros zerados menos nivel[0]
     obj = bytearray(d[t:t + 0x90])
     for k in range(4):
-        struct.pack_into('<I', obj, 0x48 + 12 * k, 0)  # level[k].data
-    struct.pack_into('<I', obj, 0x78, 0)               # name
-    off_tex = e.put(bytes(obj), 'tex_inline')
-    # level[0].data -> the pixel block; and the block's owner -> level[0]
-    e.point(off_tex + 0x48, 'tex_pixels')
+        struct.pack_into('<I', obj, 0x48 + 12 * k, 0)  # nivel[k].dados
+    struct.pack_into('<I', obj, 0x78, 0)               # nome
+    off_tex = e.poe(bytes(obj), 'tex_inline')
+    # nivel[0].dados -> o bloco de pixels; e o dono do bloco -> nivel[0]
+    e.aponta(off_tex + 0x48, 'tex_pixels')
     struct.pack_into('<I', e.d, off_buf + 0x08, e.va(off_tex + 0x48))
     return 'tex_inline'
 
 
-def shader_block(donor, slot=None):
-    """COPIED: a TYPICAL shader, with the sub-object at +0x10.
+def bloco_shader(doador, slot=None):
+    """COPIADO: um shader TIPICO, com o sub-objeto em +0x10.
 
-    I got this wrong twice in a row and the second time was worse than the first.
-    Measured over atlanta's ~1900 type-0 shaders, the distance between the shader
-    and the object its `+0x08` points to is:
+    Errei isto duas vezes seguidas e a segunda foi pior que a primeira. Medido
+    nos ~1900 shaders de tipo 0 do atlanta, a distancia entre o shader e o
+    objeto que seu `+0x08` aponta e:
 
-        +0x10 -> 1889 times     +0xC -> 11     +0xAC -> 3
+        +0x10 -> 1889 vezes     +0xC -> 11     +0xAC -> 3
 
-    I had PICKED the 3-in-1900 case, because that is where I tripped first, and
-    built the model "shader = 0xB0 block with the sub-object at the end" on top of
-    it. The normal case is the sub-object right after the 16-byte header. With the
-    pointer at +0xAC the sub-object's `+0x04` byte falls outside the copied block,
-    and `0x2BA718` dispatches on garbage -> loc_2BA7E0, infinite loop.
+    Eu tinha SELECIONADO o caso de 3 em 1900, porque foi nele que tropecei
+    primeiro, e construi o modelo "shader = bloco de 0xB0 com sub-objeto no fim"
+    em cima dele. O normal e o sub-objeto vir logo depois do cabecalho de 16
+    bytes. Com o ponteiro em +0xAC o byte `+0x04` do sub-objeto cai fora do
+    bloco copiado, e `0x2BA718` despacha em lixo -> loc_2BA7E0, laco infinito.
 
-    The stride between consecutive shaders is 0xB0, so the block is 0xB0 bytes
-    with the sub-object embedded at +0x10.
+    O passo entre shaders consecutivos e 0xB0, entao o bloco tem 0xB0 bytes com
+    o sub-objeto embutido em +0x10.
     """
-    p = mc2.Pck(donor)
+    p = mc2.Pck(doador)
     d = p.data
     a18 = p.F(struct.unpack_from('<I', d, 0x80 + 0x0C)[0])
     g0 = p.F(struct.unpack_from('<I', d, a18 + 4)[0])
     n = struct.unpack_from('<H', d, a18 + 8)[0]
-    # With `slot`, only that one; without it, the first that fits. The choice
-    # matters: what decides whether the ITOP+2 stream is read is the MATERIAL's
-    # flags word, not the block, so enabling normals with a shader that does not
-    # read them corrupts instead of lighting - that is how a city hung on frame 1.
-    range_ = range(slot, slot + 1) if slot is not None else range(n)
-    for k in range_:
+    # Com `slot`, so aquele; sem, o primeiro que serve. Escolher importa: quem
+    # decide se o stream de ITOP+2 e lido e a palavra de flags do MATERIAL, nao
+    # o bloco, entao ligar as normais com um shader que nao as le corrompe em
+    # vez de iluminar - foi assim que uma cidade travou no primeiro quadro.
+    faixa = range(slot, slot + 1) if slot is not None else range(n)
+    for k in faixa:
         if k >= n:
-            raise SystemExit('slot %d does not exist: the donor has %d' % (k, n))
+            raise SystemExit('slot %d nao existe: o doador tem %d' % (k, n))
         v = struct.unpack_from('<I', d, g0 + 4 * k)[0]
         if not (v and p.inside(p.F(v))):
             continue
         o = p.F(v)
-        # FIND IT BY STRUCTURE, NOT BY THE VTABLE VALUE. Comparing against
-        # VT_SHADER made tokyo be rejected, and I recorded that in the log as
-        # "tokyo has no shader of this type" - that was wrong. The texture fork
-        # measured it and I confirmed: tokyo has the SAME class, with the whole
-        # token space shifted by +0x488 (007A1EF8 -> 007A2380, 007B2318 ->
-        # 007B27A0, 007A1FC8 -> 007A2450). Atlanta, sd and detroit use the lower
-        # tokens. Testing the shape covers all four without a table of values.
-        if struct.unpack_from('<I', d, o + 4)[0] & 0x7F:      # has to be type 0
+        # ACHAR PELA ESTRUTURA, NAO PELO VALOR DA VTABLE. Comparar contra
+        # VT_SHADER fazia o tokyo ser recusado, e eu registrei isso no log como
+        # "o tokyo nao tem shader desse tipo" - estava errado. A fork de textura
+        # mediu e eu confirmei: o tokyo tem a MESMA classe, com o espaco de
+        # tokens inteiro deslocado de +0x488 (007A1EF8 -> 007A2380,
+        # 007B2318 -> 007B27A0, 007A1FC8 -> 007A2450). Atlanta, sd e detroit
+        # usam os tokens de baixo. Testar a forma cobre os quatro sem tabela de
+        # valores.
+        if struct.unpack_from('<I', d, o + 4)[0] & 0x7F:      # tem que ser tipo 0
             continue
         if struct.unpack_from('<I', d, o + 8)[0] != p.V(o + 0x10):
             continue
         if d[o + 0x14] not in (0, 1, 2, 3):                   # byte +0x04 do sub
             continue
-        # The SAME strict test as slots_de_shader: the block has to survive
-        # `limpa` whole. Without this the default went back to slot 30, which
-        # loses +0x0C. See the note there.
-        raw_ = bytes(d[o:o + 0xB0])
-        clean = clean_(raw_, donor, keep=(0x08,))[0]
-        lost_n = [i for i in range(0, 0xB0, 4)
-                    if i != 0x08 and raw_[i:i + 4] != clean[i:i + 4]]
-        if lost_n:
+        # O MESMO teste estrito do slots_de_shader: o bloco tem que sobreviver
+        # inteiro ao `limpa`. Sem isto o default voltava a ser o slot 30, que
+        # perde o +0x0C. Ver a nota la.
+        bruto = bytes(d[o:o + 0xB0])
+        limpo = limpa(bruto, doador, manter=(0x08,))[0]
+        perdidos = [i for i in range(0, 0xB0, 4)
+                    if i != 0x08 and bruto[i:i + 4] != limpo[i:i + 4]]
+        if perdidos:
             if slot is not None:
                 raise SystemExit(
-                    'slot %d loses %d field(s) in `limpa` (+%s) - use '
-                    '--shader-list'
-                    % (slot, len(lost_n), ', +'.join('0x%02X' % i for i in lost_n)))
+                    'slot %d perde %d campo(s) no `limpa` (+%s) - use '
+                    '--lista-shaders'
+                    % (slot, len(perdidos), ', +'.join('0x%02X' % i for i in perdidos)))
             continue
-        return clean, k
+        return limpo, k
     raise SystemExit(
-        'slot %d of %s has no typical shader (sub at +0x10); use '
-        '--shader-list' % (slot, os.path.basename(donor)) if slot is not None
-        else 'no typical shader (sub at +0x10) in %s'
-        % os.path.basename(donor))
+        'slot %d do %s nao tem shader tipico (sub em +0x10); use '
+        '--lista-shaders' % (slot, os.path.basename(doador)) if slot is not None
+        else 'nenhum shader tipico (sub em +0x10) em %s'
+        % os.path.basename(doador))
 
 
-def empty_array(e, map_key):
-    """An array object with count ZERO, in place of a null pointer.
+def array_vazio(e, chave):
+    """Um objeto de array com contagem ZERO, no lugar de um ponteiro nulo.
 
-    Found in the savestate of the first test: `Place` fixes the pointers in the
-    order the class declares them, and the MapRoot stopped right after the shader
-    group - the next field, `+0x10`, was the null I had left. On the PS2 reading
-    address 0 does not fault: it returns the start of RAM, and `Place` walks off
-    into a graph of garbage. Infinite loading, no error.
+    Descoberto no savestate do primeiro teste: `Place` conserta os ponteiros na
+    ordem em que a classe os declara, e o MapRoot parou logo depois do grupo de
+    shader - o campo seguinte, `+0x10`, era o nulo que eu tinha deixado. No PS2
+    ler o endereco 0 nao falha: devolve o inicio da RAM, e o `Place` sai andando
+    num grafo de lixo. Loading infinito, sem erro.
 
-    A zero-count array is the legitimate EMPTY form: the pointer is valid, the
-    loop runs zero times.
+    Um array de contagem zero e a forma VAZIA legitima: o ponteiro e valido, o
+    laco roda zero vezes.
     """
-    data = e.put(bytes(16), map_key + '_data')
-    obj = e.put(struct.pack('<IIHHI', tok(VT_ARRAY), 0, 0, 0, 0), map_key)
-    e.point(obj + 4, map_key + '_data')
+    dados = e.poe(bytes(16), chave + '_dados')
+    obj = e.poe(struct.pack('<IIHHI', tok(VT_ARRAY), 0, 0, 0, 0), chave)
+    e.aponta(obj + 4, chave + '_dados')
     return obj
 
 
-def empty_hood(e):
-    """A zeroed block for HoodEntry+0x08/+0x10 of a hood with no content.
+def hood_vazio(e):
+    """Um bloco zerado para HoodEntry+0x08/+0x10 de hood sem conteudo.
 
-    Measured: NO retail hood has a zero count - the four cities fill six or seven
-    - so there is no example of an "empty hood" to copy. What exists is the
-    invariant: `unique_array` and `instance_array` are never null, in the 25 hood
-    entries of the four cities. Since the accompanying count is zero, the loop
-    reads nothing; the pointer only has to be a legitimate address. The lesson of
-    `empty_array` applies: on the PS2 reading address 0 does not fault, it
-    returns the start of RAM and Place walks off into garbage.
+    Medido: NENHUM hood do varejo tem contagem zero - as quatro cidades enchem
+    os seis ou sete - entao nao existe exemplo de "hood vazio" para copiar. O
+    que existe e a invariante: `unique_array` e `instance_array` nunca sao
+    nulos, nas 25 entradas de hood das quatro cidades. Como a contagem que
+    acompanha e zero, o laco nao le nada; o ponteiro so precisa ser um endereco
+    legitimo. Vale a licao do `array_vazio`: no PS2 ler o endereco 0 nao falha,
+    devolve o inicio da RAM e o Place sai andando em lixo.
 
-    The 16 bytes BEFORE the array are the new[] cookie (count, as in retail:
-    `[count][CD CD CD]`). mcHood::DeleteModels 0x25D418 reads the count FROM
-    THERE, not from the HoodEntry, and calls each element's virtual destructor:
-    without that cookie the block inherited the previous object's word (1) and
-    leaving the city jumped to a null vtable (measured: pc=0 coming back from
-    the Arcade, 2026-09-27).
+    Os 16 bytes ANTES do array sao o cookie do new[] (contagem, como no varejo:
+    `[count][CD CD CD]`). mcHood::DeleteModels 0x25D418 le a contagem DALI, nao
+    do HoodEntry, e chama o destrutor virtual de cada elemento: sem esse cookie
+    o bloco herdava a palavra do objeto anterior (1) e sair da cidade saltava
+    para uma vtable nula (medido: pc=0 ao voltar do Arcade, 27/09/2026).
     """
-    if 'empty_hood' not in e.marks:
-        at = e.put(struct.pack('<I', 0) + b'\xCD' * 12 + bytes(0x60), 'empty_hood_cookie')
-        e.label('empty_hood', at + 16)
-    return 'empty_hood'
+    if 'hood_vazio' not in e.marca:
+        at = e.poe(struct.pack('<I', 0) + b'\xCD' * 12 + bytes(0x60), 'hood_vazio_cookie')
+        e.rotula('hood_vazio', at + 16)
+    return 'hood_vazio'
 
 
-def clean_(blob, donor, keep=()):
-    """Zero EVERY pointer inside a copied blob, except the ones I re-point.
+def limpa(blob, doador, manter=()):
+    """Zera TODO ponteiro de dentro de um blob copiado, menos os que eu reaponto.
 
-    Copying a donor structure brings its pointers along, and they point into the
-    8 MB source space. In a 26 KB file that is a dangling pointer, and I had been
-    handling only one or two per structure: `+0x194` has 23 and I handled 2; the
-    `+0x1D4` chains have 1 to 9 and I handled none; the shader block has TWO
-    (`+0x08` and `+0x0C`) and I only fixed the first - copied 64 times, that made
-    64 identical dangling pointers.
+    Copiar uma estrutura do doador traz os ponteiros dela, que apontam pro
+    espaco de 8 MB de origem. Num arquivo de 26 KB isso e ponteiro pendurado, e
+    eu vinha tratando so um ou dois por estrutura: o `+0x194` tem 23 e eu
+    cuidava de 2; as cadeias de `+0x1D4` tem de 1 a 9 e eu nao cuidava de
+    nenhuma; o bloco de shader tem DOIS (`+0x08` e `+0x0C`) e eu so consertava
+    o primeiro — copiado 64 vezes, dava 64 ponteiros pendurados iguais.
 
-    Zeroing is safe where the consumer tests before using, which is the case for
-    these fields; keeping the donor's value never is.
+    Zerar e seguro onde o consumidor testa antes de usar, que e o caso desses
+    campos; manter o valor do doador nunca e.
     """
-    p = mc2.Pck(donor)
+    p = mc2.Pck(doador)
     b = bytearray(blob)
     n = 0
     for o in range(0, len(b) - 3, 4):
-        if o in keep:
+        if o in manter:
             continue
         v = struct.unpack_from('<I', b, o)[0]
         if BASE_VA <= v < BASE_VA + 0x1000000 and p.inside(p.F(v)):
@@ -936,138 +937,140 @@ def clean_(blob, donor, keep=()):
     return bytes(b), n
 
 
-def maproot_pointer_fields():
-    """Every MapRoot offset that holds a POINTER, according to `mcCity::mcCity`.
+def campos_ponteiro_maproot():
+    """Todo offset do MapRoot que guarda PONTEIRO, segundo `mcCity::mcCity`.
 
-    Copying the donor's MapRoot brings its pointers along, which point inside the
-    source file and are not valid here. All of them are guarded by `if (ptr)`
-    before being walked, so zeroing is safe; keeping the donor's value is not.
+    Copiar o MapRoot do doador traz junto os ponteiros dele, que apontam pra
+    dentro do arquivo de origem e nao valem aqui. Todos sao guardados por
+    `if (ptr)` antes de percorridos, entao zerar e seguro; deixar o valor do
+    doador nao e.
     """
     return ([0x0C, 0x10, 0x18, 0x1C, 0x2C, 0x30, 0x190, 0x194, 0x198,
              0x19C, 0x1CC, 0x228, 0x1D4] + [0x1D8 + 4 * k for k in range(20)])
 
 
-def maproot_base(donor):
-    """COPIED: the donor's whole MapRoot (0x2290), with the pointers zeroed.
+def maproot_base(doador):
+    """COPIADO: o MapRoot inteiro do doador (0x2290), com os ponteiros zerados.
 
-    What remains are the city's SCALARS - extents, LOD distances, fog,
-    saturation - which I had been zeroing without knowing. That is ~0x250 bytes
-    of parameters. The donor's two palettes come along and are overwritten by
-    `inline_palettes`; only the offsets from `maproot_pointer_fields()` are
-    zeroed, and they are all below 0x290, so the palette area is not touched here.
+    O que sobra sao os ESCALARES da cidade - extents, distancias de LOD, fog,
+    saturacao - que eu vinha zerando sem saber. Sao ~0x250 bytes de parametro.
+    As duas paletas do doador vem junto e sao sobrescritas por `paletas_inline`;
+    so os offsets de `campos_ponteiro_maproot()` sao zerados, e todos ficam
+    abaixo de 0x290, entao a area das paletas nao e tocada aqui.
     """
-    d = mc2.Pck(donor).data
-    m = bytearray(d[0x80:0x80 + MAPROOT_SIZE])
-    for off in maproot_pointer_fields():
+    d = mc2.Pck(doador).data
+    m = bytearray(d[0x80:0x80 + TAM_MAPROOT])
+    for off in campos_ponteiro_maproot():
         struct.pack_into('<I', m, off, 0)
-    struct.pack_into('<I', m, 0x04, 0)       # "already placed" flag
+    struct.pack_into('<I', m, 0x04, 0)       # flag "ja colocado"
     return m
 
 
-def block_1c(e, donor, map_key, components=(), instances=(), scratch=64,
-             cells_per_unique=None, cells_per_inst=None):
-    """The city's culling index, at `MapRoot+0x1C`.
+def bloco_1c(e, doador, chave, componentes=(), instancias=(), scratch=64,
+             cel_por_unico=None, cel_por_inst=None):
+    """O indice de culling da cidade, em `MapRoot+0x1C`.
 
-        +0x00 component count             +0x04 instance count
-        +0x08 -> UniqueComponent array    (unique_array)
-        +0x0C -> Instance array           (instance_array)
-        +0x10 -> CellRecord[cell_count]   THE CELL GRID
-        +0x14 -> one pointer per cell     (the `extra` list, see mc3_coverage)
-        +0x18.. scalars (copied)
+        +0x00 contagem de componentes     +0x04 contagem de instances
+        +0x08 -> array de UniqueComponent (unique_array)
+        +0x0C -> array de Instance        (instance_array)
+        +0x10 -> CellRecord[cell_count]   A GRADE DE CELULAS
+        +0x14 -> ponteiro por celula      (a lista `extra`, ver mc3_cobertura)
+        +0x18.. escalares (copiados)
 
-    CORRECTION (what hung the city built from scratch): `+0x10` is NOT scratch.
-    It is the source grid the game READS - each 12-byte CellRecord is
+    CORRECAO (o que travava a cidade do zero): `+0x10` NAO e scratch. E a grade
+    de origem que o jogo LE - cada CellRecord de 12 bytes e
     `{s16 unique_count, s16 instance_count, u32 unique_list, u32 instance_list}`,
-    and `unique_list` points to a `u16[unique_count]` of INDICES into
-    unique_array. In atlanta cell 51 is `{1, 0, ->[237], 0}` and
-    unique_array[237] is the component that lives in that cell.
+    e `unique_list` aponta para um `u16[unique_count]` de INDICES no
+    unique_array. No atlanta a celula 51 e `{1, 0, ->[237], 0}` e
+    unique_array[237] e o componente que mora naquela celula.
 
-    Leaving the whole grid zeroed, the cube entered unique_array but no cell
-    listed it; turning the camera to the cube's cell the game went into a loop
-    writing to that cell (counter going 0x123 -> 0x242 between two frames) and
-    froze. With the grid filled in it reads valid data.
+    Deixando a grade toda zerada, o cubo entrava no unique_array mas nenhuma
+    celula o listava; ao virar a camera para a celula do cubo o jogo entrava num
+    laco escrevendo naquela celula (contador subindo 0x123 -> 0x242 entre dois
+    frames) e congelava. Com a grade preenchida ele le dados validos.
 
-    `cells_per_unique` maps unique-index -> list of cell indices its tile box covers.
-    Every listed cell gets a CellRecord pointing to that unique.
+    `cel_por_unico` mapeia indice-de-unique -> lista de indices de celula que a
+    sua tile box cobre. Cada celula listada recebe um CellRecord que aponta para
+    aquele unique.
     """
-    # THE OBJECT IS 0x7130 BYTES, NOT 0x60. Measured on atlanta and sd: from the
-    # start of the CellIndex to the unique_array cookie there are 28976 bytes, and
-    # `+0x64`/`+0x84` - the visible lists the runtime fills - come ZEROED in the
-    # file. Copying only 0x60 let `+0x64` land in the next allocation, and the game
-    # read a POINTER where it expects an index limited to 0x190. That is what Fork
-    # City MODS 2's packet guard caught as `bad packet lists` in my file.
-    p = mc2.Pck(donor)
+    # O OBJETO TEM 0x7130 BYTES, NAO 0x60. Medido no atlanta e no sd: do inicio
+    # do CellIndex ate o cookie do unique_array vao 28976 bytes, e `+0x64`/`+0x84`
+    # - as listas de visiveis que o runtime enche - vem ZERADAS no arquivo.
+    # Copiando so 0x60 eu deixava `+0x64` cair na alocacao seguinte, e o jogo lia
+    # um PONTEIRO onde espera um indice limitado a 0x190. Foi o que o guard de
+    # packet da Fork City MODS 2 pegou como `bad packet lists` no meu arquivo.
+    p = mc2.Pck(doador)
     d = p.data
     o = p.F(struct.unpack_from('<I', d, 0x80 + 0x1C)[0])
     ua = p.F(struct.unpack_from('<I', d, o + 8)[0])
-    # The unique_array starts IMMEDIATELY after the CellIndex; there is no 0x10
-    # cookie between the two. Subtracting 0x10 truncated the 0x7130 object to
-    # 0x7120 and made mcPVS::Update read the first four unique_array pointers as
-    # the PVS's own final fields. In particular, +0x7120 is the adaptive distance
-    # increment (10.0 in retail).
-    obj_size = ua - o if ua > o else CELLINDEX_SIZE
-    if not (0x60 <= obj_size <= 0x20000):
-        obj_size = CELLINDEX_SIZE
-    blob = bytearray(clean_(bytes(d[o:o + 0x60]), donor)[0])
-    blob += bytes(obj_size - 0x60)          # runtime lists are born zeroed
-    # The 0x7104..0x7124 footer is not scratch. It holds, respectively, the two
-    # current distances, time limits, counters and adaptive steps. All four
-    # retail cities use 800/800, 34/40, 0/0, 40/10, 0. Keeping the donor's values
-    # preserves the contract and still lets SetIntendedFrameRate replace only the
-    # two limits, as the original game does.
-    if obj_size >= 0x7128:
+    # O unique_array comeca IMEDIATAMENTE depois do CellIndex; nao existe um
+    # cookie de 0x10 entre os dois. Subtrair 0x10 truncava o objeto de 0x7130
+    # para 0x7120 e fazia mcPVS::Update ler os quatro primeiros ponteiros do
+    # unique_array como os campos finais do proprio PVS. Em particular,
+    # +0x7120 e o incremento da distancia adaptativa (10.0 no varejo).
+    tam_obj = ua - o if ua > o else TAM_CELLINDEX
+    if not (0x60 <= tam_obj <= 0x20000):
+        tam_obj = TAM_CELLINDEX
+    blob = bytearray(limpa(bytes(d[o:o + 0x60]), doador)[0])
+    blob += bytes(tam_obj - 0x60)          # listas de runtime nascem zeradas
+    # O rodape 0x7104..0x7124 nao e scratch. Sao, respectivamente, as duas
+    # distancias atuais, limites de tempo, contadores e passos adaptativos.
+    # Todas as quatro cidades retail usam 800/800, 34/40, 0/0, 40/10, 0.
+    # Preservar do doador mantem o contrato e ainda deixa SetIntendedFrameRate
+    # substituir somente os dois limites, como o jogo original faz.
+    if tam_obj >= 0x7128:
         blob[0x7104:0x7128] = d[o + 0x7104:o + 0x7128]
-    struct.pack_into('<II', blob, 0, len(components), len(instances))
-    obj = e.put(bytes(blob), map_key)
-    e.put(b''.join(struct.pack('<I', v) for v in components) or bytes(4),
-          map_key + '_comps')
-    e.put(b''.join(struct.pack('<I', v) for v in instances) or bytes(4),
-          map_key + '_insts')
+    struct.pack_into('<II', blob, 0, len(componentes), len(instancias))
+    obj = e.poe(bytes(blob), chave)
+    e.poe(b''.join(struct.pack('<I', v) for v in componentes) or bytes(4),
+          chave + '_comps')
+    e.poe(b''.join(struct.pack('<I', v) for v in instancias) or bytes(4),
+          chave + '_insts')
 
-    # invert the maps: cell -> [indices]. A CellRecord has BOTH sides,
-    # unique_list and instance_list, each a u16[] of indices into its array.
-    def per_cell_of(mapping):
-        outside = {}
-        for idx, cell_list in (mapping or {}).items():
-            for c in cell_list:
+    # inverter os mapas: celula -> [indices]. Um CellRecord tem os DOIS lados,
+    # unique_list e instance_list, cada um u16[] de indices no seu array.
+    def por_celula_de(mapa):
+        fora = {}
+        for idx, celulas in (mapa or {}).items():
+            for c in celulas:
                 if 0 <= c < scratch:
-                    outside.setdefault(c, []).append(idx)
-        return outside
+                    fora.setdefault(c, []).append(idx)
+        return fora
 
-    pc_u = per_cell_of(cells_per_unique)
-    pc_i = per_cell_of(cells_per_inst)
+    pc_u = por_celula_de(cel_por_unico)
+    pc_i = por_celula_de(cel_por_inst)
 
-    # the u16 lists, deduplicated by content (many cells repeat the list)
-    lists = {}
+    # as u16-listas, deduplicadas por conteudo (muitas celulas repetem a lista)
+    listas = {}
 
-    def list_of(idxs, marks):
+    def lista_de(idxs, marca):
         ch = tuple(sorted(idxs))
-        if ch not in lists:
-            name = '%s_%s_%d' % (map_key, marks, len(lists))
-            e.put(b''.join(struct.pack('<H', u) for u in ch), name)
-            lists[ch] = name
-        return lists[ch]
+        if ch not in listas:
+            nome = '%s_%s_%d' % (chave, marca, len(listas))
+            e.poe(b''.join(struct.pack('<H', u) for u in ch), nome)
+            listas[ch] = nome
+        return listas[ch]
 
     cells = bytearray(12 * scratch)
-    obj_cells = e.put(bytes(cells), map_key + '_s1')
+    obj_cells = e.poe(bytes(cells), chave + '_s1')
     for c in set(pc_u) | set(pc_i):
         unis = pc_u.get(c, [])
         inss = pc_i.get(c, [])
         struct.pack_into('<hh', e.d, obj_cells + 12 * c, len(unis), len(inss))
         if unis:
-            e.point(obj_cells + 12 * c + 4, list_of(unis, 'ul'))
+            e.aponta(obj_cells + 12 * c + 4, lista_de(unis, 'ul'))
         if inss:
-            e.point(obj_cells + 12 * c + 8, list_of(inss, 'il'))
+            e.aponta(obj_cells + 12 * c + 8, lista_de(inss, 'il'))
 
-    e.put(bytes(4 * scratch), map_key + '_s2')
-    for k, target in enumerate(('_comps', '_insts', '_s1', '_s2')):
-        e.point(obj + 8 + 4 * k, map_key + target)
+    e.poe(bytes(4 * scratch), chave + '_s2')
+    for k, alvo in enumerate(('_comps', '_insts', '_s1', '_s2')):
+        e.aponta(obj + 8 + 4 * k, chave + alvo)
     return obj
 
 
-def hood_names_(donor):
-    """The donor's hood names, in order (`bh, dt, fwy, lf, mt, ug, we`)."""
-    p = mc2.Pck(donor)
+def nomes_dos_hoods(doador):
+    """Os nomes de hood do doador, na ordem (`bh, dt, fwy, lf, mt, ug, we`)."""
+    p = mc2.Pck(doador)
     d = p.data
     n = struct.unpack_from('<I', d, 0x80 + 0x14)[0]
     hb = p.F(struct.unpack_from('<I', d, 0x80 + 0x18)[0])
@@ -1078,82 +1081,81 @@ def hood_names_(donor):
     return out
 
 
-def hood_record(e, donor, name, map_key, which=0, last=False):
-    """COPIED and relinked: a hood's 0xB0-byte record.
+def registro_hood(e, doador, nome, chave, qual=0, ultimo=False):
+    """COPIADO e religado: o registro de 0xB0 bytes de um hood.
 
-    Atlanta's 7 records are contiguous with a 0xB0 stride and each one is
-    `[name 4][vtable chain 0x7A2320, 0xA0][head 12]`; the head (`+0xA4`) has
-    `+0x08` pointing to the chain of the NEXT record, which is why they are glued
-    together. Here the record comes whole from the donor, the name is rewritten,
-    and the head pointer is aimed at a chain copy of OUR OWN.
+    Os 7 registros do atlanta sao contiguos com passo 0xB0 e cada um e
+    `[nome 4][cadeia de vtable 0x7A2320, 0xA0][cabeca 12]`; a cabeca (`+0xA4`)
+    tem `+0x08` apontando pra cadeia do registro SEGUINTE, por isso sao colados.
+    Aqui o registro vem inteiro do doador, o nome e reescrito, e o ponteiro da
+    cabeca passa a mirar uma copia PROPRIA da cadeia.
 
-    **THE LAST RECORD IS THE TERMINATOR.** In atlanta `we` (index 6) has
-    `+0xA4`, `+0xA8` and `+0xAC` all ZERO, and the other six have a vtable at
-    +0xA4 and a pointer at +0xAC. Recycling the donor's records for a city with
-    more hoods, the terminator lands in the middle and the last one keeps a valid
-    pointer - the chain never ends. `last=True` zeroes the whole head, whatever
-    that costs the donor it came from.
+    **O ULTIMO REGISTRO E O TERMINADOR.** No atlanta o `we` (indice 6) tem
+    `+0xA4`, `+0xA8` e `+0xAC` todos ZERO, e os outros seis tem vtable em +0xA4 e
+    ponteiro em +0xAC. Reciclando os registros do doador para uma cidade com mais
+    hoods, o terminador cai no meio e o ultimo fica com ponteiro valido - a
+    cadeia nao termina. `ultimo=True` zera a cabeca inteira, custe o que custar
+    ao doador de onde ela veio.
     """
-    p = mc2.Pck(donor)
+    p = mc2.Pck(doador)
     d = p.data
     base = p.F(struct.unpack_from('<I', d, 0x80 + 0x18)[0])
-    rec = p.F(struct.unpack_from('<I', d, base + 20 * which)[0])
-    blob = bytearray(clean_(bytes(d[rec:rec + 0xB0]), donor, keep=(0xAC,))[0])
-    nb = name.encode('latin1')[:3]
+    rec = p.F(struct.unpack_from('<I', d, base + 20 * qual)[0])
+    blob = bytearray(limpa(bytes(d[rec:rec + 0xB0]), doador, manter=(0xAC,))[0])
+    nb = nome.encode('latin1')[:3]
     blob[0:4] = nb.ljust(4, bytes(1))
-    chain = bytes(d[rec + 0xB0 + 4:rec + 0xB0 + 4 + 0xA0])
-    if last:
+    cadeia = bytes(d[rec + 0xB0 + 4:rec + 0xB0 + 4 + 0xA0])
+    if ultimo:
         struct.pack_into('<3I', blob, 0xA4, 0, 0, 0)
-    off = e.put(bytes(blob), map_key)
-    e.put(chain, map_key + '_chain')
-    if not last:
-        e.point(off + 0xAC, map_key + '_chain')
+    off = e.poe(bytes(blob), chave)
+    e.poe(cadeia, chave + '_cadeia')
+    if not ultimo:
+        e.aponta(off + 0xAC, chave + '_cadeia')
     return off
 
 
-def hood_donors(donor, n):
-    """Which donor record to use for each of the `n` hoods.
+def doadores_de_hood(doador, n):
+    """Qual registro do doador usar em cada um dos `n` hoods.
 
-    The donor's terminator (the only one with `+0xA4` zeroed) is reserved for the
-    LAST one; the rest cycle over the non-terminators, so no terminator lands in
-    the middle of the chain.
+    O terminador do doador (o unico com `+0xA4` zerado) fica reservado para o
+    ULTIMO; os demais ciclam sobre os que nao sao terminador, para que nenhum
+    terminador caia no meio da cadeia.
     """
-    p = mc2.Pck(donor)
+    p = mc2.Pck(doador)
     d = p.data
     nd = struct.unpack_from('<I', d, 0x80 + 0x14)[0]
     base = p.F(struct.unpack_from('<I', d, 0x80 + 0x18)[0])
-    ends = []
-    regular = []
+    termina = []
+    normais = []
     for h in range(nd):
         rec = p.F(struct.unpack_from('<I', d, base + 20 * h)[0])
         if struct.unpack_from('<I', d, rec + 0xA4)[0]:
-            regular.append(h)
+            normais.append(h)
         else:
-            ends.append(h)
-    if not regular:
-        regular = list(range(nd))
-    # DO NOT force a terminator on the last one: measured, atlanta has a record
-    # with a zeroed head at the end but tokyo and detroit have NONE and they load.
-    # What matters is not letting atlanta's odd record land in the MIDDLE.
-    return [(regular[i % len(regular)], False) for i in range(n)]
+            termina.append(h)
+    if not normais:
+        normais = list(range(nd))
+    # NAO forcar terminador no ultimo: medido, o atlanta tem um registro de
+    # cabeca zerada no fim mas o tokyo e o detroit NAO TEM NENHUM e carregam.
+    # O que importa e nao deixar o registro estranho do atlanta cair no MEIO.
+    return [(normais[i % len(normais)], False) for i in range(n)]
 
 
-# The three structures at MapRoot+0x190/+0x194/+0x198 are CULLABLE CLASSES, and
-# the one at +0x228 is rmcTextureProxyPS2 (thumbnails), NOT visibility. Field +0x00
-# of +0x194/+0x198 is NOT a count: it is the class's pass mask (0x4E in retail =
-# 2|4|8|64). Zeroing it removes both classes from the scheduler and leaves the
-# city invisible even with the cell list filled in. +0x1C counts objects: fill it
-# below with comp/inst+1. TextureProxy is only used by Bind when TEX1 has a
-# non-zero ID in bits 21..31. The current LA dumps have ID zero: do not fill
-# +0x228 with the donor's tables.
+# As tres estruturas de MapRoot+0x190/+0x194/+0x198 sao CLASSES DE CULLABLE, e a
+# de +0x228 e rmcTextureProxyPS2 (miniaturas), NAO visibilidade. O campo +0x00 de +0x194/+0x198 NAO e
+# contagem: e a mascara de passes da classe (0x4E no retail = 2|4|8|64). Zera-lo
+# tira as duas classes do scheduler e deixa a cidade invisivel mesmo com a lista
+# de celulas preenchida. +0x1C conta objetos: preencher abaixo com comp/inst+1.
+# TextureProxy so e usado por Bind quando TEX1 tem ID nao zero nos bits 21..31.
+# Os dumps LA atuais tem ID zero: nao preencher +0x228 com tabelas do doador.
 #
-# Each tuple is (offset in the MapRoot, who walks it, COUNT offsets to zero,
-# POINTER offsets to re-point).
-# (offset, who walks it, counts to zero, REAL SIZE)
-# The size matters: +0x194 sits at 0xFC6B0 and +0x198 at 0xFC6F0, **0x40 apart**.
-# Copying 0x100 dragged the whole neighbouring structure into mine - which is why
-# +0x194 showed up with 23 pointers when the object only has 2.
-EXTRA_STRUCTURES = [
+# Cada tupla e (offset no MapRoot, quem percorre, offsets de CONTAGEM a zerar,
+# offsets de PONTEIRO a reapontar).
+# (offset, quem percorre, contagens a zerar, TAMANHO REAL)
+# O tamanho importa: +0x194 fica em 0xFC6B0 e +0x198 em 0xFC6F0, **0x40 um do
+# outro**. Copiar 0x100 arrastava a estrutura vizinha inteira pra dentro da
+# minha - por isso o +0x194 aparecia com 23 ponteiros quando o objeto so tem 2.
+ESTRUTURAS_EXTRA = [
     (0x190, 'sub_25C998', (0x30,),      0x100),
     (0x194, 'sub_24C528', (0x1C,),      0x40),
     (0x198, 'sub_2571B0', (0x1C,),      0x40),
@@ -1161,277 +1163,276 @@ EXTRA_STRUCTURES = [
 ]
 
 
-def extra_structures(e, donor, head_order3=None, head_order2=None,
+def estruturas_extra(e, doador, cabeca_ordem3=None, cabeca_ordem2=None,
                      n_comp=0, n_inst=0):
-    """Create the four structures I used to leave NULL, with a valid initial state.
+    """Cria as quatro estruturas que eu deixava NULAS, com estado inicial valido.
 
-    MIND what "empty" means in each field - there is not a single rule:
+    ATENCAO ao que "vazio" significa em cada campo - a regra nao e uma so:
 
-    * `MapRoot+0x10` is dereferenced WITHOUT a guard, so there the legitimate
-      empty value is an array object with count zero. Null makes the PS2 read
-      address 0.
-    * `+0x04`/`+0x08` of these classes are the HEAD OF A LINKED LIST:
-      `CullableTypeFixup` (0x24AE58) does `while (v3) { ctor(v3); v3 =
-      *(v3+12); }` - it walks to NULL, with no count. Pointing it at a block of
-      zeros makes the constructor run ONCE over zeros; **here the correct empty
-      value is NULL**.
+    * `MapRoot+0x10` e desreferenciado SEM guarda, entao ali o vazio legitimo e
+      um objeto de array com contagem zero. Nulo faz o PS2 ler o endereco 0.
+    * `+0x04`/`+0x08` destas classes sao CABECA DE LISTA LIGADA:
+      `CullableTypeFixup` (0x24AE58) faz `while (v3) { construtor(v3); v3 =
+      *(v3+12); }` — anda ate NULL, sem contagem. Apontar pra um bloco de zeros
+      faz o construtor rodar UMA VEZ sobre zeros; **aqui o vazio correto e NULO**.
 
-    That confusion is what produced the `Jump to unaligned address (PC:
-    0xcdcdcdcd)`: Place completed 11 of 11 pointers and execution ended up in
-    padding, coming out of a constructor run over an empty block.
+    Foi essa confusao que produziu o `Jump to unaligned address (PC:
+    0xcdcdcdcd)`: o Place completou 11 de 11 ponteiros e a execucao foi parar em
+    padding, saindo de um construtor rodado sobre bloco vazio.
 
-    In other words: **reading the consumer's code is what tells you whether empty
-    is NULL or an object** - generalising either form breaks the other.
+    Ou seja: **ler o codigo do consumidor e o que diz se o vazio e NULO ou um
+    objeto** — generalizar uma das duas formas quebra a outra.
     """
-    p = mc2.Pck(donor)
+    p = mc2.Pck(doador)
     d = p.data
-    made = []
-    for off, who, counts, size_ in EXTRA_STRUCTURES:
+    feitas = []
+    for off, quem, contagens, tam in ESTRUTURAS_EXTRA:
         va = struct.unpack_from('<I', d, 0x80 + off)[0]
         if not va or not p.inside(p.F(va)):
             continue
         o = p.F(va)
-        blob = bytearray(clean_(bytes(d[o:o + size_]), donor)[0])
-        for c in counts:
+        blob = bytearray(limpa(bytes(d[o:o + tam]), doador)[0])
+        for c in contagens:
             struct.pack_into('<I', blob, c, 0)
-        # +0x1C OF +0x194/+0x198 IS NOT "a runtime count that starts at zero",
-        # as I had noted: it is the COUNT OF OBJECTS the cullable class manages,
-        # and zeroing it makes the scheduler see zero objects and DRAW NOTHING -
-        # with all the geometry in the file, in the right place. Measured on
-        # three retail cities:
+        # O +0x1C DE +0x194/+0x198 NAO E "contagem de runtime que nasce zerada",
+        # como eu tinha anotado: e a CONTAGEM DE OBJETOS que a classe de cullable
+        # gerencia, e zera-la faz o scheduler ver zero objeto e NAO DESENHAR NADA
+        # - com a geometria toda no arquivo, no lugar certo. Medido em tres
+        # cidades de varejo:
         #     atlanta 651 comp / 3608 inst -> +194=4260  +198=3609
         #     sd                5008 inst -> +198=5009
         #     detroit           5156 inst -> +198=5157
-        # i.e. **+0x198 = inst + 1** and **+0x194 = comp + inst + 1** (the
-        # difference between the two is exactly the number of components: 651).
+        # ou seja **+0x198 = inst + 1** e **+0x194 = comp + inst + 1** (a
+        # diferenca entre os dois e exatamente o numero de componentes: 651).
         if off == 0x194 and (n_comp or n_inst):
             struct.pack_into('<I', blob, 0x1C, n_comp + n_inst + 1)
         elif off == 0x198 and n_inst:
             struct.pack_into('<I', blob, 0x1C, n_inst + 1)
-        map_key = 'extra_%X' % off
-        base = e.put(bytes(blob), map_key)
-        # THE ORDER-3 CLASS receives our list of types.
+        chave = 'extra_%X' % off
+        base = e.poe(bytes(blob), chave)
+        # A CLASSE DE ORDEM 3 recebe a nossa lista de tipos.
         #
-        # Measured: the linked list of `MapRoot+0x194` has **651 nodes, and the
-        # 651 are the objects the component points to at +0x0C**. So what I called
-        # "ComponentData" is a `mcCityModelType`, and `CullableTypeFixup(3, head,
-        # res)` (0x24AE58) walks the list calling `mcCityModelType::mcCityModelType`
-        # on each one - which stamps the vtable at +0x28 and runs
-        # `mcCityModelInfo::mcCityModelInfo` over +0x2C (position, radius, LOD
-        # slots).
+        # Medido: a lista ligada de `MapRoot+0x194` tem **651 nos, e os 651 sao
+        # os objetos que o componente aponta em +0x0C**. Ou seja o que eu chamava
+        # de "ComponentData" e um `mcCityModelType`, e `CullableTypeFixup(3,
+        # cabeca, res)` (0x24AE58) percorre a lista chamando
+        # `mcCityModelType::mcCityModelType` em cada um — que carimba a vtable de
+        # +0x28 e roda `mcCityModelInfo::mcCityModelInfo` sobre o +0x2C (posicao,
+        # raio, slots de LOD).
         #
-        # Writing the vtable by hand, as I did, only imitated the constructor's
-        # LAST effect. Without being in the list, the rest of it never runs.
-        order = struct.unpack_from('<I', blob, 0x20)[0]
-        # +0x194 is order 3 (comps), +0x198 is order 2 (instances). Each one gets
-        # the head of its own chain of types.
-        head = head_order3 if order == 3 else (
-            head_order2 if order == 2 else None)
-        if head:
-            e.point(base + 0x04, head)
-            e.point(base + 0x08, head)
-        e.point(0x80 + off, map_key)
-        made.append(off)
-    return made
+        # Escrever a vtable na mao, como eu fazia, so imitava o ULTIMO efeito do
+        # construtor. Sem estar na lista, o resto dele nunca roda.
+        ordem = struct.unpack_from('<I', blob, 0x20)[0]
+        # +0x194 e ordem 3 (comps), +0x198 e ordem 2 (instancias). Cada uma
+        # recebe a cabeca da sua propria cadeia de tipos.
+        cabeca = cabeca_ordem3 if ordem == 3 else (
+            cabeca_ordem2 if ordem == 2 else None)
+        if cabeca:
+            e.aponta(base + 0x04, cabeca)
+            e.aponta(base + 0x08, cabeca)
+        e.aponta(0x80 + off, chave)
+        feitas.append(off)
+    return feitas
 
 
-def chains_1d4(e, donor, tex_donor=None):
-    """COPIED: the 21 slots of MapRoot+0x1D4/+0x1D8 that retail fills.
+def cadeias_1d4(e, doador, doador_tex=None):
+    """COPIADO: os 21 slots de MapRoot+0x1D4/+0x1D8 que o retail preenche.
 
-    Each one points to an object of the `0x7A2320` chain - the same class as the
-    shader's sub-object - and is processed by `0x2BA718` with count 1,
-    dispatching on byte `+0x04` (0..3). In atlanta only 5 of the 21 are filled,
-    with bytes 0 and 2.
+    Cada um aponta pra um objeto da cadeia `0x7A2320` - a mesma classe do
+    sub-objeto do shader - e e processado por `0x2BA718` com contagem 1,
+    despachando no byte `+0x04` (0..3). No atlanta so 5 dos 21 estao
+    preenchidos, com bytes 0 e 2.
 
-    They are guarded by `if (ptr)`, so null does NOT hang Place. I copy them
-    because the from-scratch file dies after Place and every field retail has and
-    mine does not is one variable less.
+    Sao guardados por `if (ptr)`, entao nulo NAO trava o Place. Copio porque o
+    arquivo do zero morre depois do Place e cada campo que o retail tem e o meu
+    nao e uma variavel a menos.
     """
-    p = mc2.Pck(donor)
+    p = mc2.Pck(doador)
     d = p.data
-    made_n = 0
+    feitos = 0
     for k in range(21):
         off = 0x1D4 + 4 * k
         va = struct.unpack_from('<I', d, 0x80 + off)[0]
         if not va or not p.inside(p.F(va)):
             continue
         o = p.F(va)
-        if d[o + 4] not in (0, 1, 2, 3):      # what 0x2BA718 knows how to handle
+        if d[o + 4] not in (0, 1, 2, 3):      # o que 0x2BA718 sabe tratar
             continue
-        # SLOT +0x1D4 GETS THE TEXTURE WITH PIXELS, the others go in clean.
+        # O SLOT +0x1D4 LEVA A TEXTURA COM PIXELS, os outros vao limpos.
         #
-        # Measured: in atlanta the object at +0x1D4 has level[0] pointing to a
-        # MipBuffer of 0x10500 bytes (256x256 PSMT8: 0x100 header, 0x10000 pixels,
-        # 0x400 CLUT). In my file that same field came out NULL, because `limpa`
-        # zeroes every pointer of the copied block - and the generated city loaded
-        # without A SINGLE texture.
+        # Medido: no atlanta o objeto em +0x1D4 tem nivel[0] apontando para um
+        # MipBuffer de 0x10500 bytes (256x256 PSMT8: 0x100 de cabecalho, 0x10000
+        # de pixels, 0x400 de CLUT). No meu arquivo esse mesmo campo saia NULO,
+        # porque o `limpa` zera todo ponteiro do bloco copiado - e a cidade
+        # gerada carregava sem UMA textura sequer.
         #
-        # texture_with_pixels() was written exactly for this and nobody ever called
-        # it. Now it is, and only for this slot: the other 20 are objects of the
-        # same class but without inline pixels in retail, so copying them clean is
-        # still right.
+        # A textura_com_pixels() foi escrita exatamente para isto e nunca era
+        # chamada por ninguem. Agora e, e so para este slot: os outros 20 sao
+        # objetos da mesma classe mas sem pixel inline no varejo, entao copia-los
+        # limpos continua sendo o certo.
         if off == 0x1D4:
-            # Measured: this slot's MipBuffer varies A LOT per city - atlanta has
-            # 0x10500 (256x256 PSMT8) and tokyo has 0x160. Since the city hosted on
-            # tokyo wants its 7688 instance slots but a real texture, the texture
-            # donor is separable.
-            e.point(0x80 + off, texture_with_pixels(e, tex_donor or donor))
-            made_n += 1
+            # Medido: o MipBuffer deste slot varia MUITO por cidade - atlanta
+            # tem 0x10500 (256x256 PSMT8) e tokyo tem 0x160. Como a cidade
+            # hospedada no tokyo quer os 7688 slots de instancia dele mas uma
+            # textura de verdade, o doador da textura e separavel.
+            e.aponta(0x80 + off, textura_com_pixels(e, doador_tex or doador))
+            feitos += 1
             continue
-        map_key = 'cadeia_%X' % off
-        e.put(clean_(bytes(d[o:o + 0xA0]), donor)[0], map_key)
-        e.point(0x80 + off, map_key)
-        made_n += 1
-    return made_n
+        chave = 'cadeia_%X' % off
+        e.poe(limpa(bytes(d[o:o + 0xA0]), doador)[0], chave)
+        e.aponta(0x80 + off, chave)
+        feitos += 1
+    return feitos
 
 
-def maproot_scalars(donor):
-    """COPIED: the MapRoot fields whose meaning is not settled yet.
+def escalares_maproot(doador):
+    """COPIADO: os campos do MapRoot cujo significado ainda nao esta fechado.
 
-    These are +0x20..+0x2B (flags and a float) and the whole +0x40..+0x7F block,
-    which starts with the vtable 0x7A01E8 and continues with floats that look
-    like extents/fog. Copying is more honest than guessing zero: zero in a scale
-    field blanks the whole city without an error.
+    Sao +0x20..+0x2B (flags e um float) e todo o bloco +0x40..+0x7F, que comeca
+    com a vtable 0x7A01E8 e segue com floats de aparencia de extents/fog. Copiar
+    e mais honesto do que chutar zero: zero num campo de escala apaga a cidade
+    inteira sem dar erro.
     """
-    d = mc2.Pck(donor).data
+    d = mc2.Pck(doador).data
     return bytes(d[0x80 + 0x20:0x80 + 0x2C]), bytes(d[0x80 + 0x40:0x80 + 0x80])
 
 
-# The black->white ramp was great for READING the index on screen, and terrible
-# as a default: I do not generate the one-byte-per-vertex vector (rmcModelGeom+0x14
-# comes out NULL in my 543 meshes, against 74%% filled in retail), so the
-# effective index is 0 - the first step of the ramp, BLACK. The city drew (531
-# and 580 draw calls in the captures) and nobody saw anything: black geometry, at
-# midnight, behind fog. With the white palette the geometry shows even without
-# the per-vertex vector. Set PALETTE_RAMP = True to go back to the ramp when
-# diagnosing the index.
-PALETTE_RAMP = False
+# A rampa preto->branco era otima para LER o indice na tela, e pessima como
+# padrao: eu nao gero o vetor de um byte por vertice (rmcModelGeom+0x14 sai
+# NULO nas minhas 543 malhas, contra 74%% preenchido no varejo), entao o indice
+# efetivo e 0 - o primeiro degrau da rampa, PRETO. A cidade desenhava (531 e
+# 580 draw calls nas capturas) e ninguem via nada: geometria preta, a meia
+# noite, atras de nevoa. Com a paleta branca a geometria aparece mesmo sem o
+# vetor por vertice. Ponha PALETA_RAMPA = True para voltar a rampa quando for
+# diagnosticar o indice.
+PALETA_RAMPA = False
 
-# The cardinality of `rmcModelGeom+0x14` is not the number of LODs. The component
-# path calls DrawCpv with index zero; the instance path passes `Instance+0x1C`
-# directly, which this builder numbers 0 to N-1 inside each type's chain. In the
-# retail PCKs, a type's main CPV mesh declares exactly N slots. So components need
-# one slot and instance types need as many slots as there are records of that type.
-CPV_SLOTS_PER_COMPONENT = 1
-
-
-# MC2's palette, when there is one. Filled in by palette_from_mc2().
-MC2_PALETTE = None
+# A cardinalidade de `rmcModelGeom+0x14` nao e a quantidade de LODs. O caminho
+# de componente chama DrawCpv com indice zero; o caminho de instancia passa
+# diretamente `Instance+0x1C`, que este builder numera de 0 a N-1 dentro da
+# cadeia de cada tipo. Nos PCKs retail, o mesh CPV principal de um tipo declara
+# exatamente N slots. Assim, componentes precisam de um slot e tipos de
+# instancia precisam de tantos slots quanto registros pertencem ao tipo.
+SLOTS_CPV_COMPONENTE = 1
 
 
-def palette_from_mc2(cpvs_path):
-    """Read the CPP0 of an MC2 PS2 <hour>_cpvs.rsc and return 256 float RGB.
+# A paleta do MC2, quando ha uma. Preenchida por paleta_do_mc2().
+PALETA_MC2 = None
 
-    MC2 and MC3 use THE SAME DESIGN for per-vertex colour - a 1-byte index per
-    vertex into a 256-entry palette - so the palette ports one to one, without
-    flattening to RGB. A finding of Fork MC2 PS2.
 
-    PS2 colour convention: alpha is 0x80 in all 256 entries and the components
-    are 0..127, i.e. 128 is 1.0. Measured on dusk_clear and midnight_clear: alpha
-    128 in 256 of 256, maximum luminance 126.2. So the conversion to the float MC3
-    expects is dividing by 128, not by 255 - dividing by 255 would leave the city
-    at half brightness.
+def paleta_do_mc2(caminho_cpvs):
+    """Le o CPP0 de um <hora>_cpvs.rsc do MC2 de PS2 e devolve 256 RGB em float.
+
+    O MC2 e o MC3 usam O MESMO DESENHO para cor por vertice - um indice de 1
+    byte por vertice indexando uma paleta de 256 - entao a paleta porta par a
+    par, sem achatar em RGB. Achado da Fork MC2 PS2.
+
+    Convencao de cor do PS2: o alfa vem 0x80 nas 256 entradas e os componentes
+    ficam em 0..127, ou seja 128 e o 1.0. Medido em dusk_clear e midnight_clear:
+    alfa 128 em 256 de 256, luminancia maxima 126.2. Entao a conversao para o
+    float que o MC3 espera e dividir por 128, nao por 255 - dividir por 255
+    deixaria a cidade com metade do brilho.
     """
     import importlib.util as _il
-    sp = _il.spec_from_file_location('mc2_rsc', os.path.join(_HERE, 'mc2_rsc.py'))
+    sp = _il.spec_from_file_location('mc2_rsc', os.path.join(_AQUI, 'mc2_rsc.py'))
     m = _il.module_from_spec(sp)
     sys.modules['mc2_rsc'] = m
     sp.loader.exec_module(m)
-    r = m.Rsc(cpvs_path)
+    r = m.Rsc(caminho_cpvs)
     for off, fcc, size in r.entries:
         if fcc == 'CPP0':
             buf = r.data[off:off + size]
             return [tuple(c / 128.0 for c in
                           struct.unpack_from('<3B', buf, k * 4))
                     for k in range(256)]
-    raise SystemExit('%s has no CPP0' % os.path.basename(cpvs_path))
+    raise SystemExit('%s nao tem CPP0' % os.path.basename(caminho_cpvs))
 
 
-# The palette ALPHA is not decoration. In the four retail cities (atlanta,
-# detroit, sd, tokyo; every condition checked) entries 0..7 have alpha 0,
-# entries 8..255 alpha 1.0, and entry 255 is always opaque white (1,1,1,1) -
-# the entry rmcCpvPalette::Lookup 0x2ACE68 reserves. The city leaves its palette
-# resident on VU1 (mcCityModelClass::SetRenderStates downloads MCCITY+0x2C), and
-# whoever draws later with rmcSetCpvMode(1, 0) without downloading its own
-# inherits it: the checkpoint smoke column (mcCheckpoint::Draw, cp_flare*
-# shaders, texcombine modulate + blendset normal) gets vertex alpha 0 and
-# vanishes. With alpha 0 in all 256 entries that is exactly what the MC2 maps did.
-PALETTE_ZERO_ALPHA = 8      # entries 0..7: alpha 0, as retail
+# O ALFA da paleta nao e enfeite. Nas quatro cidades de varejo (atlanta,
+# detroit, sd, tokyo; todas as variantes conferidas) as entradas 0..7 tem alfa
+# 0, as 8..255 tem alfa 1.0 e a 255 e sempre branco opaco (1,1,1,1) - e a
+# entrada que rmcCpvPalette::Lookup 0x2ACE68 reserva. A cidade deixa a paleta
+# residente na VU1 (mcCityModelClass::SetRenderStates baixa MCCITY+0x2C) e
+# quem desenha depois com rmcSetCpvMode(1, 0) sem baixar a propria herda ela:
+# a coluna de fumaca do checkpoint (mcCheckpoint::Draw, shaders cp_flare*,
+# texcombine modulate + blendset normal) sai com alfa de vertice 0 e some. Com
+# alfa 0 nas 256 entradas era exatamente isso nos mapas do MC2.
+PALETA_ALFA_ZERO = 8        # entradas 0..7: alfa 0, como no varejo
 
 
-def grey_palette():
-    """256 Vector4 entries - the table the per-vertex byte indexes."""
+def paleta_cinza():
+    """256 entradas Vector4 - a tabela que o byte por vertice indexa."""
     out = bytearray()
     for i in range(256):
-        if MC2_PALETTE:
-            r, g, b = MC2_PALETTE[i]
+        if PALETA_MC2:
+            r, g, b = PALETA_MC2[i]
         else:
-            c = (i / 255.0) if PALETTE_RAMP else 1.0
+            c = (i / 255.0) if PALETA_RAMPA else 1.0
             r = g = b = c
         if i == 255:
             r = g = b = 1.0
-        out += struct.pack('<4f', r, g, b, 0.0 if i < PALETTE_ZERO_ALPHA else 1.0)
+        out += struct.pack('<4f', r, g, b, 0.0 if i < PALETA_ALFA_ZERO else 1.0)
     return bytes(out)
 
 
-def emit_per_vertex_chain(e, groups, map_key, slot_count=1, value=0):
-    """Emit an independent chain per ``rmcModelGeom+0x14`` index.
+def emite_cadeia_por_vertice(e, grupos, chave, slot_count=1, valor=0):
+    """Emite uma cadeia independente por indice de ``rmcModelGeom+0x14``.
 
-    The format is per slot and per group: each group carries the number of
-    blocks, the vertex count of each block and a separate one-byte-per-vertex
-    payload. No substructure is shared between slots, because Place walks and
-    fixes each root independently, as in the retail PCKs.
+    O formato e por slot e por grupo: cada grupo carrega a quantidade de
+    blocos, a quantidade de vertices de cada bloco e um payload separado de um
+    byte por vertice. Nenhuma subestrutura e compartilhada entre slots, porque
+    o Place percorre e fixa cada raiz independentemente, como nos PCKs retail.
     """
-    if not groups:
-        raise ValueError('per-vertex chain without a group')
+    if not grupos:
+        raise ValueError('cadeia por vertice sem grupo')
     if not 1 <= slot_count <= 0xFFFF:
-        raise ValueError('CPV slot count outside u16: %d' % slot_count)
+        raise ValueError('contagem de slots CPV fora de u16: %d' % slot_count)
 
-    off_slots = e.put(b'\x00' * (4 * slot_count), map_key, align=16)
+    off_slots = e.poe(b'\x00' * (4 * slot_count), chave, align=16)
     for slot in range(slot_count):
-        tab_key = '%s_slot%d' % (map_key, slot)
-        off_tab = e.put(b'\x00' * (8 * len(groups)), tab_key, align=16)
-        e.point(off_slots + 4 * slot, tab_key)
+        chave_tab = '%s_slot%d' % (chave, slot)
+        off_tab = e.poe(b'\x00' * (8 * len(grupos)), chave_tab, align=16)
+        e.aponta(off_slots + 4 * slot, chave_tab)
 
-        for gi, group in enumerate(groups):
-            if not group:
-                raise ValueError('per-vertex chain with an empty group')
-            vertices = [len(geometry_block[0]) for geometry_block in group]
-            hdr = struct.pack('<I', len(group)) + b''.join(
+        for gi, grupo in enumerate(grupos):
+            if not grupo:
+                raise ValueError('cadeia por vertice com grupo vazio')
+            vertices = [len(bloco_geometrico[0]) for bloco_geometrico in grupo]
+            cab = struct.pack('<I', len(grupo)) + b''.join(
                 struct.pack('<I', n) for n in vertices)
-            key_a = '%s_s%d_g%d_a' % (map_key, slot, gi)
-            e.put(hdr, key_a, align=16)
-            e.point(off_tab + 8 * gi, key_a)
+            chave_a = '%s_s%d_g%d_a' % (chave, slot, gi)
+            e.poe(cab, chave_a, align=16)
+            e.aponta(off_tab + 8 * gi, chave_a)
 
             payloads = []
             for bi, n in enumerate(vertices):
-                payload_key = '%s_s%d_g%d_b%d_payload' % (
-                    map_key, slot, gi, bi)
-                e.put(bytes([value & 0xFF]) * n, payload_key, align=16)
-                payloads.append(payload_key)
+                chave_payload = '%s_s%d_g%d_b%d_payload' % (
+                    chave, slot, gi, bi)
+                e.poe(bytes([valor & 0xFF]) * n, chave_payload, align=16)
+                payloads.append(chave_payload)
 
-            key_b = '%s_s%d_g%d_b' % (map_key, slot, gi)
-            off_b = e.put(b'\x00' * (4 * len(payloads)), key_b, align=16)
-            e.point(off_tab + 8 * gi + 4, key_b)
-            for bi, payload_key in enumerate(payloads):
-                e.point(off_b + 4 * bi, payload_key)
-    return map_key
+            chave_b = '%s_s%d_g%d_b' % (chave, slot, gi)
+            off_b = e.poe(b'\x00' * (4 * len(payloads)), chave_b, align=16)
+            e.aponta(off_tab + 8 * gi + 4, chave_b)
+            for bi, chave_payload in enumerate(payloads):
+                e.aponta(off_b + 4 * bi, chave_payload)
+    return chave
 
 
-def append_per_vertex_chain(p, groups, slot_count=1, value=0):
-    """Immediate version, also without sharing substructures between slots."""
+def anexa_cadeia_por_vertice(p, grupos, slot_count=1, valor=0):
+    """Versao imediata, tambem sem compartilhar subestruturas entre slots."""
     if not 1 <= slot_count <= 0xFFFF:
-        raise ValueError('CPV slot count outside u16: %d' % slot_count)
+        raise ValueError('contagem de slots CPV fora de u16: %d' % slot_count)
     off_slots = p.append(b'\x00' * (4 * slot_count), 16)
     for slot in range(slot_count):
-        off_tab = p.append(b'\x00' * (8 * len(groups)), 16)
+        off_tab = p.append(b'\x00' * (8 * len(grupos)), 16)
         struct.pack_into('<I', p.data, off_slots + 4 * slot, p.V(off_tab))
-        for gi, group in enumerate(groups):
-            vertices = [len(geometry_block[0]) for geometry_block in group]
-            hdr = struct.pack('<I', len(group)) + b''.join(
+        for gi, grupo in enumerate(grupos):
+            vertices = [len(bloco_geometrico[0]) for bloco_geometrico in grupo]
+            cab = struct.pack('<I', len(grupo)) + b''.join(
                 struct.pack('<I', n) for n in vertices)
-            off_a = p.append(hdr, 16)
-            payloads = [p.append(bytes([value & 0xFF]) * n, 16)
+            off_a = p.append(cab, 16)
+            payloads = [p.append(bytes([valor & 0xFF]) * n, 16)
                         for n in vertices]
             off_b = p.append(b''.join(struct.pack('<I', p.V(o))
                                       for o in payloads), 16)
@@ -1440,40 +1441,40 @@ def append_per_vertex_chain(p, groups, slot_count=1, value=0):
     return off_slots
 
 
-def donor_grid(donor):
-    """(grid_w, grid_h, origin_x, origin_z) of the donor, in CELLS."""
-    d = mc2.Pck(donor).data
+def grade_do_doador(doador):
+    """(grid_w, grid_h, origem_x, origem_z) do doador, em CELULAS."""
+    d = mc2.Pck(doador).data
     return struct.unpack_from('<4i', d, 0x80 + 0x26C)
 
 
-def donor_instances(donor):
-    """The donor CellIndex's `instance_count` - the instance budget.
+def instancias_do_doador(doador):
+    """`instance_count` do CellIndex do doador - o orcamento de instancias.
 
-    Measured on retail: atlanta 3608, sd 5008, detroit 5156, tokyo 7688. MC2's LA
-    brings 8511, more than the LARGEST retail city, and the host's support files
-    (props, traffic, peds) are sized for the city they accompany. With 8511 on
-    atlanta, the requested prop index reached 4701 in an array whose valid
-    entries end around 3971, and Fork City MODS 2's guard logged one failure per
-    frame.
+    Medido no varejo: atlanta 3608, sd 5008, detroit 5156, tokyo 7688. A LA do
+    MC2 traz 8511, mais que a MAIOR cidade de varejo, e os arquivos de apoio do
+    host (props, traffic, peds) sao dimensionados para a cidade que eles
+    acompanham. Com 8511 sobre o atlanta, o indice de prop pedido chegou a 4701
+    num array cujas entradas validas terminam por volta de 3971, e o guard da
+    Fork City MODS 2 registrou uma falha por frame.
     """
-    p = mc2.Pck(donor)
+    p = mc2.Pck(doador)
     d = p.data
     ci = p.F(struct.unpack_from('<I', d, 0x80 + 0x1C)[0])
     return struct.unpack_from('<I', d, ci + 4)[0]
 
 
-def grid_from_extents(mn, mx):
-    """(grid_w, grid_h, origin_x, origin_z) from the extents, in CELLS.
+def grade_dos_extents(mn, mx):
+    """(grid_w, grid_h, origem_x, origem_z) a partir dos extents, em CELULAS.
 
-    The retail INVARIANT, checked on atlanta/sd/tokyo/detroit:
-        origin_x = floor(min_x / 40)   grid_w = floor(max_x/40) - origin_x + 1
-        origin_z = floor(min_z / 40)   grid_h = floor(max_z/40) - origin_z + 1
+    A INVARIANTE do varejo, conferida em atlanta/sd/tokyo/detroit:
+        origem_x = floor(min_x / 40)   grid_w = floor(max_x/40) - origem_x + 1
+        origem_z = floor(min_z / 40)   grid_h = floor(max_z/40) - origem_z + 1
         cell_count = grid_w * grid_h
-    Copying the donor's grid with different extents shifts the culling: LA asks
-    for 91x82 and origin (-50,-43), atlanta gives 64x62 and origin (-50,-43) as
-    well - the 62 is atlanta's, which is why the swap goes unnoticed. Measured on
-    the file: losangeles_la_v5 comes out (91,82,-50,-43), which is exactly the sum
-    from the extents of MC2's losangeles.lvl (-2000..1600 / -1720..1520).
+    Copiar a grade do doador com extents diferentes desloca o culling: LA pede
+    91x82 e origem (-50,-43), o atlanta da 64x62 e origem (-50,-43)
+    tambem - o 62 e do atlanta, e por isso que a troca passa despercebida.
+    Medido no arquivo: losangeles_la_v5 sai (91,82,-50,-43), que e exatamente a
+    conta dos extents do losangeles.lvl do MC2 (-2000..1600 / -1720..1520).
     """
     ox = int(math.floor(mn[0] / 40.0)); oz = int(math.floor(mn[2] / 40.0))
     gw = int(math.floor(mx[0] / 40.0)) - ox + 1
@@ -1481,146 +1482,146 @@ def grid_from_extents(mn, mx):
     return gw, gh, ox, oz
 
 
-def cell_box(grid, cx, cz, half_x, half_z):
-    """The tile box at +0x14, RELATIVE to the grid origin.
+def caixa_de_celulas(grade, cx, cz, meia_x, meia_z):
+    """A tile box de +0x14, RELATIVA a origem da grade.
 
-    The box is from the AABB, not the sphere. I tested both against atlanta: with
-    the sphere radius only 91 of the 651 components match, and the ones that miss
-    miss towards MORE (read 20..26 against 18..28 computed) - so retail uses the
-    real, tighter box.
+    A caixa e do AABB, nao da esfera. Testei as duas contra o atlanta: com o
+    raio da esfera so 91 dos 651 componentes batem, e os que erram erram para
+    MAIS (lido 20..26 contra 18..28 calculado) - ou seja o varejo usa a caixa
+    de verdade, mais apertada.
 
-    `grade` = (gw, gh, ox, oz). I used to read the DONOR's grid here, which
-    shifted everything when the new city's extents were different.
+    `grade` = (gw, gh, ox, oz). Antes eu lia a grade do DOADOR aqui, o que
+    deslocava tudo quando os extents da cidade nova eram outros.
     """
-    gw, gh, ox, oz = grid
-    def range_(c, half, origin, limit):
-        a = int(math.floor((c - half) / 40.0)) - origin
-        b = int(math.floor((c + half) / 40.0)) - origin
-        a = max(0, min(limit - 1, a))
-        b = max(0, min(limit - 1, b))
+    gw, gh, ox, oz = grade
+    def faixa(c, meia, origem, limite):
+        a = int(math.floor((c - meia) / 40.0)) - origem
+        b = int(math.floor((c + meia) / 40.0)) - origem
+        a = max(0, min(limite - 1, a))
+        b = max(0, min(limite - 1, b))
         return min(a, b), max(a, b)
-    x0, x1 = range_(cx, half_x, ox, gw)
-    z0, z1 = range_(cz, half_z, oz, gh)
+    x0, x1 = faixa(cx, meia_x, ox, gw)
+    z0, z1 = faixa(cz, meia_z, oz, gh)
     return x0, x1, z0, z1
 
 
-def inline_palettes(e, r):
-    """Both palettes written INSIDE the MapRoot, as in retail."""
-    pal = grey_palette()
-    e.d[r + OFF_LIVE_PALETTE:r + OFF_LIVE_PALETTE + len(pal)] = pal
-    e.d[r + SRC_PALETTE_OFF:r + SRC_PALETTE_OFF + len(pal)] = pal
-    e.label('paletteA', r + OFF_LIVE_PALETTE)
-    e.label('paletteB', r + SRC_PALETTE_OFF)
+def paletas_inline(e, r):
+    """As duas paletas escritas DENTRO do MapRoot, como no varejo."""
+    pal = paleta_cinza()
+    e.d[r + OFF_PALETA_VIVA:r + OFF_PALETA_VIVA + len(pal)] = pal
+    e.d[r + OFF_PALETA_FONTE:r + OFF_PALETA_FONTE + len(pal)] = pal
+    e.rotula('paletaA', r + OFF_PALETA_VIVA)
+    e.rotula('paletaB', r + OFF_PALETA_FONTE)
 
 
-def build(out_path, donor, blocks, hood_name='zz', position=(0.0, 0.0, 0.0),
-             n_slots=1329, n_groups=18, material_index=1, probe=False,
-             hoods=None, slot_shader=None, texture_donor=None, extents=None):
-    e = Writer()
+def constroi(saida, doador, blocos, nome_hood='zz', posicao=(0.0, 0.0, 0.0),
+             n_slots=1329, n_grupos=18, indice_material=1, sonda=False,
+             hoods=None, slot_shader=None, doador_textura=None, extents=None):
+    e = Escritor()
 
     # ---------------------------------------------------------------- shader
-    # ONE COPY PER SLOT. The 0x2AF9E8 loop has no "already placed" guard and runs
-    # the handler once per slot; the same object in N slots gets N additions of
-    # the delta to its internal pointers. In retail each object appears in exactly
-    # one slot. See mc3_place_sim.py.
-    _g, came_from = emit_shader_groups(e, donor, n_groups, n_slots,
-                                      slot_shader, material_index)
+    # UMA COPIA POR SLOT. O laco de 0x2AF9E8 nao tem guarda de "ja colocado" e
+    # roda o handler uma vez por slot; o mesmo objeto em N slots leva N somas do
+    # delta nos ponteiros internos dele. No retail cada objeto aparece em
+    # exatamente um slot. Ver mc3_place_sim.py.
+    _g, veio_de = emite_grupos_shader(e, doador, n_grupos, n_slots,
+                                      slot_shader, indice_material)
 
-    # ---------------------------------------------------------------- palettes
+    # ---------------------------------------------------------------- paletas
 
 
-    # ---------------------------------------------------------------- geometry
-    # The scale does not go into the .pck: quantisation travels INSIDE the VIF
-    # packet (the float that opens the block). Here it serves make_block and the
-    # report, so it is always computed, even with packets coming from the game.
-    scale = mc2.pick_scale(blocks)
-    if GAME_PACKETS:
-        # Ready VIF packets, from a mesh.pck assembled by THE GAME ITSELF. Swaps
-        # my stripping, parity, ADC and block splitting for its own.
-        items = bytearray()
-        for payload, qw, nv in GAME_PACKETS:
-            items += struct.pack('<IHH', e.va(e.put(flip_winding_payload(payload) if FLIP_WINDING else payload, align=16)), qw, nv)
-        n_blocks = len(GAME_PACKETS)
+    # ---------------------------------------------------------------- geometria
+    # A escala nao vai para o .pck: a quantizacao viaja DENTRO do packet VIF
+    # (o float que abre o bloco). Aqui ela serve para make_block e para o
+    # relatorio, entao calcula-se sempre, mesmo com os pacotes vindo do jogo.
+    escala = mc2.pick_scale(blocos)
+    if PACOTES_DO_JOGO:
+        # Pacotes VIF prontos, de um mesh.pck montado pelo PROPRIO JOGO. Troca
+        # a minha estripificacao, paridade, ADC e corte em bloco pelas dele.
+        lista = bytearray()
+        for payload, qw, nv in PACOTES_DO_JOGO:
+            lista += struct.pack('<IHH', e.va(e.poe(flip_winding_payload(payload) if FLIP_WINDING else payload, align=16)), qw, nv)
+        n_blocos = len(PACOTES_DO_JOGO)
     else:
-        packets = [mc2.make_block(pos, uv, nr, scale, i % 2 == 1)
-                   for i, (pos, uv, nr, _o) in enumerate(blocks)]
-        offs = [e.put(pk, align=16) for pk in packets]
-        items = bytearray()
-        for off, (pos, _u, _n, _o) in zip(offs, blocks):
-            qw = (len(packets[offs.index(off)]) + 15) // 16
-            items += struct.pack('<IHH', e.va(off), qw, len(pos))
-        n_blocks = len(blocks)
-    list_offset = e.put(bytes(items), 'block_list')
+        pacotes = [mc2.make_block(pos, uv, nr, escala, i % 2 == 1)
+                   for i, (pos, uv, nr, _o) in enumerate(blocos)]
+        offs = [e.poe(pk, align=16) for pk in pacotes]
+        lista = bytearray()
+        for off, (pos, _u, _n, _o) in zip(offs, blocos):
+            qw = (len(pacotes[offs.index(off)]) + 15) // 16
+            lista += struct.pack('<IHH', e.va(off), qw, len(pos))
+        n_blocos = len(blocos)
+    off_lista = e.poe(bytes(lista), 'lista_blocos')
 
-    group_table = struct.pack('<IHH', 0, n_blocks, 0)
-    off_gt = e.put(group_table, 'group_table')
-    e.point(off_gt, 'block_list')
+    grupos_tab = struct.pack('<IHH', 0, n_blocos, 0)
+    off_gt = e.poe(grupos_tab, 'tabela_grupos')
+    e.aponta(off_gt, 'lista_blocos')
 
-    # the material table sits RIGHT BEFORE the mesh object, as in retail
-    e.align_to(16)
+    # a tabela de material fica LOGO ANTES do objeto mesh, como no retail
+    e.alinha(16)
     off_mt = len(e.d)
-    e.d += struct.pack('<H', material_index) + b'\x00\x00'
-    e.label('material_table', off_mt)
+    e.d += struct.pack('<H', indice_material) + b'\x00\x00'
+    e.rotula('tabela_material', off_mt)
 
     mesh = struct.pack('<IIHHIIII', tok(VT_MESH_TOKEN), 0, 1,
-                       CPV_SLOTS_PER_COMPONENT, 0, 0, 0, 1)
-    off_mesh = e.put(mesh, 'mesh', align=4)
-    e.point(off_mesh + 0x0C, 'material_table')
-    e.point(off_mesh + 0x10, 'group_table')
-    # The per-vertex chain has to match the mesh PACKET BY PACKET.
-    cpv_group = ([([0] * nv,) for _p, _q, nv in GAME_PACKETS]
-                 if GAME_PACKETS else blocks)
-    emit_per_vertex_chain(e, [cpv_group], 'mesh_t14')
-    e.point(off_mesh + 0x14, 'mesh_t14')
+                       SLOTS_CPV_COMPONENTE, 0, 0, 0, 1)
+    off_mesh = e.poe(mesh, 'mesh', align=4)
+    e.aponta(off_mesh + 0x0C, 'tabela_material')
+    e.aponta(off_mesh + 0x10, 'tabela_grupos')
+    # A cadeia por-vertice tem que casar PACOTE A PACOTE com a malha.
+    grupo_cpv = ([([0] * nv,) for _p, _q, nv in PACOTES_DO_JOGO]
+                 if PACOTES_DO_JOGO else blocos)
+    emite_cadeia_por_vertice(e, [grupo_cpv], 'mesh_t14')
+    e.aponta(off_mesh + 0x14, 'mesh_t14')
 
     # ---------------------------------------------------------------- componente
-    pts = [c for pos, _u, _n, _o in blocks for c in pos]
-    radius = max((q[0] ** 2 + q[1] ** 2 + q[2] ** 2) ** 0.5 for q in pts)
+    pts = [c for pos, _u, _n, _o in blocos for c in pos]
+    raio = max((q[0] ** 2 + q[1] ** 2 + q[2] ** 2) ** 0.5 for q in pts)
 
-    off_cd = e.put(compdata(radius, position), 'compdata')
-    e.point(off_cd + 0x3C, 'mesh')            # LOD slot 0
-    # The three fields retail NEVER leaves null and that the cube path did (the
-    # --place path already did this):
-    #   +0x04  the owner, which is the MapRoot+0x194 structure itself
-    #   +0x08  this object's name, which lives inside it at +0x70
-    #   +0x18  the component entry that points here
-    e.label('compdata_name', off_cd + 0x70)
-    e.point(off_cd + 0x04, 'extra_194')
-    e.point(off_cd + 0x08, 'compdata_name')
-    e.point(off_cd + 0x18, 'components')
+    off_cd = e.poe(compdata(raio, posicao), 'compdata')
+    e.aponta(off_cd + 0x3C, 'mesh')            # slot de LOD 0
+    # Os tres campos que o varejo NUNCA deixa nulos e que o caminho do cubo
+    # deixava (o caminho do --place ja fazia isto):
+    #   +0x04  o dono, que e a propria estrutura de MapRoot+0x194
+    #   +0x08  o nome deste objeto, que mora nele mesmo em +0x70
+    #   +0x18  a entrada de componente que aponta pra ca
+    e.rotula('compdata_nome', off_cd + 0x70)
+    e.aponta(off_cd + 0x04, 'extra_194')
+    e.aponta(off_cd + 0x08, 'compdata_nome')
+    e.aponta(off_cd + 0x18, 'componentes')
 
-    comp = bytearray(COMPONENT_SIZE)
-    struct.pack_into('<f', comp, 0x18, radius)
-    struct.pack_into('<I', comp, 0x10, tok(VT_COMPONENT_TOKEN))
-    # +0x0B pass_mask: NEVER zero in retail (303 of atlanta's 651 are 8) and zero
-    # means "enters no pass", i.e. does not draw. Among the components whose mesh
-    # uses the same shader class as this one (007A1EF8), 8 is by far the most
-    # common value: 230 against 50 for the runner-up.
+    comp = bytearray(TAM_COMPONENTE)
+    struct.pack_into('<f', comp, 0x18, raio)
+    struct.pack_into('<I', comp, 0x10, tok(VT_COMPONENTE_TOKEN))
+    # +0x0B pass_mask: NUNCA e zero no varejo (303 dos 651 do atlanta valem 8) e
+    # zero quer dizer "nao entra em passe nenhum", ou seja nao desenha. Entre os
+    # componentes cuja malha usa a mesma classe de shader que este (007A1EF8),
+    # 8 e o valor de longe mais comum: 230 contra 50 do segundo colocado.
     comp[0x0B] = 8
-    half = max(abs(q[i]) for pos, _u, _n, _o in blocks for q in pos for i in (0, 2))
-    # A city shell may use a synthetic cube but still needs the grid of the
-    # target city's extents. Without explicit extents, keep the historical
-    # behaviour and inherit the donor's grid.
-    grid = grid_from_extents(*extents) if extents else donor_grid(donor)
-    x0, x1, z0, z1 = cell_box(grid, position[0], position[2], half, half)
+    meia = max(abs(q[i]) for pos, _u, _n, _o in blocos for q in pos for i in (0, 2))
+    # A shell de uma cidade pode usar um cubo sintetico, mas ainda precisa da
+    # grade dos extents da cidade alvo. Sem extents explicitos, preserve o
+    # comportamento historico e herde a grade do doador.
+    grade = grade_dos_extents(*extents) if extents else grade_do_doador(doador)
+    x0, x1, z0, z1 = caixa_de_celulas(grade, posicao[0], posicao[2], meia, meia)
     comp[0x14], comp[0x15], comp[0x16], comp[0x17] = x0, x1, z0, z1
-    off_comp = e.put(bytes(comp), 'components')
-    e.point(off_comp + 0x0C, 'compdata')
-    comp_vas = [e.va(off_comp)]                 # goes into the MapRoot+0x1C index
-    # the cells the cube's tile box covers, to register unique 0 in them
-    gw = grid[0]
-    cells_per_unique = {0: [z * gw + x for z in range(z0, z1 + 1)
+    off_comp = e.poe(bytes(comp), 'componentes')
+    e.aponta(off_comp + 0x0C, 'compdata')
+    vas_comp = [e.va(off_comp)]                 # entra no indice de MapRoot+0x1C
+    # as celulas que a tile box do cubo cobre, para registrar o unique 0 nelas
+    gw = grade[0]
+    cel_por_unico = {0: [z * gw + x for z in range(z0, z1 + 1)
                          for x in range(x0, x1 + 1)]}
 
     # ---------------------------------------------------------------- hoods
-    # THE SAME NAMES AND THE SAME NUMBER as the donor.
+    # OS MESMOS NOMES E A MESMA QUANTIDADE do doador.
     #
-    # Evidence: every file that loaded has atlanta's 7 hoods with their original
-    # names; the two that hung after a complete Place (`bx2_hood` and `cubo_v4`)
-    # had ONE hood called `zz`. Hood names appear in `.loc`, race data and in the
-    # `_bnd`, so inventing one probably breaks whoever looks them up by name. Here
-    # every donor hood exists; only the first gets the geometry, the others keep
-    # a zero count.
+    # Evidencia: todo arquivo que carregou tem os 7 hoods do atlanta com os nomes
+    # originais; os dois que travaram depois do Place completo (`bx2_hood` e o
+    # `cubo_v4`) tinham UM hood chamado `zz`. Nome de hood aparece em `.loc`,
+    # dados de corrida e no `_bnd`, entao inventar um provavelmente quebra quem
+    # procura por nome. Aqui todos os hoods do doador existem; so o primeiro
+    # recebe a geometria, os outros ficam com contagem zero.
     # `hoods` overrides the donor's list. THE FIELD IS FOUR BYTES - three
     # characters and a terminator - which is why the retail names are `bh`,
     # `dt`, `fwy` and not the full neighbourhood names. Midnight Club 2 spells
@@ -1630,101 +1631,103 @@ def build(out_path, donor, blocks, hood_name='zz', position=(0.0, 0.0, 0.0),
     # When more hoods are asked for than the donor has, the records cycle: the
     # record is a 0xB0-byte blob copied and relinked, and reusing one is only a
     # matter of the name written over it.
-    from_donor = hood_names_(donor)
-    hood_names = list(hoods) if hoods else from_donor
-    entries = bytearray()
-    for i, nm in enumerate(hood_names):
-        hood_record(e, donor, nm, 'hood_rec%d' % i, i % len(from_donor))
-        ent = bytearray(HOOD_ENTRY_SIZE)
+    do_doador = nomes_dos_hoods(doador)
+    nomes_hood = list(hoods) if hoods else do_doador
+    entradas = bytearray()
+    for i, nm in enumerate(nomes_hood):
+        registro_hood(e, doador, nm, 'hood_rec%d' % i, i % len(do_doador))
+        ent = bytearray(TAM_ENTRADA_HOOD)
         if i == 0:
-            struct.pack_into('<I', ent, 4, 1)   # only the first one gets the model
-        entries += ent
-    # THE new[] COOKIE BEFORE THE HOOD ARRAY. mcCity's destructor (slot +8,
-    # called by mcCity::Delete 0x2575C0 when the city is unloaded WHOLE) reads
-    # the count at hoods-16 and calls mcHood::dtor on every 20-byte entry, last
-    # to first. Without a cookie it was whatever sat there: Paris 0x80000000
-    # (x20 wraps to 0, no dtor - worked by luck), LA 1 (hood 0 only, empty),
-    # Tokyo MC2 0xCDCD0008 - the loop walked garbage and stopped in
-    # mcHood::DeleteModels 0x25D418 (exit to the frontend through the San Diego
-    # path). Count 0, what Paris does in practice: the hoods live inside the
-    # .pck and the game frees the pck with paging off.
-    off_cookie = e.put(struct.pack('<I', 0) + b'\xCD' * 12 + bytes(entries), 'hoods_cookie')
+            struct.pack_into('<I', ent, 4, 1)   # so o primeiro leva o modelo
+        entradas += ent
+    # O COOKIE DO new[] ANTES DO ARRAY DE HOODS. O destrutor do mcCity (slot +8,
+    # chamado por mcCity::Delete 0x2575C0 quando a cidade e descarregada INTEIRA)
+    # le a contagem em hoods-16 e chama mcHood::dtor em cada entrada de 20 bytes,
+    # do fim para o comeco. Sem cookie valia o que estivesse ali: em Paris
+    # 0x80000000 (x20 estoura para 0, nenhum dtor - funcionava por sorte), em LA 1
+    # (so o hood 0, vazio), no Tokyo MC2 0xCDCD0008 - o laco andou por lixo e
+    # travou em mcHood::DeleteModels 0x25D418 (04/10/2026, saida para o frontend
+    # pelo caminho de San Diego). Contagem 0, o mesmo que Paris faz na pratica:
+    # os hoods vivem dentro do .pck e o jogo apaga o pck com o paging desligado.
+    off_cookie = e.poe(struct.pack('<I', 0) + b'\xCD' * 12 + bytes(entradas), 'hoods_cookie')
     off_ent = off_cookie + 16
-    e.label('hoods', off_ent)
-    empty = empty_hood(e)
-    for i in range(len(hood_names)):
-        e.point(off_ent + HOOD_ENTRY_SIZE * i + 0, 'hood_rec%d' % i)
-        # the two arrays are NEVER null in retail, even with a zero count
-        e.point(off_ent + HOOD_ENTRY_SIZE * i + 8,
-                 'components' if i == 0 else empty)
-        e.point(off_ent + HOOD_ENTRY_SIZE * i + 0x10, empty)
+    e.rotula('hoods', off_ent)
+    vazio = hood_vazio(e)
+    for i in range(len(nomes_hood)):
+        e.aponta(off_ent + TAM_ENTRADA_HOOD * i + 0, 'hood_rec%d' % i)
+        # os dois arrays NUNCA sao nulos no varejo, mesmo com contagem zero
+        e.aponta(off_ent + TAM_ENTRADA_HOOD * i + 8,
+                 'componentes' if i == 0 else vazio)
+        e.aponta(off_ent + TAM_ENTRADA_HOOD * i + 0x10, vazio)
 
     # ---------------------------------------------------------------- MapRoot
-    # COPIED WHOLE from the donor (0x290 bytes) with the pointers zeroed, and only
-    # then the fields I control. I used to copy two small pieces (+0x20..0x2B and
-    # +0x40..0x7F) and zero the rest - ~0x250 bytes of city scalars (extents, LOD
-    # distances, fog, saturation) went to zero without my knowing they existed.
+    # COPIADO INTEIRO do doador (0x290 bytes) com os ponteiros zerados, e so
+    # depois os campos que eu controlo. Antes eu copiava dois pedacinhos
+    # (+0x20..0x2B e +0x40..0x7F) e zerava o resto - ~0x250 bytes de escalares de
+    # cidade (extents, distancias de LOD, fog, saturacao) iam a zero sem que eu
+    # soubesse que existiam.
     r = 0x80
-    e.d[r:r + MAPROOT_SIZE] = maproot_base(donor)
-    inline_palettes(e, r)
+    e.d[r:r + TAM_MAPROOT] = maproot_base(doador)
+    paletas_inline(e, r)
     e.u32(r + 0x00, tok(VT_MAPROOT))
-    e.u32(r + 0x08, 0 if probe else n_groups)   # shader groups
-    e.point(r + 0x0C, 'groups')
-    empty_array(e, 'field10')                   # never NULL: see empty_array()
-    e.point(r + 0x10, 'field10')
-    e.u32(r + 0x14, 0 if probe else len(hood_names))
-    e.point(r + 0x18, 'hoods')
+    e.u32(r + 0x08, 0 if sonda else n_grupos)   # grupos de shader
+    e.aponta(r + 0x0C, 'grupos')
+    array_vazio(e, 'campo10')                   # nunca NULO: ver array_vazio()
+    e.aponta(r + 0x10, 'campo10')
+    e.u32(r + 0x14, 0 if sonda else len(nomes_hood))
+    e.aponta(r + 0x18, 'hoods')
     if extents:
         mn, mx = extents
         for k, values in ((0x238, mn), (0x244, mx)):
             for j, value in enumerate(values):
                 struct.pack_into('<f', e.d, r + k + 4 * j, value)
-        struct.pack_into('<iiii', e.d, r + 0x26C, *grid)
-    # the flat index, now with the real component inside
-    # THE SIZE OF THE TWO PER-CELL ARRAYS IS `grid_w * grid_h`, NOT ANY NUMBER.
-    # I wrote 64 at +0x268 and left +0x26C/+0x270 as they came from the donor
-    # (64 x 62 = 3968 in atlanta), breaking the invariant
-    # `cell_count == grid_w * grid_h` that holds in the three measured cities. The
-    # culling loop indexes by `rel_z * grid_w + rel_x`, so with the donor's grid
-    # and a 64-entry array it read up to 3968 records from a 64-entry buffer -
-    # 47 KB of reads outside the array.
+        struct.pack_into('<iiii', e.d, r + 0x26C, *grade)
+    # o indice plano, agora com o componente de verdade dentro
+    # O TAMANHO DOS DOIS ARRAYS POR CELULA E `grid_w * grid_h`, NAO UM NUMERO
+    # QUALQUER. Eu escrevia 64 em +0x268 e deixava +0x26C/+0x270 como vieram do
+    # doador (64 x 62 = 3968 no atlanta), quebrando a invariante
+    # `cell_count == grid_w * grid_h` que vale nas tres cidades medidas. O laco
+    # do culling indexa por `rel_z * grid_w + rel_x`, entao com a grade do
+    # doador e um array de 64 ele lia ate 3968 registros de um buffer de 64 -
+    # 47 KB de leitura fora do array.
     scratch = abs(struct.unpack_from('<i', e.d, r + 0x26C)[0]
                   * struct.unpack_from('<i', e.d, r + 0x270)[0]) or 64
     e.u32(r + 0x268, scratch)                   # == grid_w * grid_h
-    block_1c(e, donor, 'field1c', comp_vas, (), scratch, cells_per_unique)
-    e.point(r + 0x1C, 'field1c')
-    e.point(r + 0x2C, 'paletteA')
-    e.point(r + 0x30, 'paletteB')
-    made = extra_structures(e, donor, 'compdata')
-    n_chains = chains_1d4(e, donor, texture_donor)
+    bloco_1c(e, doador, 'campo1c', vas_comp, (), scratch, cel_por_unico)
+    e.aponta(r + 0x1C, 'campo1c')
+    e.aponta(r + 0x2C, 'paletaA')
+    e.aponta(r + 0x30, 'paletaB')
+    feitas = estruturas_extra(e, doador, 'compdata')
+    n_cadeias = cadeias_1d4(e, doador, doador_textura)
 
-    n = e.close(out_path)
-    print('written %s (%d bytes)' % (out_path, n))
-    print('  shader copied from donor slot %d; %d slots in group 0' % (came_from, n_slots))
-    print('  extra structures created: %s; %d chain(s) of +0x1D4/+0x1D8'
-          % (', '.join('+0x%X' % x for x in made), n_chains))
-    print('  %d block(s), %d vertices, radius %.1f, scale 1/%.0f'
-          % (len(blocks), sum(len(p) for p, _u, _n, _o in blocks), radius, 1.0 / scale))
+    n = e.fecha(saida)
+    print('gravado %s (%d bytes)' % (saida, n))
+    print('  shader copiado do slot %d do doador; %d slots no grupo 0' % (veio_de, n_slots))
+    print('  estruturas extra criadas: %s; %d cadeia(s) de +0x1D4/+0x1D8'
+          % (', '.join('+0x%X' % x for x in feitas), n_cadeias))
+    print('  %d bloco(s), %d vertices, raio %.1f, escala 1/%.0f'
+          % (len(blocos), sum(len(p) for p, _u, _n, _o in blocos), raio, 1.0 / escala))
     return n
 
 
 # --------------------------------------------------------------------------
-# the real city: feeding the builder with a place.tsv
+# a cidade de verdade: alimentar o construtor com um place.tsv
 # --------------------------------------------------------------------------
 #
-# `build()` assembles ONE component from a test cube. This is where the table
-# written by `mc2_port.py city` comes in: one line per thing to draw, with the
-# mesh name, the matrix and the AABB.
+# `constroi()` monta UM componente a partir de um cubo de teste. Aqui entra a
+# tabela que o `mc2_port.py cidade` escreve: uma linha por coisa a desenhar,
+# com o nome da malha, a matriz e a AABB.
 #
-# A deliberate first slice: ONLY the `comp` lines. They are already in world
-# coordinates. The `.hood` AABB can include OTHER parts of the same object, so
-# it is not a pivot for the chosen part. They do not depend on the instance
-# record, which had not been decoded yet. They are the streets and buildings;
-# the `inst` lines are repeated walls, palm trees and posts.
+# Primeira fatia de proposito: SO as linhas `comp`. Elas ja estao em coordenada
+# de mundo. A AABB do `.hood` pode incluir OUTRAS partes do mesmo objeto,
+# portanto nao serve de pivo da parte escolhida. Elas nao dependem do registro
+# de instancia, que ainda nao foi
+# decodificado. Sao as ruas e os predios; as `inst` sao muros, palmeiras e
+# postes repetidos.
 #
-# The `.pck` hood name fits in FOUR BYTES (three characters and the
-# terminator), and this abbreviation is the one the C++ fork fixed on both sides.
-HOOD_ABBREV = {
+# O nome de hood do `.pck` cabe em QUATRO BYTES (tres caracteres e o
+# terminador), e essa abreviacao e a que a fork C++ fixou dos dois lados.
+ABREV_HOOD = {
     'l_beverlyhills': 'bh',  'l_downtown': 'dt',   'l_ghetto': 'gh',
     'l_hills': 'hl',         'l_hollywood': 'hw',  'l_i05': 'i05',
     'l_i10': 'i10',          'l_i101': '101',      'l_i105': '105',
@@ -1732,12 +1735,12 @@ HOOD_ABBREV = {
 }
 
 
-def read_place(file_path):
-    """(lines, extents) of a `<city>_place.tsv`."""
+def le_place(caminho):
+    """(linhas, extents) de um `<cidade>_place.tsv`."""
     extents = {}
-    hdr = None
-    lines = []
-    with open(file_path, 'r', errors='replace') as f:
+    cab = None
+    linhas = []
+    with open(caminho, 'r', errors='replace') as f:
         for l in f.read().splitlines():
             if l.startswith('#'):
                 p = [x.strip() for x in l[1:].split('\t')]
@@ -1746,151 +1749,150 @@ def read_place(file_path):
                 continue
             if not l.strip():
                 continue
-            if hdr is None:
-                hdr = l.split('\t')
+            if cab is None:
+                cab = l.split('\t')
                 continue
             c = l.split('\t')
-            if len(c) >= len(hdr):
-                lines.append(dict(zip(hdr, c)))
-    return lines, extents
+            if len(c) >= len(cab):
+                linhas.append(dict(zip(cab, c)))
+    return linhas, extents
 
 
-def mesh_path(folder, line):
-    """The `.mod` a place.tsv line names."""
-    if line['part'] == '-':
-        name = '%s_%s.mod' % (line['name'], line['lod'])
+def caminho_da_malha(pasta, linha):
+    """O `.mod` que uma linha do place.tsv nomeia."""
+    if linha['part'] == '-':
+        nome = '%s_%s.mod' % (linha['name'], linha['lod'])
     else:
-        name = '%s_%s_%s.mod' % (line['name'], line['lod'], line['part'])
-    p = os.path.join(folder, name)
+        nome = '%s_%s_%s.mod' % (linha['name'], linha['lod'], linha['part'])
+    p = os.path.join(pasta, nome)
     return p if os.path.isfile(p) else None
 
 
-def centre_blocks(blocks):
-    """Blocks shifted to the BOX MIDPOINT, and the shift applied.
+def centra(blocos):
+    """Blocos deslocados para a MEDIA DA CAIXA, e o deslocamento aplicado.
 
-    Measured on atlanta: a component's geometry is LOCAL and centred, and the
-    world comes in through `ComponentData+0x2C`. In `a_bh_blk_02x#geom` the local
-    box goes from -121.6 to 121.8 in x and from -162.9 to 162.8 in z, with the
-    position at (-388.0, 12.4, -1042.2); the stored radius (203.8) is exactly the
-    half-diagonal of that box.
+    Medido no atlanta: a geometria de um componente e LOCAL e centrada, e o
+    mundo entra por `ComponentData+0x2C`. Em `a_bh_blk_02x#geom` a caixa local
+    vai de -121.6 a 121.8 em x e de -162.9 a 162.8 em z, com a posicao em
+    (-388.0, 12.4, -1042.2); o raio gravado (203.8) e exatamente a meia-diagonal
+    dessa caixa.
 
-    `read_model` already removes the bulk, but it centres x and z on the box and
-    rests y on zero, so a difference in y is left that has to go into the position.
+    O `le_modelo` ja tira o grosso, mas centra x e z pela caixa e apoia y no
+    zero, entao sobra uma diferenca em y que precisa entrar na posicao.
     """
-    pts = [q for pos, _u, _n, _o in blocks for q in pos]
+    pts = [q for pos, _u, _n, _o in blocos for q in pos]
     mn = [min(q[i] for q in pts) for i in range(3)]
     mx = [max(q[i] for q in pts) for i in range(3)]
     c = [(mn[i] + mx[i]) / 2.0 for i in range(3)]
     if max(abs(v) for v in c) < 1e-4:
-        return blocks, c
-    outside = [([tuple(q[i] - c[i] for i in range(3)) for q in pos], u, nr, o)
-            for pos, u, nr, o in blocks]
-    return outside, c
+        return blocos, c
+    fora = [([tuple(q[i] - c[i] for i in range(3)) for q in pos], u, nr, o)
+            for pos, u, nr, o in blocos]
+    return fora, c
 
 
-def read_world_component(file_path):
-    """Place a component's part without changing its world vertices.
+def le_componente_mundo(caminho):
+    """Localiza a parte de um componente sem mudar seus vertices de mundo.
 
-    The chosen .mod may be only main/refl/emissive, but the TSV's emin/emax
-    belong to the whole .hood object. Using that box's centre as the position
-    after centring this part shifts the geometry (368.26 units on
-    l_santamonica_blk_14). Restore the MC2 origin and store exactly the centre
-    removed by centre_blocks in ComponentData+0x2C. The AABB is for culling, not a pivot.
+    O .mod escolhido pode ser so main/refl/emissive, mas emin/emax do TSV
+    pertencem ao objeto inteiro do .hood. Usar o centro daquela caixa como
+    posicao depois de centrar esta parte desloca a geometria (368.26 unidades
+    no l_santamonica_blk_14). Restaure a origem MC2 e guarde exatamente o
+    centro retirado por centra em ComponentData+0x2C. AABB e culling, nao pivo.
     """
-    blocks = read_model(file_path, 1.0, keep_origin=True)
-    return centre_blocks(blocks) if blocks else ([], (0.0, 0.0, 0.0))
+    blocos = le_modelo(caminho, 1.0, preservar_origem=True)
+    return centra(blocos) if blocos else ([], (0.0, 0.0, 0.0))
 
 
-def emit_geometry(e, blocks, map_key, position, material_index=1):
-    """Packets + list + group table + material + mesh + ComponentData.
+def emite_geometria(e, blocos, chave, posicao, indice_material=1):
+    """Pacotes + lista + tabela de grupos + material + mesh + ComponentData.
 
-    The same sequence `build()` runs for the cube, extracted so it can run
-    hundreds of times. Returns (ComponentData key, radius).
+    A mesma sequencia que `constroi()` faz para o cubo, extraida para poder
+    rodar centenas de vezes. Devolve (chave do ComponentData, raio).
     """
-    # THREE PATHS, from the best informed to the least. With groups AND texture
-    # indices, a mesh with ONE GROUP PER MATERIAL - the only way to give a
-    # component more than one texture. Without them, the old path.
-    if GAME_GROUPS and GAME_INDICES:
-        emit_grouped_mesh(e, GAME_GROUPS, map_key, GAME_INDICES,
-                             CPV_SLOTS_PER_COMPONENT)
+    # TRES CAMINHOS, do mais informado ao menos. Com grupos E indices de
+    # textura, uma malha com UM GRUPO POR MATERIAL - o unico jeito de dar
+    # mais de uma textura a um componente. Sem eles, o caminho antigo.
+    if GRUPOS_DO_JOGO and INDICES_DO_JOGO:
+        emite_malha_agrupada(e, GRUPOS_DO_JOGO, chave, INDICES_DO_JOGO,
+                             SLOTS_CPV_COMPONENTE)
     else:
-        if GAME_PACKETS:
-            # Ready packets, from a mesh.pck the game itself assembled.
-            items = bytearray()
-            for payload, qw, nv in GAME_PACKETS:
-                off = e.put(flip_winding_payload(payload) if FLIP_WINDING else payload, align=16)
-                items += struct.pack('<IHH', e.va(off), qw, nv)
-            n_packets = len(GAME_PACKETS)
+        if PACOTES_DO_JOGO:
+            # Pacotes prontos, vindos de um mesh.pck que o proprio jogo montou.
+            lista = bytearray()
+            for payload, qw, nv in PACOTES_DO_JOGO:
+                off = e.poe(flip_winding_payload(payload) if FLIP_WINDING else payload, align=16)
+                lista += struct.pack('<IHH', e.va(off), qw, nv)
+            n_pacotes = len(PACOTES_DO_JOGO)
         else:
-            scale = mc2.pick_scale(blocks)
-            packets = [mc2.make_block(pos, uv, nr, scale, i % 2 == 1)
-                       for i, (pos, uv, nr, _o) in enumerate(blocks)]
-            offs = [e.put(pk, align=16) for pk in packets]
-            items = bytearray()
-            for off, pk, (pos, _u, _n, _o) in zip(offs, packets, blocks):
-                items += struct.pack('<IHH', e.va(off), (len(pk) + 15) // 16, len(pos))
-            n_packets = len(blocks)
-        e.put(bytes(items), map_key + '_list')
+            escala = mc2.pick_scale(blocos)
+            pacotes = [mc2.make_block(pos, uv, nr, escala, i % 2 == 1)
+                       for i, (pos, uv, nr, _o) in enumerate(blocos)]
+            offs = [e.poe(pk, align=16) for pk in pacotes]
+            lista = bytearray()
+            for off, pk, (pos, _u, _n, _o) in zip(offs, pacotes, blocos):
+                lista += struct.pack('<IHH', e.va(off), (len(pk) + 15) // 16, len(pos))
+            n_pacotes = len(blocos)
+        e.poe(bytes(lista), chave + '_lista')
 
-        off_gt = e.put(struct.pack('<IHH', 0, n_packets, 0), map_key + '_gt')
-        e.point(off_gt, map_key + '_list')
+        off_gt = e.poe(struct.pack('<IHH', 0, n_pacotes, 0), chave + '_gt')
+        e.aponta(off_gt, chave + '_lista')
 
-        # the material table sits RIGHT BEFORE the mesh object, as in retail
-        e.align_to(16)
+        # a tabela de material fica LOGO ANTES do objeto mesh, como no retail
+        e.alinha(16)
         off_mt = len(e.d)
-        e.d += struct.pack('<H', material_index) + b'\x00\x00'
-        e.label(map_key + '_mt', off_mt)
+        e.d += struct.pack('<H', indice_material) + b'\x00\x00'
+        e.rotula(chave + '_mt', off_mt)
 
-        # +0x18 is never zero in retail: 624 atlanta meshes have 1, 408 have a
-        # pointer and 190 have CDCDCDCD. 1 is the most common form and the only
-        # one that can be written without inventing a target.
-        off_mesh = e.put(struct.pack('<IIHHIIII', tok(VT_MESH_TOKEN), 0, 1,
-                                     CPV_SLOTS_PER_COMPONENT, 0, 0, 0, 1),
-                         map_key + '_mesh', align=4)
-        # DO NOT switch to align=16. Retail has 100% of its meshes aligned to 16
-        # and mine sit at %16==4, but switching to 16 REGRESSED: the city that ran
-        # at 60 FPS started to hang on the FIRST frame (game frames = 1). Aligning
-        # shifts every following allocation, and something depends on the layout
-        # align=4 produces - probably the adjacency between the material table
-        # and the mesh object, which retail keeps glued together. Measured, not assumed.
-        e.point(off_mesh + 0x0C, map_key + '_mt')
-        e.point(off_mesh + 0x10, map_key + '_gt')
-        cpv_group = ([([0] * nv,) for _p, _q, nv in GAME_PACKETS]
-                     if GAME_PACKETS else blocks)
-        emit_per_vertex_chain(e, [cpv_group], map_key + '_t14')
-        e.point(off_mesh + 0x14, map_key + '_t14')
+        # +0x18 nunca e zero no varejo: 624 malhas do atlanta tem 1, 408 tem
+        # ponteiro e 190 tem CDCDCDCD. 1 e a forma mais comum e a unica que da
+        # para escrever sem inventar um destino.
+        off_mesh = e.poe(struct.pack('<IIHHIIII', tok(VT_MESH_TOKEN), 0, 1,
+                                     SLOTS_CPV_COMPONENTE, 0, 0, 0, 1),
+                         chave + '_mesh', align=4)
+        # NAO mudar para align=16. O varejo tem 100% das malhas alinhadas a 16 e as
+        # minhas ficam em %16==4, mas trocar para 16 REGREDIU: a cidade que rodava a
+        # 60 FPS passou a travar no PRIMEIRO frame (game frames = 1). Alinhar
+        # desloca todas as alocacoes seguintes, e alguma coisa depende do layout que
+        # o align=4 produz - provavelmente a adjacencia entre a tabela de material e
+        # o objeto mesh, que o retail mantem colados. Medido, nao suposto.
+        e.aponta(off_mesh + 0x0C, chave + '_mt')
+        e.aponta(off_mesh + 0x10, chave + '_gt')
+        grupo_cpv = ([([0] * nv,) for _p, _q, nv in PACOTES_DO_JOGO]
+                     if PACOTES_DO_JOGO else blocos)
+        emite_cadeia_por_vertice(e, [grupo_cpv], chave + '_t14')
+        e.aponta(off_mesh + 0x14, chave + '_t14')
 
-    # the retail radius is the half-diagonal of the local box, not the distance
-    # to the vertex farthest from the centroid
-    pts = [q for pos, _u, _n, _o in blocks for q in pos]
-    radius = max((q[0] ** 2 + q[1] ** 2 + q[2] ** 2) ** 0.5 for q in pts)
+    # o raio do retail e a meia-diagonal da caixa local, nao a distancia ao
+    # vertice mais longe do centroide
+    pts = [q for pos, _u, _n, _o in blocos for q in pos]
+    raio = max((q[0] ** 2 + q[1] ** 2 + q[2] ** 2) ** 0.5 for q in pts)
 
-    off_cd = e.put(compdata(radius, position), map_key + '_cd')
-    # THE MESH GOES INSIDE, in retail's majority form (431 of 650 in tokyo).
-    # The separate mesh object emitted above stays in the file and stays valid -
-    # retail has both too - but the embedded one is the one that counts.
-    put_embedded_mesh(e, off_cd, map_key + '_mt', map_key + '_gt',
-                      blocks, map_key + '_emb')
-    e.label(map_key + '_cd_name', off_cd + 0x70)
-    return map_key + '_cd', radius, off_cd
-
-
-REAL_PCK_CENTRE = {}      # kind -> (cx, cz) measured in the game's .pck
+    off_cd = e.poe(compdata(raio, posicao), chave + '_cd')
+    # O MESH VAI DENTRO, na forma majoritaria do varejo (431 de 650 no tokyo).
+    # O objeto de mesh separado emitido acima continua no arquivo e continua
+    # valido - o varejo tambem tem os dois -, mas quem manda e o embutido.
+    poe_mesh_embutido(e, off_cd, chave + '_mt', chave + '_gt',
+                      blocos, chave + '_emb')
+    e.rotula(chave + '_cd_nome', off_cd + 0x70)
+    return chave + '_cd', raio, off_cd
 
 
-def real_pck_centre(file_path):
-    """XZ centre of the vertices the GAME assembled, not those of the .mod.
+CENTRO_REAL_DO_PCK = {}      # tipo -> (cx, cz) medido no .pck do jogo
 
-    Each Instance matrix in place.tsv assumes the RECENTRED mesh: measuring the
-    8511 instances, 6249 (73%) only match with `final = (tx,tz)`. But of the 431
-    kinds that came from the game, 71 keep the original pivot (centre up to 1894
-    away from the origin) - their instances fly away, and that is what showed up
-    piled far off. Since the geometry comes from the `.pck` and the vertices
-    cannot be recentred, I measure the real centre here and COMPENSATE in the
-    translation.
+
+def centro_real_do_pck(caminho):
+    """Centro XZ dos vertices que o JOGO montou, nao os do .mod.
+
+    A matriz de cada Instance no place.tsv assume a malha RECENTRADA: medindo
+    as 8511 instancias, 6249 (73%) so batem com `final = (tx,tz)`. Mas dos 431
+    tipos que vieram do jogo, 71 preservam o pivo original (centro a ate 1894
+    da origem) - as instancias desses voam, e e o que aparecia empilhado longe.
+    Como a geometria vem do `.pck` e nao da para recentrar os vertices, eu meco
+    o centro real aqui e COMPENSO na translacao.
     """
     import struct as _s
-    d = open(file_path, 'rb').read()
+    d = open(caminho, 'rb').read()
     N = len(d)
     vb = _s.unpack_from('<I', d, 0)[0]
     fo = lambda v: v - vb + 0x80
@@ -1911,7 +1913,7 @@ def real_pck_centre(file_path):
             nv = _s.unpack_from('<I', d, dp + 8)[0]
             if not (0 < nv <= 64) or not (0 < sc < 100):
                 continue
-            if d[dp + 15] != 0x69:          # only the POSITION stream
+            if d[dp + 15] != 0x69:          # so o stream de POSICAO
                 continue
             for i in range(nv):
                 o = dp + 16 + 6 * i
@@ -1925,65 +1927,65 @@ def real_pck_centre(file_path):
     return (sum(xs) / len(xs), sum(zs) / len(zs))
 
 
-def _row_matrix(l):
-    """The Matrix34 of a place.tsv `inst` line: 12 floats in the game's order,
-    three rows of 3x3 rotation and then the translation."""
+def _matriz_da_linha(l):
+    """A Matrix34 de uma linha `inst` do place.tsv: 12 floats na ordem do jogo,
+    tres linhas de rotacao 3x3 e depois a translacao."""
     return [float(l[c]) for c in
             ('m00', 'm01', 'm02', 'm10', 'm11', 'm12',
              'm20', 'm21', 'm22', 'tx', 'ty', 'tz')]
 
 
-def _aabb_centre(l):
+def _centro_aabb(l):
     return tuple((float(l['emin' + a]) + float(l['emax' + a])) / 2.0
                  for a in ('x', 'y', 'z'))
 
 
-def compdata_inst(radius, centre, name):
-    """ComponentData of an instance KIND: the same as the comp one, but with the
-    mcInstCityModelType token at +0x28 and the centre in LOCAL coordinates (each
-    Instance's matrix is what puts it in the world)."""
+def compdata_inst(raio, centro, nome):
+    """ComponentData de um TIPO de instancia: igual ao do comp, mas com o token
+    mcInstCityModelType em +0x28 e o centro em coordenada LOCAL (a matriz de
+    cada Instance e que o poe no mundo)."""
     cd = bytearray(0xF0)
     struct.pack_into('<I', cd, 0x00, 1)
-    struct.pack_into('<I', cd, 0x28, tok(VT_INST_KIND_TOKEN))
-    struct.pack_into('<3f', cd, 0x2C, *centre)
-    struct.pack_into('<f', cd, 0x38, radius)
-    cd[0x70:0x70 + len(name)] = name
+    struct.pack_into('<I', cd, 0x28, tok(VT_INST_TIPO_TOKEN))
+    struct.pack_into('<3f', cd, 0x2C, *centro)
+    struct.pack_into('<f', cd, 0x38, raio)
+    cd[0x70:0x70 + len(nome)] = nome
     return bytes(cd)
 
 
-# VIF packets from a .pck that THE GAME ITSELF generated (see
-# mc3_heap_to_pck.py). When this is filled in, _emit_mesh copies these blocks
-# instead of calling mc2.make_block - which swaps MY stripping, parity, ADC and
-# block splitting for the game's, the four things hand emission got wrong. A
-# list of (payload, quadwords, vertices).
-GAME_PACKETS = None
-VT_TEXTURE_TOKEN = 0x007A2320  # serialised rmcTexturePS2 token (runtime vtable = 0x00627280)
-# When --pck-mesh points to a folder: model name -> the game's packets.
-PCK_FOLDER = None
-PCK_PER_MODEL = {}
-GROUPS_PER_MODEL = {}
-GAME_GROUPS = None      # groups of the current model
-TEXTURES_PER_MODEL = {}   # model name -> texture names, in mtl order
-from_game = [0]
-DEBUG_FLAG = [0]
+# Pacotes VIF vindos de um .pck que O PROPRIO JOGO gerou (ver
+# mc3_heap_to_pck.py). Quando isto esta preenchido, _emite_mesh copia estes
+# blocos em vez de chamar mc2.make_block - o que troca a MINHA estripificacao,
+# paridade, ADC e corte em bloco pelas do jogo, que sao as quatro coisas em que
+# a emissao a mao errava. Lista de (payload, quadwords, vertices).
+PACOTES_DO_JOGO = None
+VT_TEXTURA_TOKEN = 0x007A2320  # token serializado do rmcTexturePS2 (vtable runtime = 0x00627280)
+# Quando --pck-malha aponta para uma pasta: nome do modelo -> pacotes do jogo.
+PASTA_PCK = None
+PCK_POR_MODELO = {}
+GRUPOS_POR_MODELO = {}
+GRUPOS_DO_JOGO = None      # grupos do modelo corrente
+TEXTURAS_POR_MODELO = {}   # nome do modelo -> nomes de textura, na ordem dos mtl
+do_jogo = [0]
+DEPURA = [0]
 
 
-def read_pck_groups(file_path):
-    """A mesh.pck's packets GROUPED, one item per group.
+def le_grupos_de_pck(caminho):
+    """Os pacotes de um mesh.pck AGRUPADOS, um item por grupo.
 
-    The `.pck` the game assembled keeps the split by material (27 groups in a
-    27-material model). Flattening that into one group, as I used to, forces the
-    whole city onto one material index, and that is why everything looked the
-    same. I keep the split so each group can get its own texture.
+    O `.pck` que o jogo montou preserva a divisao por material (27 grupos num
+    modelo de 27 materiais). Achatar isso num grupo so, como eu vinha fazendo,
+    obriga a cidade inteira a um indice de material e e por isso que tudo saia
+    com a mesma cara. Guardo a divisao para poder dar uma textura por grupo.
     """
     import struct as _s
-    d = open(file_path, 'rb').read()
+    d = open(caminho, 'rb').read()
     vb = _s.unpack_from('<I', d, 0)[0]
     fo = lambda a: a - vb + 0x80
-    groups = _s.unpack_from('<I', d, 0x88)[0] & 0xFFFF
+    grupos = _s.unpack_from('<I', d, 0x88)[0] & 0xFFFF
     geo = fo(_s.unpack_from('<I', d, 0x90)[0])
     out = []
-    for g in range(groups):
+    for g in range(grupos):
         go = geo + 8 * g
         pk, n = _s.unpack_from('<IH', d, go)
         e0 = fo(pk)
@@ -1998,26 +2000,26 @@ def read_pck_groups(file_path):
     return out
 
 
-def read_pck_packets(file_path):
-    """Extract the VIF packets of a mesh.pck, in group order."""
+def le_pacotes_de_pck(caminho):
+    """Extrai os pacotes VIF de um mesh.pck, na ordem dos grupos."""
     import struct as _s
-    d = open(file_path, 'rb').read()
+    d = open(caminho, 'rb').read()
     vb = _s.unpack_from('<I', d, 0)[0]
     fo = lambda a: a - vb + 0x80
-    groups = _s.unpack_from('<I', d, 0x88)[0] & 0xFFFF
+    grupos = _s.unpack_from('<I', d, 0x88)[0] & 0xFFFF
     geo = fo(_s.unpack_from('<I', d, 0x90)[0])
     out = []
-    for g in range(groups):
+    for g in range(grupos):
         go = geo + 8 * g
         pk, n = _s.unpack_from('<IH', d, go)
         e0 = fo(pk)
         for k in range(n):
             dp, qw, nv = _s.unpack_from('<IHH', d, e0 + 8 * k)
-            # AN EMPTY PACKET DOES NOT PROPAGATE. The game emits some with nv=0,
-            # and they created an asymmetry between the block list and the
-            # per-vertex chain (the mesh declared 2 blocks, [74, 0], and the
-            # chain 1) - the verifier reported "count 1 != 2" and "payload outside"
-            # in 194 meshes. A block with no vertex draws nothing, so it goes.
+            # PACKET VAZIO NAO PROPAGA. O jogo emite alguns com nv=0, e eles
+            # criavam assimetria entre a lista de blocos e a cadeia por-vertice
+            # (a malha declarava 2 blocos, [74, 0], e a cadeia 1) - o
+            # verificador acusava "count 1 != 2" e "payload fora" em 194 malhas.
+            # Um bloco sem vertice nao desenha nada, entao some.
             if nv == 0 or qw == 0:
                 continue
             o = fo(dp)
@@ -2025,993 +2027,988 @@ def read_pck_packets(file_path):
     return out
 
 
-def texture_slots(model, n_groups):
-    """Shader slot of each group, by the NAME of the texture the mtl asked for.
+def slots_de_textura(modelo, n_grupos):
+    """Slot de shader de cada grupo, pelo NOME da textura que o mtl pedia.
 
-    THE LIST HAS TO BE ALIGNED BY MATERIAL, one entry per `mtl` of the .mod,
-    including those with `textures: 0`. The old map listed only the materials
-    WITH a texture, and since the `.pck` has one group per material, everything
-    after a texture-less material was shifted by one: the group got the next
-    material's texture and the last one fell into slot 0. Measured: 29 models
-    have a texture-less material and in them **379 groups** came out swapped; and
-    slot 0 is `fx_rearlight_glow`, a white, diffuse glow texture - those were
-    the flat bright planes in the middle of the city. Fork City MODS 2 saw the
-    same two models (`industrial_blk_06` and `_04`) in the visible list "with
-    only fx_rearlight_glow", which agrees with this measurement.
+    A LISTA TEM QUE ESTAR ALINHADA POR MATERIAL, uma entrada por `mtl` do .mod,
+    inclusive os que tem `textures: 0`. O mapa antigo listava so os materiais COM
+    textura, e como o `.pck` tem um grupo por material, tudo depois de um
+    material sem textura ficava deslocado de um: o grupo recebia a textura do
+    material seguinte e o ultimo caia no slot 0. Medido: 29 modelos tem material
+    sem textura e neles **379 grupos** saiam trocados; e o slot 0 e o
+    `fx_rearlight_glow`, uma textura de brilho branca e difusa - eram os planos
+    chapados claros no meio da cidade. A Fork City MODS 2 viu os mesmos dois
+    modelos (`industrial_blk_06` e `_04`) na lista visivel "com apenas
+    fx_rearlight_glow", o que fecha com esta medicao.
 
-    A texture-less material INHERITS the previous one instead of falling into
-    slot 0: it draws with its own diffuse colour (0.4 0.4 0.4 in the typical
-    case), so anything neutral is better than stamping a glow on it.
+    Material sem textura HERDA o do anterior em vez de cair no slot 0: ele
+    desenha com cor difusa propria (0.4 0.4 0.4 no caso tipico), entao qualquer
+    coisa neutra e melhor que carimbar um glow.
     """
-    names = TEXTURES_PER_MODEL.get(model, [])
-    # A texture-less material BEFORE the first textured one has no "previous" to
-    # inherit from, and falling into slot 0 is the worst possible choice: slot 0
-    # is `fx_rearlight_glow`. MEASURED ON 12/09, with a one-variable bisection: a
-    # map aligned by material, which now declares the leading gap of 26 models,
-    # sent 205 groups to slot 0 and the game died on the FIRST FRAME with
-    # `R5900 Exception: Jump to unaligned address (PC 0x00000633)`. The only
-    # delta between the build that runs and the one that dies was 410 bytes, all
-    # in the material table. So the LEADING gap inherits FORWARD, from the first
-    # textured material, and never goes to slot 0.
-    # AND SLOT 0 IS FATAL, not just ugly. Measured on 12/09 in two independent
-    # failures: (a) 205 groups sent to slot 0 by the leading gap killed the game
-    # on the first frame; (b) the 216 new pieces, which have no entry in the map,
-    # ALL fell into slot 0 and the boot died in `datPageFile::PageIn` (pc
-    # 0x42cae4/0x42cbec/0x42cc1c/0x42cc40) reading garbage addresses. The reason
-    # is on the .ppf side: slot 0 is `fx_rearlight_glow` and its chunk is the
-    # ONLY one of 965 whose body is entirely zeroed, so the page-in dereferences
-    # an empty header. That is why the final fallback is 1, never 0.
+    nomes = TEXTURAS_POR_MODELO.get(modelo, [])
+    # Material sem textura ANTES do primeiro texturizado nao tem "anterior" de
+    # quem herdar, e cair no slot 0 e a pior escolha que existe: o slot 0 e o
+    # `fx_rearlight_glow`. MEDIDO EM 12/09, com bisseccao de uma variavel: um
+    # mapa alinhado por material, que passa a declarar o vazio inicial de 26
+    # modelos, mandou 205 grupos para o slot 0 e o jogo morreu no PRIMEIRO
+    # QUADRO com `R5900 Exception: Jump to unaligned address (PC 0x00000633)`.
+    # O unico delta entre o build que roda e o que morre eram 410 bytes, todos
+    # em tabela de material. Entao o vazio INICIAL herda para FRENTE, do
+    # primeiro material texturizado, e nunca para o slot 0.
+    # E O SLOT 0 E FATAL, nao apenas feio. Medido em 12/09 em duas falhas
+    # independentes: (a) 205 grupos mandados para o slot 0 pelo vazio inicial
+    # mataram o jogo no primeiro quadro; (b) as 216 pecas novas, que nao tem
+    # entrada no mapa, caiam TODAS no slot 0 e o boot morreu em
+    # `datPageFile::PageIn` (pc 0x42cae4/0x42cbec/0x42cc1c/0x42cc40) lendo
+    # enderecos de lixo. O motivo esta do lado do .ppf: o slot 0 e o
+    # `fx_rearlight_glow` e o chunk dele e o UNICO dos 965 com o corpo
+    # inteiramente zerado, entao o page-in desreferencia cabecalho vazio.
+    # Por isso o fallback final e 1, nunca 0.
     FALLBACK = 1
-    first_ = FALLBACK
-    for n in names:
+    primeiro = FALLBACK
+    for n in nomes:
         k = n.lower() if n else ''
-        if k and k in TEXTURE_POS:
-            first_ = TEXTURE_POS[k]
+        if k and k in POS_TEXTURA:
+            primeiro = POS_TEXTURA[k]
             break
-    outside = []
-    last = first_
-    for g in range(n_groups):
-        n = names[g].lower() if g < len(names) else ''
-        if n and n in TEXTURE_POS:
-            last = TEXTURE_POS[n]
-        outside.append(last)
-    return outside
+    fora = []
+    ultimo = primeiro
+    for g in range(n_grupos):
+        n = nomes[g].lower() if g < len(nomes) else ''
+        if n and n in POS_TEXTURA:
+            ultimo = POS_TEXTURA[n]
+        fora.append(ultimo)
+    return fora
 
 
-def emit_grouped_mesh(e, groups, map_key, indices, slot_count=1):
-    """A mesh with ONE GROUP PER MATERIAL, so each one can get a texture.
+def emite_malha_agrupada(e, grupos, chave, indices, slot_count=1):
+    """Malha com UM GRUPO POR MATERIAL, para poder dar uma textura a cada um.
 
-    `groups` is the output of read_pck_groups (a list of packet lists) and
-    `indices` carries the shader slot of each group. The previous version
-    flattened everything into one group and used a single index - which is why
-    the whole city looked the same.
+    `grupos` e a saida do le_grupos_de_pck (lista de listas de pacotes) e
+    `indices` traz o slot de shader de cada grupo. A versao anterior achatava
+    tudo num grupo so e usava um indice unico - por isso a cidade inteira saia
+    com a mesma cara.
 
-    Layout, the same as the three levels of the rest of the file: the COUNT
-    comes 16 bytes BEFORE the array, and the array has one 8-byte entry per
-    group (`[ptr to the list][u16 packets][u16 0]`).
+    Layout, o mesmo dos tres niveis do resto do arquivo: a CONTAGEM vem 16
+    bytes ANTES do array, e o array tem uma entrada de 8 bytes por grupo
+    (`[ptr para a lista][u16 pacotes][u16 0]`).
     """
-    for g, packets in enumerate(groups):
-        items = bytearray()
-        for payload, qw, nv in packets:
-            off = e.put(flip_winding_payload(payload) if FLIP_WINDING else payload, align=16)
-            items += struct.pack('<IHH', e.va(off), qw, nv)
-        e.put(bytes(items), '%s_list%d' % (map_key, g))
+    for g, pacotes in enumerate(grupos):
+        lista = bytearray()
+        for payload, qw, nv in pacotes:
+            off = e.poe(flip_winding_payload(payload) if FLIP_WINDING else payload, align=16)
+            lista += struct.pack('<IHH', e.va(off), qw, nv)
+        e.poe(bytes(lista), '%s_lista%d' % (chave, g))
 
-    e.align_to(16)
-    e.put(struct.pack('<I', len(groups)) + bytes(12))      # the count, at -16
-    off_gt = e.put(bytes(8 * len(groups)), map_key + '_gt')
-    for g, packets in enumerate(groups):
-        e.point(off_gt + 8 * g, '%s_list%d' % (map_key, g))
-        struct.pack_into('<H', e.d, off_gt + 8 * g + 4, len(packets))
+    e.alinha(16)
+    e.poe(struct.pack('<I', len(grupos)) + bytes(12))      # a contagem, em -16
+    off_gt = e.poe(bytes(8 * len(grupos)), chave + '_gt')
+    for g, pacotes in enumerate(grupos):
+        e.aponta(off_gt + 8 * g, '%s_lista%d' % (chave, g))
+        struct.pack_into('<H', e.d, off_gt + 8 * g + 4, len(pacotes))
 
-    e.align_to(16)
+    e.alinha(16)
     off_mt = len(e.d)
-    for g in range(len(groups)):
+    for g in range(len(grupos)):
         e.d += struct.pack('<H', indices[g] if g < len(indices) else 0)
     e.d += bytes((-len(e.d)) % 4)
-    e.label(map_key + '_mt', off_mt)
+    e.rotula(chave + '_mt', off_mt)
 
-    off_mesh = e.put(struct.pack('<IIHHIIII', tok(VT_MESH_TOKEN), 0,
-                                 len(groups), slot_count, 0, 0, 0, 1),
-                     map_key + '_mesh', align=4)
-    e.point(off_mesh + 0x0C, map_key + '_mt')
-    e.point(off_mesh + 0x10, map_key + '_gt')
-    cpv_group = [[([0] * nv,) for _p, _q, nv in pac] for pac in groups]
-    emit_per_vertex_chain(e, cpv_group, map_key + '_t14', slot_count=slot_count)
-    e.point(off_mesh + 0x14, map_key + '_t14')
+    off_mesh = e.poe(struct.pack('<IIHHIIII', tok(VT_MESH_TOKEN), 0,
+                                 len(grupos), slot_count, 0, 0, 0, 1),
+                     chave + '_mesh', align=4)
+    e.aponta(off_mesh + 0x0C, chave + '_mt')
+    e.aponta(off_mesh + 0x10, chave + '_gt')
+    grupo_cpv = [[([0] * nv,) for _p, _q, nv in pac] for pac in grupos]
+    emite_cadeia_por_vertice(e, grupo_cpv, chave + '_t14', slot_count=slot_count)
+    e.aponta(off_mesh + 0x14, chave + '_t14')
     return off_mesh
 
 
-def _emit_mesh(e, blocks, map_key, material_index=1, slot_count=1):
-    """Only the mesh (packets + list + groups + material + rmcModelGeom), without
-    a ComponentData. Extracted from emit_geometry for the instance kinds."""
-    if GAME_PACKETS:
-        # The packets come ready from the game: copy them and only redo the list.
-        items = bytearray()
-        for payload, qw, nv in GAME_PACKETS:
-            off = e.put(flip_winding_payload(payload) if FLIP_WINDING else payload, align=16)
-            items += struct.pack('<IHH', e.va(off), qw, nv)
-        n_packets = len(GAME_PACKETS)
+def _emite_mesh(e, blocos, chave, indice_material=1, slot_count=1):
+    """So a malha (pacotes + lista + grupos + material + rmcModelGeom), sem
+    ComponentData. Extraido de emite_geometria para os tipos de instancia."""
+    if PACOTES_DO_JOGO:
+        # Os pacotes vem prontos do jogo: copiar e refazer so a lista.
+        lista = bytearray()
+        for payload, qw, nv in PACOTES_DO_JOGO:
+            off = e.poe(flip_winding_payload(payload) if FLIP_WINDING else payload, align=16)
+            lista += struct.pack('<IHH', e.va(off), qw, nv)
+        n_pacotes = len(PACOTES_DO_JOGO)
     else:
-        scale = mc2.pick_scale(blocks)
-        packets = [mc2.make_block(pos, uv, nr, scale, i % 2 == 1)
-                   for i, (pos, uv, nr, _o) in enumerate(blocks)]
-        offs = [e.put(pk, align=16) for pk in packets]
-        items = bytearray()
-        for off, pk, (pos, _u, _n, _o) in zip(offs, packets, blocks):
-            items += struct.pack('<IHH', e.va(off), (len(pk) + 15) // 16, len(pos))
-        n_packets = len(blocks)
-    e.put(bytes(items), map_key + '_list')
-    # n_packets, NOT len(blocks): with --pck-mesh the list holds the game's
-    # packets and the blocks are only the model reading. Declaring len(blocks)
-    # made the group table promise more blocks than the list has, and the
-    # verifier reported "count 1 != 2" with a phantom block of 0 vertices.
-    off_gt = e.put(struct.pack('<IHH', 0, n_packets, 0), map_key + '_gt')
-    e.point(off_gt, map_key + '_list')
-    e.align_to(16)
+        escala = mc2.pick_scale(blocos)
+        pacotes = [mc2.make_block(pos, uv, nr, escala, i % 2 == 1)
+                   for i, (pos, uv, nr, _o) in enumerate(blocos)]
+        offs = [e.poe(pk, align=16) for pk in pacotes]
+        lista = bytearray()
+        for off, pk, (pos, _u, _n, _o) in zip(offs, pacotes, blocos):
+            lista += struct.pack('<IHH', e.va(off), (len(pk) + 15) // 16, len(pos))
+        n_pacotes = len(blocos)
+    e.poe(bytes(lista), chave + '_lista')
+    # n_pacotes, NAO len(blocos): com --pck-malha a lista tem os pacotes do
+    # jogo e os blocos sao so a leitura do modelo. Declarar len(blocos) fazia a
+    # tabela de grupos prometer mais blocos do que a lista tem, e o verificador
+    # acusava "count 1 != 2" com um bloco fantasma de 0 vertices.
+    off_gt = e.poe(struct.pack('<IHH', 0, n_pacotes, 0), chave + '_gt')
+    e.aponta(off_gt, chave + '_lista')
+    e.alinha(16)
     off_mt = len(e.d)
-    e.d += struct.pack('<H', material_index) + b'\x00\x00'
-    e.label(map_key + '_mt', off_mt)
-    off_mesh = e.put(struct.pack('<IIHHIIII', tok(VT_MESH_TOKEN), 0, 1,
+    e.d += struct.pack('<H', indice_material) + b'\x00\x00'
+    e.rotula(chave + '_mt', off_mt)
+    off_mesh = e.poe(struct.pack('<IIHHIIII', tok(VT_MESH_TOKEN), 0, 1,
                                  slot_count, 0, 0, 0, 1),
-                     map_key + '_mesh', align=4)
-    # DO NOT switch to align=16. Retail has 100% of its meshes aligned to 16 and
-    # mine sit at %16==4, but switching to 16 REGRESSED: the city that ran at
-    # 60 FPS started to hang on the FIRST frame (game frames = 1). Aligning
-    # shifts every following allocation, and something depends on the layout
-    # align=4 produces - probably the adjacency between the material table and
-    # the mesh object, which retail keeps glued together. Measured, not assumed.
-    e.point(off_mesh + 0x0C, map_key + '_mt')
-    e.point(off_mesh + 0x10, map_key + '_gt')
-    # The per-vertex chain has to match the mesh PACKET BY PACKET. With
-    # --pck-mesh the packets are the game's, so the vertex count comes from them
-    # and not from my blocks - otherwise the chain declares 93 blocks for a
-    # 27-block mesh and Place walks garbage.
-    if GAME_PACKETS:
-        cpv_group = [([0] * nv,) for _payload, _qw, nv in GAME_PACKETS]
+                     chave + '_mesh', align=4)
+    # NAO mudar para align=16. O varejo tem 100% das malhas alinhadas a 16 e as
+    # minhas ficam em %16==4, mas trocar para 16 REGREDIU: a cidade que rodava a
+    # 60 FPS passou a travar no PRIMEIRO frame (game frames = 1). Alinhar
+    # desloca todas as alocacoes seguintes, e alguma coisa depende do layout que
+    # o align=4 produz - provavelmente a adjacencia entre a tabela de material e
+    # o objeto mesh, que o retail mantem colados. Medido, nao suposto.
+    e.aponta(off_mesh + 0x0C, chave + '_mt')
+    e.aponta(off_mesh + 0x10, chave + '_gt')
+    # A cadeia por-vertice tem que casar PACOTE A PACOTE com a malha. Com
+    # --pck-malha os pacotes sao os do jogo, entao a contagem de vertices sai
+    # deles e nao dos meus blocos - senao a cadeia declara 93 blocos para uma
+    # malha de 27 e o Place percorre lixo.
+    if PACOTES_DO_JOGO:
+        grupo_cpv = [([0] * nv,) for _payload, _qw, nv in PACOTES_DO_JOGO]
     else:
-        cpv_group = blocks
-    emit_per_vertex_chain(e, [cpv_group], map_key + '_t14', slot_count=slot_count)
-    e.point(off_mesh + 0x14, map_key + '_t14')
+        grupo_cpv = blocos
+    emite_cadeia_por_vertice(e, [grupo_cpv], chave + '_t14', slot_count=slot_count)
+    e.aponta(off_mesh + 0x14, chave + '_t14')
 
 
-def emit_instances(e, insts, models_dir, grid, material_index=1,
-                     hood_map=None):
-    """Build the instance KINDS and the 0x60 Instance records.
+def emite_instancias(e, insts, modelos, grade, indice_material=1,
+                     mapa_hood=None):
+    """Constroi os TIPOS de instancia e os registros Instance de 0x60.
 
-    Each distinct model becomes ONE kind (mesh in local coordinates + an
-    mcInstCityModelType ComponentData), chained at MapRoot+0x198. Each `inst`
-    line becomes an Instance record pointing to the kind, with its Matrix34, the
-    tile box of the world centre and the kind's local radius. Instances of the
-    same kind form a list linked by next/prev.
+    Cada modelo distinto vira UM tipo (mesh em coord local + ComponentData
+    mcInstCityModelType), encadeado em MapRoot+0x198. Cada linha `inst` vira um
+    registro Instance que aponta para o tipo, com a sua Matrix34, a tile box do
+    centro de mundo e o raio local do tipo. Instances do mesmo tipo formam uma
+    lista ligada por next/prev.
 
-    Returns (inst_vas, cells_per_inst, by_hood_inst, head_key, n_kinds).
+    Devolve (inst_vas, cel_por_inst, por_hood_inst, chave_cabeca, n_tipos).
     """
-    count_per_kind = {}
+    contagem_por_tipo = {}
     for l in insts:
         key = (l['name'], l['lod'], l['part'])
-        count_per_kind[key] = count_per_kind.get(key, 0) + 1
+        contagem_por_tipo[key] = contagem_por_tipo.get(key, 0) + 1
 
-    kinds = {}                      # key -> (key, radius, centre) or None
-    kind_order = []
+    tipos = {}                      # key -> (chave, raio, centro) ou None
+    ordem_tipos = []
     for l in insts:
         key = (l['name'], l['lod'], l['part'])
-        if key in kinds:
+        if key in tipos:
             continue
-        p = mesh_path(models_dir, l)
+        p = caminho_da_malha(modelos, l)
         if not p:
-            kinds[key] = None
+            tipos[key] = None
             continue
         try:
-            # The place.tsv matrix belongs to this mesh's original pivot.
-            blocks = read_model(p, 1.0, keep_origin=True)
+            # A matriz do place.tsv pertence ao pivô original desta malha.
+            blocos = le_modelo(p, 1.0, preservar_origem=True)
         except Exception:
-            kinds[key] = None
+            tipos[key] = None
             continue
-        if not blocks:
-            kinds[key] = None
+        if not blocos:
+            tipos[key] = None
             continue
-        map_key = 'itipo_%d' % len(kind_order)
-        pts = [q for pos, _u, _n, _o in blocks for q in pos]
-        centre = tuple((min(p[i] for p in pts) + max(p[i] for p in pts)) / 2.0
+        chave = 'itipo_%d' % len(ordem_tipos)
+        pts = [q for pos, _u, _n, _o in blocos for q in pos]
+        centro = tuple((min(p[i] for p in pts) + max(p[i] for p in pts)) / 2.0
                        for i in range(3))
-        radius = max(((q[0] - centre[0]) ** 2 + (q[1] - centre[1]) ** 2
-                    + (q[2] - centre[2]) ** 2) ** 0.5 for q in pts)
-        slot_count = count_per_kind[key]
-        # Each instance KIND also has its own .pck from the game. Without this
-        # the 431 kinds stayed on hand emission while the 298 components came
-        # from the game - half the city made each way.
-        global GAME_PACKETS
-        globals()['GAME_GROUPS'] = None
-        globals()['GAME_INDICES'] = None
-        if PCK_FOLDER:
-            base_name = os.path.splitext(os.path.basename(p))[0].lower()
-            GAME_PACKETS = PCK_PER_MODEL.get(base_name)
-            if GAME_PACKETS:
-                from_game[0] += 1
-            # THE INSTANCE KINDS TOO. I had put one group per material only on
-            # the COMPONENT path; the 431 kinds stayed on the old path and their
-            # per-vertex chain did not match the group table - 299 of 729 valid
-            # meshes in all of LA.
-            globals()['GAME_GROUPS'] = GROUPS_PER_MODEL.get(base_name)
-            globals()['GAME_INDICES'] = (
-                texture_slots(base_name, len(GROUPS_PER_MODEL[base_name]))
-                if (base_name in GROUPS_PER_MODEL) else None)
-        if GAME_GROUPS and GAME_INDICES:
-            emit_grouped_mesh(e, GAME_GROUPS, map_key, GAME_INDICES,
+        raio = max(((q[0] - centro[0]) ** 2 + (q[1] - centro[1]) ** 2
+                    + (q[2] - centro[2]) ** 2) ** 0.5 for q in pts)
+        slot_count = contagem_por_tipo[key]
+        # Cada TIPO de instancia tambem tem o seu .pck vindo do jogo. Sem isto
+        # os 431 tipos ficavam na emissao a mao enquanto os 298 componentes
+        # vinham do jogo - metade da cidade de cada jeito.
+        global PACOTES_DO_JOGO
+        globals()['GRUPOS_DO_JOGO'] = None
+        globals()['INDICES_DO_JOGO'] = None
+        if PASTA_PCK:
+            base_nome = os.path.splitext(os.path.basename(p))[0].lower()
+            PACOTES_DO_JOGO = PCK_POR_MODELO.get(base_nome)
+            if PACOTES_DO_JOGO:
+                do_jogo[0] += 1
+            # OS TIPOS DE INSTANCIA TAMBEM. Eu tinha posto um grupo por material
+            # so no caminho dos COMPONENTES; os 431 tipos continuavam no caminho
+            # antigo e a cadeia por-vertice deles nao casava com a tabela de
+            # grupos - 299 de 729 malhas validas em LA inteira.
+            globals()['GRUPOS_DO_JOGO'] = GRUPOS_POR_MODELO.get(base_nome)
+            globals()['INDICES_DO_JOGO'] = (
+                slots_de_textura(base_nome, len(GRUPOS_POR_MODELO[base_nome]))
+                if (base_nome in GRUPOS_POR_MODELO) else None)
+        if GRUPOS_DO_JOGO and INDICES_DO_JOGO:
+            emite_malha_agrupada(e, GRUPOS_DO_JOGO, chave, INDICES_DO_JOGO,
                                  slot_count)
         else:
-            _emit_mesh(e, blocks, map_key, material_index, slot_count=slot_count)
-        off_cd = e.put(compdata_inst(radius, centre, b'gerado_inst'), map_key + '_cd')
-        put_embedded_mesh(e, off_cd, map_key + '_mt', map_key + '_gt',
-                          blocks, map_key + '_emb', slot_count=slot_count)
-        e.label(map_key + '_name', off_cd + 0x70)
-        kinds[key] = (map_key, radius, centre)
-        kind_order.append(map_key)
+            _emite_mesh(e, blocos, chave, indice_material, slot_count=slot_count)
+        off_cd = e.poe(compdata_inst(raio, centro, b'gerado_inst'), chave + '_cd')
+        poe_mesh_embutido(e, off_cd, chave + '_mt', chave + '_gt',
+                          blocos, chave + '_emb', slot_count=slot_count)
+        e.rotula(chave + '_nome', off_cd + 0x70)
+        tipos[key] = (chave, raio, centro)
+        ordem_tipos.append(chave)
 
-    # chain the kinds at +0x198 (same form as the comp chain at +0x194)
-    for k, map_key in enumerate(kind_order):
-        cd = e.marks[map_key + '_cd']
-        e.point(cd + 0x04, 'extra_198')
-        e.point(cd + 0x08, map_key + '_name')
+    # encadear os tipos em +0x198 (mesma forma da cadeia de comps em +0x194)
+    for k, chave in enumerate(ordem_tipos):
+        cd = e.marca[chave + '_cd']
+        e.aponta(cd + 0x04, 'extra_198')
+        e.aponta(cd + 0x08, chave + '_nome')
         if k:
-            e.point(cd + 0x0C, kind_order[k - 1] + '_cd')
-            e.point(cd + 0x14, kind_order[k - 1] + '_cd')
-        if k + 1 < len(kind_order):
-            e.point(cd + 0x10, kind_order[k + 1] + '_cd')
+            e.aponta(cd + 0x0C, ordem_tipos[k - 1] + '_cd')
+            e.aponta(cd + 0x14, ordem_tipos[k - 1] + '_cd')
+        if k + 1 < len(ordem_tipos):
+            e.aponta(cd + 0x10, ordem_tipos[k + 1] + '_cd')
 
-    # the Instance records, contiguous per hood
-    gw = grid[0]
+    # os registros Instance, contiguos por hood
+    gw = grade[0]
     inst_vas = []
-    cells_per_inst = {}
-    by_hood_inst = {}
-    kind_chain = {}
-    # group by the TARGET hood (the donor's), not by MC2's hood: a hood's records
-    # have to stay contiguous, and the file can only have the hoods the donor has.
-    by_hood = {}
+    cel_por_inst = {}
+    por_hood_inst = {}
+    cadeia_do_tipo = {}
+    # agrupar pelo hood de DESTINO (o do doador), nao pelo hood do MC2: os
+    # registros de um hood tem que ficar contiguos, e o arquivo so pode ter os
+    # hoods que o doador tem.
+    por_hood = {}
     for l in insts:
-        dest = hood_map.get(l['hood'], l['hood']) if hood_map else l['hood']
-        by_hood.setdefault(dest, []).append(l)
+        dest = mapa_hood.get(l['hood'], l['hood']) if mapa_hood else l['hood']
+        por_hood.setdefault(dest, []).append(l)
 
-    for hood, entries_ in by_hood.items():
-        base_name = None
+    for hood, itens in por_hood.items():
+        base_nome = None
         n_hood = 0
-        for l in entries_:
+        for l in itens:
             key = (l['name'], l['lod'], l['part'])
-            t = kinds.get(key)
+            t = tipos.get(key)
             if not t:
                 continue
-            kind_key, radius, _centre = t
-            cx, cy, cz = _aabb_centre(l)
-            x0, x1, z0, z1 = cell_box(grid, cx, cz, radius, radius)
-            rec = bytearray(INSTANCE_SIZE)
+            chave_tipo, raio, _centro = t
+            cx, cy, cz = _centro_aabb(l)
+            x0, x1, z0, z1 = caixa_de_celulas(grade, cx, cz, raio, raio)
+            rec = bytearray(TAM_INSTANCE)
             struct.pack_into('<I', rec, 0x10, tok(VT_INST_TOKEN))
             rec[0x0B] = 8
             rec[0x14], rec[0x15], rec[0x16], rec[0x17] = x0, x1, z0, z1
-            struct.pack_into('<f', rec, 0x18, radius)
-            # DO NOT COMPENSATE THE PIVOT. I tried subtracting the real .pck
-            # centre from the translation, thinking the kinds with a preserved
-            # pivot were shifting the instances. MEASURED BEFORE INSTALLING: of
-            # the 431 kinds, only 74 instances (0.9% of 8511) come from a kind
-            # with a large pivot, and of those **70 end up closer to the right
-            # place WITHOUT the compensation**. The correction made it worse. The
-            # pivot is not the cause of the missing city.
-            struct.pack_into('<12f', rec, 0x20, *_row_matrix(l))
+            struct.pack_into('<f', rec, 0x18, raio)
+            # NAO COMPENSAR O PIVO. Tentei subtrair o centro real do .pck da
+            # translacao, achando que os tipos com pivo preservado deslocavam as
+            # instancias. MEDIDO ANTES DE INSTALAR: dos 431 tipos, so 74
+            # instancias (0,9% de 8511) vem de tipo com pivo grande, e dessas
+            # **70 ficam mais perto do lugar certo SEM a compensacao**. A
+            # correcao piorava. O pivo nao e a causa da cidade faltando.
+            struct.pack_into('<12f', rec, 0x20, *_matriz_da_linha(l))
             struct.pack_into('<3f', rec, 0x50, cx, cy, cz)
             idx = len(inst_vas)
-            key_i = 'inst_%d' % idx
+            chave_i = 'inst_%d' % idx
             # DoSetWorld (0x2ADB48) uploads Instance+0x20 with three LQ.
             # LQ silently rounds down to 16 bytes. With align=4 the scalar
             # scratchpad mirror is right but DMA reads the preceding CPV
             # index as matrix[0], losing tz and flattening/stacking objects.
             # 0x60-byte records remain contiguous after aligning the first.
-            off = e.put(bytes(rec), key_i, align=16)
-            e.point(off + 0x0C, kind_key + '_cd')
-            if base_name is None:
-                base_name = 'insts_%s' % hood
-                e.label(base_name, off)
+            off = e.poe(bytes(rec), chave_i, align=16)
+            e.aponta(off + 0x0C, chave_tipo + '_cd')
+            if base_nome is None:
+                base_nome = 'insts_%s' % hood
+                e.rotula(base_nome, off)
             inst_vas.append(e.va(off))
-            cells_per_inst[idx] = [z * gw + x for z in range(z0, z1 + 1)
+            cel_por_inst[idx] = [z * gw + x for z in range(z0, z1 + 1)
                                  for x in range(x0, x1 + 1)]
-            kind_chain.setdefault(key, []).append((key_i, off))
+            cadeia_do_tipo.setdefault(key, []).append((chave_i, off))
             n_hood += 1
-        if base_name is not None:
-            by_hood_inst[hood] = (base_name, n_hood)
+        if base_nome is not None:
+            por_hood_inst[hood] = (base_nome, n_hood)
 
-    # the per-kind linked list: next/prev and chain_index; and the KIND's +0x18
-    # points back to its FIRST instance (never null in retail).
-    for key, chain in kind_chain.items():
-        kind_key = kinds[key][0]
-        e.point(e.marks[kind_key + '_cd'] + 0x18, chain[0][0])
-        for j, (key_i, off) in enumerate(chain):
+    # a lista ligada por tipo: next/prev e chain_index; e o +0x18 do TIPO
+    # aponta de volta para a PRIMEIRA instancia dele (nunca nulo no varejo).
+    for key, cadeia in cadeia_do_tipo.items():
+        chave_tipo = tipos[key][0]
+        e.aponta(e.marca[chave_tipo + '_cd'] + 0x18, cadeia[0][0])
+        for j, (chave_i, off) in enumerate(cadeia):
             struct.pack_into('<I', e.d, off + 0x1C, j)
-            # THE DIRECTION OF THE TWO LINKS WAS SWAPPED, and that erased 95
-            # percent of the city. What walks the list is
-            # `mcCullableType::RenderAllInstances` (retail 0x0024B1A8):
+            # O SENTIDO DOS DOIS ELOS ESTAVA TROCADO, e isso apagava 95 por
+            # cento da cidade. Quem percorre a lista e
+            # `mcCullableType::RenderAllInstances` (varejo 0x0024B1A8):
             #
-            #     cull = *(kind + 0x18);                  // head of the ACTIVE ones
+            #     cull = *(tipo + 0x18);                  // cabeca dos ATIVOS
             #     while (cull) { Render(cull); cull = *(cull + 0x04); }
             #
-            # so +0x04 IS THE NEXT. The alpha's `mcCullableType::AddToActive`
-            # (retail 0x0024B030) confirms the pair: it zeroes `cull[0]` and puts
-            # the old head in `cull[1]`, that is +0x00 = prev and +0x04 = next.
-            # Written the other way round, the render walks the PREV direction
-            # from the head and stops at the first node. Measured: v7 reached 431
-            # of 8511 instances (5.1 percent), exactly one per kind, while the
-            # retail sd reaches 5008 of 5008.
-            if j + 1 < len(chain):
-                e.point(off + 0x04, chain[j + 1][0])
+            # ou seja +0x04 E O NEXT. O `mcCullableType::AddToActive` da alpha
+            # (varejo 0x0024B030) confirma o par: ele zera `cull[0]` e poe a
+            # cabeca antiga em `cull[1]`, isto e +0x00 = prev e +0x04 = next.
+            # Escrito ao contrario, o render anda o sentido do PREV a partir da
+            # cabeca e para no primeiro no. Medido: a v7 alcancava 431 de 8511
+            # instancias (5,1 por cento), exatamente uma por tipo, enquanto o sd
+            # de varejo alcanca 5008 de 5008.
+            if j + 1 < len(cadeia):
+                e.aponta(off + 0x04, cadeia[j + 1][0])
             if j:
-                e.point(off + 0x00, chain[j - 1][0])
+                e.aponta(off + 0x00, cadeia[j - 1][0])
 
-    head = kind_order[-1] + '_cd' if kind_order else None
-    return inst_vas, cells_per_inst, by_hood_inst, head, len(kind_order)
-
-
-# TURNING ON THE PER-VERTEX LIGHT STREAM.
-#
-# Measured on atlanta: only 4.5%% of the blocks (471 of 10361) carry the ITOP+2
-# stream, and even so the whole city shows - because a block WITHOUT the stream
-# INHERITS whatever the previous one left in VU memory. In a city generated from
-# scratch no block writes it, so all of them inherit garbage, and at midnight
-# that is black: the geometry drew (531 and 580 draw calls measured) and nothing
-# was visible.
-#
-# TRIED AND REVERTED: turning it on in every block hung on the FIRST frame
-# (game frames = 1), the same signature as the attempt to align to 16.
-#
-# I EXPLAINED THAT REVERSAL WRONGLY, and FORK C++ MODS AND PATCHES disproved it
-# by decompilation. I had written that 'what decides whether the stream is read
-# is the MATERIAL's flags word'. IT IS NOT. mcCityModelClass::SetRenderStates
-# (0x0024B300, vt[12] of cullable list 3) calls rmcSetCpvMode(1, 0) and
-# rmcCpvPalette::Download(*(u32*)(mcCity + 0x2C)) ONCE PER PASS. CPV - colour
-# per vertex - stays on for the whole city, decided by the cullable's CLASS,
-# not by material and not by block. The sky, at the same vtable position, calls
-# rmcSetCpvMode(0, 0). So: the ITOP+2 data is ALWAYS consumed in the city pass,
-# and writing the stream is not forbidden.
-#
-# So the first-frame hang is a defect of the PACKET I emit, not a rule of the
-# engine. What can still differ is the active VU program, which
-# mcCullableMgr::Render re-sends through lowPsxGfx::DoMicrocode around certain
-# lists - which is why the test stays PAIRED: copy the shader of a slot whose
-# blocks provably carry the stream and turn NORMALS on together. Measured on
-# atlanta, the blocks with the stream use material indices 19, 72, 65, 24, 293,
-# 7, 71 and 26; of these, all but 293 are among the donor's 128 usable slots
-# (see --shader-list).
-#
-# WHY THE WHITE PALETTE DID NOT SAVE IT: checked in the file, MapRoot+0x2C
-# points correctly to the inline palette at +0x290, and the format matches
-# retail (256 entries of 3 floats + pad). Mine is white in all 256; retail's has
-# 233 distinct ones. If the final colour were only palette[index], the
-# generated city would be WHITE, not black - the index could not escape the
-# table. It is black, so what fails is before the lookup: with no block writing
-# ITOP+2, the field that becomes VI10 is another system's garbage, not a small
-# byte. This is one more reason for the paired test, not a proof.
-#
-# Turned on by --normals on the command line; the default stays off.
-mc2.NORMALS = False
+    cabeca = ordem_tipos[-1] + '_cd' if ordem_tipos else None
+    return inst_vas, cel_por_inst, por_hood_inst, cabeca, len(ordem_tipos)
 
 
-def build_place(out_path, donor, place, models_dir, n_slots=1329,
-                   n_groups=18, material_index=1, limit=None, only_hood=None,
-                   donor_shader=None, max_inst=None, slot_shader=None,
-                   texture_donor=None, hoods=None):
-    """A city from place.tsv, with the real geometry."""
-    globals()['TOKEN_SHIFT'] = donor_token(donor)
-    lines, extents = read_place(place)
-    comps = [l for l in lines if l['kind'] == 'comp']
-    insts = [l for l in lines if l['kind'] == 'inst']
-    # THE INSTANCE BUDGET IS THE DONOR'S. See donor_instances().
-    ceiling = max_inst if max_inst else donor_instances(donor)
-    if ceiling and len(insts) > ceiling:
-        print('  instances: %d in place.tsv, cut to %d (the donor budget)'
-              % (len(insts), ceiling))
-        insts = insts[:ceiling]
-    if only_hood:
-        comps = [l for l in comps if l['hood'] == only_hood]
-        insts = [l for l in insts if l['hood'] == only_hood]
-    if limit:
-        comps = comps[:limit]
+# LIGAR O STREAM DE LUZ POR VERTICE.
+#
+# Medido no atlanta: so 4,5%% dos blocos (471 de 10361) carregam o stream de
+# ITOP+2, e mesmo assim a cidade inteira aparece - porque o bloco SEM stream
+# HERDA o que o anterior deixou na memoria da VU. Numa cidade gerada do zero
+# nenhum bloco escreve, entao todos herdam lixo, e a meia-noite isso e preto:
+# a geometria desenhava (531 e 580 draw calls medidos) e nao se via nada.
+#
+# TENTADO E REVERTIDO: ligar em todos os blocos travou no PRIMEIRO frame
+# (game frames = 1), mesma assinatura da tentativa de alinhar a 16.
+#
+# EU EXPLIQUEI ESSA REVERSAO ERRADO, e a FORK C++ MODS AND PATCHES desmentiu
+# por decompilacao. Eu tinha escrito que 'quem decide se o stream e lido e a
+# palavra de flags do MATERIAL'. NAO E. mcCityModelClass::SetRenderStates
+# (0x0024B300, a vt[12] da lista 3 de cullables) chama rmcSetCpvMode(1, 0) e
+# rmcCpvPalette::Download(*(u32*)(mcCity + 0x2C)) UMA VEZ POR PASSE. O CPV -
+# colour per vertex - fica ligado para a cidade inteira, decidido pela CLASSE
+# do cullable, nao por material e nao por bloco. O ceu, na mesma posicao da
+# vtable, chama rmcSetCpvMode(0, 0). Ou seja: o dado do ITOP+2 e SEMPRE
+# consumido no passe da cidade, e escrever o stream nao e proibido.
+#
+# Entao a travada do primeiro frame e defeito do PACOTE que eu emito, nao uma
+# regra do motor. O que ainda pode diferir e o programa de VU vigente, que
+# mcCullableMgr::Render reenvia por lowPsxGfx::DoMicrocode em volta de certas
+# listas - por isso o teste continua sendo EMPARELHADO: copiar o shader de um
+# slot cujos blocos comprovadamente carregam o stream e ligar NORMAIS junto.
+# Medido no atlanta, os blocos com stream usam os indices de material 19, 72,
+# 65, 24, 293, 7, 71 e 26; destes, todos menos o 293 estao entre os 128 slots
+# utilizaveis do doador (ver --lista-shaders).
+#
+# POR QUE A PALETA BRANCA NAO SALVOU: conferido no arquivo, MapRoot+0x2C
+# aponta certo para a paleta inline em +0x290, e o formato bate com o retail
+# (256 entradas de 3 floats + pad). A minha e branca em todas as 256; a do
+# retail tem 233 distintas. Se a cor final fosse so paleta[indice], a cidade
+# gerada seria BRANCA, nao preta - o indice nao teria como escapar da tabela.
+# Ela e preta, entao o que falha esta antes da consulta: sem nenhum bloco
+# escrevendo o ITOP+2, o campo que vira VI10 e lixo de outro sistema, e nao um
+# byte pequeno. Isto e mais uma razao para o teste emparelhado, nao uma prova.
+#
+# Ligado pelo --normais na linha de comando; o padrao continua desligado.
+mc2.NORMAIS = False
+
+
+def constroi_place(saida, doador, place, modelos, n_slots=1329,
+                   n_grupos=18, indice_material=1, limite=None, so_hood=None,
+                   doador_shader=None, max_inst=None, slot_shader=None,
+                   doador_textura=None, hoods=None):
+    """Uma cidade a partir do place.tsv, com a geometria de verdade."""
+    globals()['DESLOC_TOKEN'] = token_do_doador(doador)
+    linhas, extents = le_place(place)
+    comps = [l for l in linhas if l['kind'] == 'comp']
+    insts = [l for l in linhas if l['kind'] == 'inst']
+    # O ORCAMENTO DE INSTANCIAS E O DO DOADOR. Ver instancias_do_doador().
+    teto = max_inst if max_inst else instancias_do_doador(doador)
+    if teto and len(insts) > teto:
+        print('  instancias: %d no place.tsv, cortadas para %d (orcamento do doador)'
+              % (len(insts), teto))
+        insts = insts[:teto]
+    if so_hood:
+        comps = [l for l in comps if l['hood'] == so_hood]
+        insts = [l for l in insts if l['hood'] == so_hood]
+    if limite:
+        comps = comps[:limite]
     if not comps:
-        raise SystemExit('no `comp` line selected in %s' % place)
+        raise SystemExit('nenhuma linha `comp` selecionada em %s' % place)
 
-    # THE GRID COMES FROM THE CITY'S EXTENTS, not from the donor. Without this,
-    # LA (which asks for 91x62, origin -50,-43) inherited atlanta's 64x62 grid
-    # and the culling came out shifted 17 cells in x.
+    # A GRADE VEM DOS EXTENTS DA CIDADE, nao do doador. Sem isto, LA (que pede
+    # 91x62 origem -50,-43) herdava a grade 64x62 do atlanta e o culling saia
+    # deslocado 17 celulas em x.
     if extents.get('extents_min') and extents.get('extents_max'):
         mn = [float(v) for v in extents['extents_min'][:3]]
         mx = [float(v) for v in extents['extents_max'][:3]]
-        grid = grid_from_extents(mn, mx)
+        grade = grade_dos_extents(mn, mx)
     else:
-        grid = donor_grid(donor)
+        grade = grade_do_doador(doador)
 
-    # THE HOODS ARE THE DONOR'S, IN NAME AND IN NUMBER.
+    # OS HOODS SAO OS DO DOADOR, EM NOME E EM QUANTIDADE.
     #
-    # This was already recorded on the cube path and I did not apply it here: a
-    # hood name appears in `.loc`, in race data, in the `_bnd` and - measured now
-    # - in the path that places the PROPS. MC2's LA has 12 hoods
-    # (bh dt gh hl hw i05 i10 101 105 ind lax sm) and atlanta has 7
-    # (bh dt fwy lf mt ug we); emitting LA's 12, atlanta's props landed in a hood
-    # that does not exist on their side. With the props disabled the same file
-    # runs clean (1440 frames, the four counters at zero), which isolates the
-    # hood/props interaction.
+    # Isto ja estava registrado no caminho do cubo e eu nao apliquei aqui: nome
+    # de hood aparece em `.loc`, nos dados de corrida, no `_bnd` e - medido
+    # agora - no caminho que coloca os PROPS. A LA do MC2 tem 12 hoods
+    # (bh dt gh hl hw i05 i10 101 105 ind lax sm) e o atlanta tem 7
+    # (bh dt fwy lf mt ug we); emitindo os 12 de LA, os props do atlanta caiam
+    # em hood que nao existe do lado deles. Com os props desativados o mesmo
+    # arquivo roda limpo (1440 frames, os quatro contadores em zero), o que
+    # isola a interacao hood/props.
     #
-    # The geometry does not move: only the GROUPING by hood changes. Each MC2
-    # hood is mapped to a donor hood, in order, cycling.
-    from_donor = hood_names_(donor)
+    # A geometria nao muda de lugar: so a AGRUPACAO por hood muda. Cada hood do
+    # MC2 e mapeado para um hood do doador, na ordem, ciclando.
+    do_doador = nomes_dos_hoods(doador)
     hoods_mc2 = sorted({l['hood'] for l in comps} | {l['hood'] for l in insts})
-    # MATCH BY NAME when --hoods brings the real names. The old map distributed
-    # by POSITION in the donor's list, which is arbitrary and became visible when
-    # a place with a single hood sent the 34 downtown components to 'bh'
-    # (from_donor[0]) instead of 'dt'. The twelve names city_slot6 registers are
-    # exactly LA's twelve hoods, so there is a one-to-one match; position is only
-    # a fallback.
-    ABBREV = {'beverlyhills': 'bh', 'downtown': 'dt', 'ghetto': 'gh',
+    # CASAR POR NOME quando --hoods traz os nomes de verdade. O mapa antigo
+    # distribuia por POSICAO na lista do doador, o que e arbitrario e ficou
+    # visivel quando um place com um hood so mandou os 34 componentes do
+    # downtown para 'bh' (do_doador[0]) em vez de 'dt'. Os doze nomes que o
+    # city_slot6 registra sao justamente os doze hoods de LA, entao ha
+    # correspondencia um-a-um; a posicao fica so de reserva.
+    ABREV = {'beverlyhills': 'bh', 'downtown': 'dt', 'ghetto': 'gh',
              'hills': 'hl', 'hollywood': 'hw', 'i05': 'i05', 'i10': 'i10',
              'i101': '101', 'i105': '105', 'industrial': 'ind',
              'lax': 'lax', 'santamonica': 'sm'}
-    declared = list(hoods) if hoods else list(from_donor)
-    hood_map = {}
+    declarados = list(hoods) if hoods else list(do_doador)
+    mapa_hood = {}
     for i, h in enumerate(hoods_mc2):
-        short = ABBREV.get(h[2:] if h.startswith('l_') else h)
-        hood_map[h] = (short if short in declared
-                        else declared[i % len(declared)])
+        curto = ABREV.get(h[2:] if h.startswith('l_') else h)
+        mapa_hood[h] = (curto if curto in declarados
+                        else declarados[i % len(declarados)])
 
-    e = Writer()
-    # LAYOUT CONTROL. Dead bytes right after the MapRoot, only to shift
-    # everything that follows without changing A SINGLE BYTE of content. It exists
-    # because two of my changes hung on the first frame (align=16 on the meshes
-    # and the ITOP+2 stream) and what they have in common is shifting the whole
-    # layout -- this is the experiment that separates "the content is wrong" from
-    # "the file cannot change size". Useless in production.
-    if TEST_PADDING:
-        e.put(bytes([0xCD]) * TEST_PADDING, 'test_padding')
+    e = Escritor()
+    # CONTROLE DE LAYOUT. Bytes mortos logo depois do MapRoot, so para deslocar
+    # tudo o que vem em seguida sem mudar UM BYTE de conteudo. Existe porque
+    # duas mudancas minhas travaram no primeiro quadro (align=16 nas malhas e o
+    # stream de ITOP+2) e as duas tem em comum deslocar o layout inteiro -- este
+    # e o experimento que separa "o conteudo esta errado" de "o arquivo nao pode
+    # mudar de tamanho". Nao serve para nada em producao.
+    if PADDING_TESTE:
+        e.poe(bytes([0xCD]) * PADDING_TESTE, 'padding_teste')
 
     # ---------------------------------------------------------------- shader
-    # the shader can come from ANOTHER donor: tokyo has no shader of the typical
-    # kind (sub-object at +0x10), so it serves as the base for everything else
-    # but not for this piece
-    _g, came_from = emit_shader_groups(e, donor_shader or donor,
-                                      n_groups, n_slots, slot_shader,
-                                      material_index)
+    # o shader pode vir de OUTRO doador: o tokyo nao tem shader do tipo
+    # tipico (sub-objeto em +0x10), entao serve de base para todo o resto mas
+    # nao para essa peca
+    _g, veio_de = emite_grupos_shader(e, doador_shader or doador,
+                                      n_grupos, n_slots, slot_shader,
+                                      indice_material)
 
 
 
-    # ------------------------------------------------------------- geometry
-    by_hood = {}
-    chain = []                       # the ComponentData, in file order
-    read_n = skipped = 0
+    # ------------------------------------------------------------- geometria
+    por_hood = {}
+    cadeia = []                       # os ComponentData, na ordem do arquivo
+    lidos = pulados = 0
     verts = 0
     for i, l in enumerate(comps):
-        p = mesh_path(models_dir, l)
+        p = caminho_da_malha(modelos, l)
         if not p:
-            skipped += 1
+            pulados += 1
             continue
         try:
-            blocks, world = read_world_component(p)
-        except Exception as ex:                       # a mesh the reader refuses
-            print('  skipped %s: %s' % (os.path.basename(p), ex))
-            skipped += 1
+            blocos, mundo = le_componente_mundo(p)
+        except Exception as ex:                       # malha que o leitor recusa
+            print('  pulado %s: %s' % (os.path.basename(p), ex))
+            pulados += 1
             continue
-        if not blocks:
-            skipped += 1
+        if not blocos:
+            pulados += 1
             continue
-        # world is the centre removed FROM THE PART, not the whole object's box.
-        # With --pck-mesh pointing to a FOLDER, each component uses the .pck the
-        # game assembled for IT (<model name>.mesh.pck). A component with no file
-        # falls back to hand emission, and the report says how many.
-        global GAME_PACKETS
-        if PCK_FOLDER:
-            # CASE-INSENSITIVE: the .hood names have capitals the files do not
-            # (l_downtown_blk_staplesCntr_x#geom), and the exact lookup lost that
-            # component silently - 33 of 34.
-            base_name = os.path.splitext(os.path.basename(p))[0].lower()
-            GAME_PACKETS = PCK_PER_MODEL.get(base_name)
-            if GAME_PACKETS:
-                from_game[0] += 1
-            globals()['GAME_GROUPS'] = GROUPS_PER_MODEL.get(base_name)
-            globals()['GAME_INDICES'] = (
-                texture_slots(base_name, len(GROUPS_PER_MODEL[base_name]))
-                if (base_name in GROUPS_PER_MODEL) else None)
-        map_key, radius, off_cd = emit_geometry(e, blocks, 'c%d' % i, world,
-                                              material_index)
-        by_hood.setdefault(l['hood'], []).append((map_key, radius))
-        chain.append((map_key, off_cd))
-        verts += sum(len(b[0]) for b in blocks)
-        read_n += 1
+        # mundo e o centro retirado DA PARTE, nao o da caixa do objeto inteiro.
+        # Com --pck-malha apontando para uma PASTA, cada componente usa o
+        # .pck que o jogo montou para ELE (<nome do modelo>.mesh.pck). Quem
+        # nao tiver arquivo cai na emissao a mao, e o relatorio diz quantos.
+        global PACOTES_DO_JOGO
+        if PASTA_PCK:
+            # SEM DIFERENCIAR CAIXA: os nomes do .hood tem maiuscula que os
+            # arquivos nao tem (l_downtown_blk_staplesCntr_x#geom), e a busca
+            # exata perdia esse componente em silencio - 33 de 34.
+            base_nome = os.path.splitext(os.path.basename(p))[0].lower()
+            PACOTES_DO_JOGO = PCK_POR_MODELO.get(base_nome)
+            if PACOTES_DO_JOGO:
+                do_jogo[0] += 1
+            globals()['GRUPOS_DO_JOGO'] = GRUPOS_POR_MODELO.get(base_nome)
+            globals()['INDICES_DO_JOGO'] = (
+                slots_de_textura(base_nome, len(GRUPOS_POR_MODELO[base_nome]))
+                if (base_nome in GRUPOS_POR_MODELO) else None)
+        chave, raio, off_cd = emite_geometria(e, blocos, 'c%d' % i, mundo,
+                                              indice_material)
+        por_hood.setdefault(l['hood'], []).append((chave, raio))
+        cadeia.append((chave, off_cd))
+        verts += sum(len(b[0]) for b in blocos)
+        lidos += 1
 
-    # THE ComponentData ARE A LINKED LIST, and without it only the first one is placed.
+    # OS ComponentData SAO UMA LISTA LIGADA, e sem ela so o primeiro e placado.
     #
-    # Measured on atlanta: `CullableTypeFixup` (0x24AE58) does
-    # `while (v3) { ctor(v3); v3 = *(v3+0x0C); }` starting from the head at
-    # `MapRoot+0x194`, and that head points to the **LAST** ComponentData of the
-    # file; `+0x0C` walks backwards to the first one, whose `+0x0C` is null.
-    # That is 651 nodes and atlanta's 651 components.
+    # Medido no atlanta: `CullableTypeFixup` (0x24AE58) faz
+    # `while (v3) { ctor(v3); v3 = *(v3+0x0C); }` a partir da cabeca que esta em
+    # `MapRoot+0x194`, e essa cabeca aponta pro **ULTIMO** ComponentData do
+    # arquivo; `+0x0C` anda pra tras ate o primeiro, que tem `+0x0C` nulo. Sao
+    # 651 nos e os 651 componentes do atlanta.
     #
-    # With the head at the first one and `+0x0C` null (what I did), the loop
-    # runs ONCE: measured in the savestate of the hang, 1 of the 298
-    # ComponentData had its mesh pointer relocated and 297 were untouched.
+    # Com a cabeca no primeiro e `+0x0C` nulo (o que eu fazia), o laco roda UMA
+    # vez: medido no savestate do travamento, 1 dos 298 ComponentData tinha o
+    # ponteiro de mesh relocado e 297 estavam intactos.
     #
-    #   +0x04  the owner, which is the MapRoot+0x194 structure itself
-    #   +0x08  this object's name (itself + 0x70)
-    #   +0x0C  the PREVIOUS  (null in the first)  <- how the loop walks
-    #   +0x10  the NEXT      (null in the last)
-    #   +0x14  the previous again
-    for k, (map_key, off_cd) in enumerate(chain):
-        e.point(off_cd + 0x04, 'extra_194')
-        e.point(off_cd + 0x08, map_key + '_name')
+    #   +0x04  o dono, que e a propria estrutura de MapRoot+0x194
+    #   +0x08  o nome deste objeto (ele mesmo + 0x70)
+    #   +0x0C  o ANTERIOR   (nulo no primeiro)  <- por onde o laco anda
+    #   +0x10  o SEGUINTE   (nulo no ultimo)
+    #   +0x14  o anterior de novo
+    for k, (chave, off_cd) in enumerate(cadeia):
+        e.aponta(off_cd + 0x04, 'extra_194')
+        e.aponta(off_cd + 0x08, chave + '_nome')
         if k:
-            e.point(off_cd + 0x0C, chain[k - 1][0])
-            e.point(off_cd + 0x14, chain[k - 1][0])
-        if k + 1 < len(chain):
-            e.point(off_cd + 0x10, chain[k + 1][0])
+            e.aponta(off_cd + 0x0C, cadeia[k - 1][0])
+            e.aponta(off_cd + 0x14, cadeia[k - 1][0])
+        if k + 1 < len(cadeia):
+            e.aponta(off_cd + 0x10, cadeia[k + 1][0])
 
-    # the component records HAVE to be contiguous per hood: the hood entry
-    # keeps [count][pointer to the array]
-    comp_vas = []
-    cells_per_unique = {}
-    # regroup the components by TARGET hood, so they stay contiguous
-    # THE HOOD NAMES ARE A CONTRACT with whoever registers the city, which is why
-    # the declared list has to be known ALREADY HERE: this is where the
-    # components become contiguous blocks per hood, and relocating later no
-    # longer touches the blocks already emitted. city_slot6.mod registers losangeles
-    # with TWELVE hoods; a .pck declaring the donor's seven left the game in
-    # ENDLESS LOADING - measured in a savestate with the game alive at 59.9 Hz and
-    # city 5 requested on both sinks. Same class as cell_count.
-    hood_names = list(hoods) if hoods else list(from_donor)
-    by_dest = {}
-    orphans = set()
-    for h, entries_ in by_hood.items():
-        d = hood_map.get(h, h)
-        if d not in hood_names:
-            orphans.add(d)
-            d = hood_names[0]
-        by_dest.setdefault(d, []).extend(entries_)
-    by_hood = by_dest
-    if orphans:
-        print('  hood(s) outside the declared list, moved to %s: %s'
-              % (hood_names[0], ', '.join(sorted(orphans))))
-    for hood, entries_ in by_hood.items():
+    # os registros de componente TEM que ser contiguos por hood: a entrada do
+    # hood guarda [contagem][ponteiro para o array]
+    vas_comp = []
+    cel_por_unico = {}
+    # regrupar os componentes pelo hood de DESTINO, para ficarem contiguos
+    # OS NOMES DE HOOD SAO CONTRATO com quem registra a cidade, e por isso a
+    # lista declarada tem que ser conhecida JA AQUI: e neste ponto que os
+    # componentes viram blocos contiguos por hood, e realocar depois nao mexe
+    # mais nos blocos ja emitidos. O city_slot6.mod registra o losangeles com DOZE
+    # hoods; um .pck que declarasse os sete do doador deixava o jogo em LOADING
+    # INFINITO - medido em savestate com o jogo vivo a 59,9 Hz e a cidade 5
+    # pedida nos dois sinks. Mesma classe do cell_count.
+    nomes_hood = list(hoods) if hoods else list(do_doador)
+    por_dest = {}
+    orfaos = set()
+    for h, itens in por_hood.items():
+        d = mapa_hood.get(h, h)
+        if d not in nomes_hood:
+            orfaos.add(d)
+            d = nomes_hood[0]
+        por_dest.setdefault(d, []).extend(itens)
+    por_hood = por_dest
+    if orfaos:
+        print('  hood(s) fora da lista declarada, movidos para %s: %s'
+              % (nomes_hood[0], ', '.join(sorted(orfaos))))
+    for hood, itens in por_hood.items():
         base = None
-        for k, (map_key, radius) in enumerate(entries_):
-            comp = bytearray(COMPONENT_SIZE)
-            struct.pack_into('<f', comp, 0x18, radius)
-            struct.pack_into('<I', comp, 0x10, tok(VT_COMPONENT_TOKEN))
-            comp[0x0B] = 8                      # see the note in build()
-            cd_off = e.marks[map_key]
+        for k, (chave, raio) in enumerate(itens):
+            comp = bytearray(TAM_COMPONENTE)
+            struct.pack_into('<f', comp, 0x18, raio)
+            struct.pack_into('<I', comp, 0x10, tok(VT_COMPONENTE_TOKEN))
+            comp[0x0B] = 8                      # ver a nota em constroi()
+            cd_off = e.marca[chave]
             cx = struct.unpack_from('<f', e.d, cd_off + 0x2C)[0]
             cz = struct.unpack_from('<f', e.d, cd_off + 0x34)[0]
-            x0, x1, z0, z1 = cell_box(grid, cx, cz, radius, radius)
+            x0, x1, z0, z1 = caixa_de_celulas(grade, cx, cz, raio, raio)
             comp[0x14], comp[0x15], comp[0x16], comp[0x17] = x0, x1, z0, z1
-            gw = grid[0]
-            cells_per_unique[len(comp_vas)] = [z * gw + x
+            gw = grade[0]
+            cel_por_unico[len(vas_comp)] = [z * gw + x
                                             for z in range(z0, z1 + 1)
                                             for x in range(x0, x1 + 1)]
-            off = e.put(bytes(comp), 'comp_%s_%d' % (hood, k), align=4)
+            off = e.poe(bytes(comp), 'comp_%s_%d' % (hood, k), align=4)
             if base is None:
                 base = off
-                e.label('comps_%s' % hood, off)
-            e.point(off + 0x0C, map_key)
-            # and the way back: the ComponentData points to the entry that reaches it
-            e.point(e.marks[map_key] + 0x18, 'comp_%s_%d' % (hood, k))
-            comp_vas.append(e.va(off))
+                e.rotula('comps_%s' % hood, off)
+            e.aponta(off + 0x0C, chave)
+            # e a volta: o ComponentData aponta para a entrada que o alcanca
+            e.aponta(e.marca[chave] + 0x18, 'comp_%s_%d' % (hood, k))
+            vas_comp.append(e.va(off))
 
-    # ------------------------------------------------------------- instances
-    (inst_vas, cells_per_inst, by_hood_inst,
-     kind_head, n_kinds) = emit_instances(e, insts, models_dir, grid,
-                                              material_index, hood_map)
+    # ------------------------------------------------------------- instancias
+    (inst_vas, cel_por_inst, por_hood_inst,
+     cabeca_tipo, n_tipos) = emite_instancias(e, insts, modelos, grade,
+                                              indice_material, mapa_hood)
 
     # ----------------------------------------------------------------- hoods
-    # ALL of the donor's hoods exist, in its order, with its names. A hood
-    # without geometry keeps a zero count and an empty array - that is what
-    # retail does, and what the cube path already did.
-    # THE HOOD NAMES ARE A CONTRACT with whoever registers the city.
-    # city_slot6.mod registers losangeles with TWELVE hoods; if the .pck declares
-    # the donor's seven, the game asks for a hood that does not exist and stays
-    # in ENDLESS LOADING - measured on 03/09/2026 in a savestate showing the game
-    # alive at 59.9 Hz, with city 5 requested on both sinks and never getting in.
-    # Same class as cell_count: a contract between files, not an internal detail.
-    # The indexing order IS the declared list: the game asks for the hood by
-    # INDEX, so keying on the donor's list blew up as soon as --hoods brought
-    # more names than it has. A component whose hood is not in the list goes to
-    # the first one, so it does not vanish silently.
-    order = list(hood_names)
-    choice = hood_donors(donor, len(hood_names))
-    entries = bytearray()
-    for i, nm in enumerate(hood_names):
-        which, last = choice[i]
-        hood_record(e, donor, nm, 'hood_rec%d' % i, which, last)
-        h = order[i]
-        ent = bytearray(HOOD_ENTRY_SIZE)
-        struct.pack_into('<I', ent, 0x04, len(by_hood.get(h, [])))       # unique_count
+    # TODOS os hoods do doador existem, na ordem dele, com os nomes dele. Um
+    # hood sem geometria fica com contagem zero e array vazio - e assim que o
+    # retail faz, e e o que o caminho do cubo ja fazia.
+    # OS NOMES DE HOOD SAO CONTRATO com quem registra a cidade. O
+    # city_slot6.mod registra o losangeles com DOZE hoods; se o .pck declarar os
+    # sete do doador, o jogo pede um hood que nao existe e fica em LOADING
+    # INFINITO - medido em 03/09/2026 num savestate que mostrava o jogo vivo a
+    # 59,9 Hz, com a cidade 5 pedida nos dois sinks e nunca entrando. Mesma
+    # classe do cell_count: contrato entre arquivos, nao detalhe interno.
+    nomes_hood = list(hoods) if hoods else list(do_doador)
+    # A ordem de indexacao E a lista declarada: o jogo pede o hood pelo INDICE,
+    # entao usar a lista do doador como chave estourava assim que --hoods trazia
+    # mais nomes que ele. Componente cujo hood nao esta na lista vai para o
+    # primeiro, para nao sumir em silencio.
+    ordem = list(nomes_hood)
+    escolha = doadores_de_hood(doador, len(nomes_hood))
+    entradas = bytearray()
+    for i, nm in enumerate(nomes_hood):
+        qual, ultimo = escolha[i]
+        registro_hood(e, doador, nm, 'hood_rec%d' % i, qual, ultimo)
+        h = ordem[i]
+        ent = bytearray(TAM_ENTRADA_HOOD)
+        struct.pack_into('<I', ent, 0x04, len(por_hood.get(h, [])))       # unique_count
         struct.pack_into('<I', ent, 0x0C,
-                         by_hood_inst.get(h, ('', 0))[1])                # instance_count
-        entries += ent
-    off_ent = e.put(bytes(entries), 'hoods')
-    empty = empty_hood(e)
-    for i, h in enumerate(order):
-        e.point(off_ent + HOOD_ENTRY_SIZE * i + 0, 'hood_rec%d' % i)
-        e.point(off_ent + HOOD_ENTRY_SIZE * i + 8,
-                 'comps_%s' % h if h in by_hood else empty)
-        e.point(off_ent + HOOD_ENTRY_SIZE * i + 0x10,
-                 by_hood_inst[h][0] if h in by_hood_inst else empty)
+                         por_hood_inst.get(h, ('', 0))[1])                # instance_count
+        entradas += ent
+    off_ent = e.poe(bytes(entradas), 'hoods')
+    vazio = hood_vazio(e)
+    for i, h in enumerate(ordem):
+        e.aponta(off_ent + TAM_ENTRADA_HOOD * i + 0, 'hood_rec%d' % i)
+        e.aponta(off_ent + TAM_ENTRADA_HOOD * i + 8,
+                 'comps_%s' % h if h in por_hood else vazio)
+        e.aponta(off_ent + TAM_ENTRADA_HOOD * i + 0x10,
+                 por_hood_inst[h][0] if h in por_hood_inst else vazio)
 
     # --------------------------------------------------------------- MapRoot
     r = 0x80
-    e.d[r:r + MAPROOT_SIZE] = maproot_base(donor)
-    inline_palettes(e, r)
+    e.d[r:r + TAM_MAPROOT] = maproot_base(doador)
+    paletas_inline(e, r)
     e.u32(r + 0x00, tok(VT_MAPROOT))
-    e.u32(r + 0x08, n_groups)
-    e.point(r + 0x0C, 'groups')
-    empty_array(e, 'field10')
-    e.point(r + 0x10, 'field10')
-    e.u32(r + 0x14, len(hood_names))
-    e.point(r + 0x18, 'hoods')
-    gw, gh, ox, oz = grid
+    e.u32(r + 0x08, n_grupos)
+    e.aponta(r + 0x0C, 'grupos')
+    array_vazio(e, 'campo10')
+    e.aponta(r + 0x10, 'campo10')
+    e.u32(r + 0x14, len(nomes_hood))
+    e.aponta(r + 0x18, 'hoods')
+    gw, gh, ox, oz = grade
     scratch = gw * gh
-    struct.pack_into('<iiii', e.d, r + 0x26C, gw, gh, ox, oz)   # grid + origin
+    struct.pack_into('<iiii', e.d, r + 0x26C, gw, gh, ox, oz)   # grid + origem
     e.u32(r + 0x268, scratch)                                   # == grid_w*grid_h
-    block_1c(e, donor, 'field1c', comp_vas, inst_vas, scratch,
-             cells_per_unique, cells_per_inst)
-    e.point(r + 0x1C, 'field1c')
-    e.point(r + 0x2C, 'paletteA')
-    e.point(r + 0x30, 'paletteB')
+    bloco_1c(e, doador, 'campo1c', vas_comp, inst_vas, scratch,
+             cel_por_unico, cel_por_inst)
+    e.aponta(r + 0x1C, 'campo1c')
+    e.aponta(r + 0x2C, 'paletaA')
+    e.aponta(r + 0x30, 'paletaB')
     if extents.get('extents_min') and extents.get('extents_max'):
-        for k, field in ((0x238, 'extents_min'), (0x244, 'extents_max')):
-            for j, v in enumerate(extents[field][:3]):
+        for k, campo in ((0x238, 'extents_min'), (0x244, 'extents_max')):
+            for j, v in enumerate(extents[campo][:3]):
                 struct.pack_into('<f', e.d, r + k + 4 * j, v)
-    # the head is the LAST one of the chain, not the first
-    made = extra_structures(e, donor,
-                              chain[-1][0] if chain else None,
-                              kind_head,
-                              n_comp=len(comp_vas), n_inst=len(inst_vas))
-    n_chains = chains_1d4(e, donor, texture_donor)
+    # a cabeca e o ULTIMO da cadeia, nao o primeiro
+    feitas = estruturas_extra(e, doador,
+                              cadeia[-1][0] if cadeia else None,
+                              cabeca_tipo,
+                              n_comp=len(vas_comp), n_inst=len(inst_vas))
+    n_cadeias = cadeias_1d4(e, doador, doador_textura)
 
-    n = e.close(out_path)
-    print('written %s (%d bytes)' % (out_path, n))
-    print('  %d components written, %d skipped, %d vertices'
-          % (read_n, skipped, verts))
-    if PCK_FOLDER:
-        print('  with game packets: %d (components + instance kinds)'
-              % from_game[0])
+    n = e.fecha(saida)
+    print('gravado %s (%d bytes)' % (saida, n))
+    print('  %d componentes escritos, %d pulados, %d vertices'
+          % (lidos, pulados, verts))
+    if PASTA_PCK:
+        print('  com pacotes do jogo: %d (componentes + tipos de instancia)'
+              % do_jogo[0])
     print('  %d hood(s): %s'
-          % (len(hood_names),
-             ', '.join('%s=%d' % (hood_names[i], len(by_hood.get(h, [])))
-                       for i, h in enumerate(order))))
-    print('  shader copied from donor slot %d; %d slots in group 0'
-          % (came_from, n_slots))
-    print('  extra structures: %s; %d chain(s) of +0x1D4/+0x1D8'
-          % (', '.join('+0x%X' % x for x in made), n_chains))
+          % (len(nomes_hood),
+             ', '.join('%s=%d' % (nomes_hood[i], len(por_hood.get(h, [])))
+                       for i, h in enumerate(ordem))))
+    print('  shader copiado do slot %d do doador; %d slots no grupo 0'
+          % (veio_de, n_slots))
+    print('  estruturas extra: %s; %d cadeia(s) de +0x1D4/+0x1D8'
+          % (', '.join('+0x%X' % x for x in feitas), n_cadeias))
     return n
 
 
-def compdata(radius, position, name=b'gerado_00'):
-    """A ComponentData with the CONSTANT fields all 651 in atlanta have.
+def compdata(raio, posicao, nome=b'gerado_00'):
+    """Um ComponentData com os campos CONSTANTES que os 651 do atlanta tem.
 
-    The name stays the original Portuguese `gerado_00` (Portuguese for
-    "generated"): city_mc2_rsc_draw_test's hide_placeholders finds the
-    placeholder cube by the prefix `gerado_`, so a translated name left the
-    cube visible (and its garbage texture flickering on screen).
+    Deixar isto zerado foi o que produziu o `R5900 Exception: Jump to unaligned
+    address` ao chegar perto do modelo: **`+0x28` e um TOKEN de vtable, igual
+    (`0x0079FF88`) nos 651 ComponentData do arquivo**, e `+0x00` vale 1 em todos.
+    Com zero ali, a primeira chamada virtual sobre o componente salta por um
+    ponteiro lido de lixo - e o endereco nem alinhado fica.
 
-    Leaving this zeroed is what produced the `R5900 Exception: Jump to unaligned
-    address` when getting close to the model: **`+0x28` is a vtable TOKEN, the
-    same (`0x0079FF88`) in all 651 ComponentData of the file**, and `+0x00` is 1
-    in all of them. With zero there, the first virtual call on the component
-    jumps through a pointer read from garbage - and the address is not even
-    aligned.
-
-    The pointers at `+0x04..+0x18` vary per component (`+0x08` points to the
-    name, `+0x10` to another ComponentData) and stay null here: there is at
-    least one retail component with nulls at `+0x0C/+0x10/+0x14`, so null is
-    tolerated there.
+    Os ponteiros de `+0x04..+0x18` variam por componente (`+0x08` aponta pro
+    nome, `+0x10` pra outro ComponentData) e ficam nulos aqui: existe pelo menos
+    um componente do retail com nulos em `+0x0C/+0x10/+0x14`, entao nulo e
+    tolerado nesses.
     """
     cd = bytearray(0xF0)
     struct.pack_into('<I', cd, 0x00, 1)
     struct.pack_into('<I', cd, 0x28, tok(VT_COMPDATA_TOKEN))
-    struct.pack_into('<3f', cd, 0x2C, *position)
-    struct.pack_into('<f', cd, 0x38, radius)
-    cd[0x70:0x70 + len(name)] = name
-    # +0x1C, +0x20 and +0x24 are 0xCDCDCDCD in 23,814 of 23,814 retail
-    # ComponentData, and still stay ZERO here, by the user's decision: 0xCD is
-    # the UNINITIALISED MEMORY pattern, and imitating 'uninitialised' in a
-    # generated file copies retail's appearance without copying its meaning.
-    # Tested with CD: it changed nothing.
+    struct.pack_into('<3f', cd, 0x2C, *posicao)
+    struct.pack_into('<f', cd, 0x38, raio)
+    cd[0x70:0x70 + len(nome)] = nome
+    # +0x1C, +0x20 e +0x24 valem 0xCDCDCDCD em 23.814 de 23.814 ComponentData
+    # do varejo, e mesmo assim ficam ZERO aqui, por decisao do usuario: 0xCD e
+    # o padrao de MEMORIA NAO INICIALIZADA, e imitar 'nao inicializado' num
+    # arquivo gerado copia a aparencia do varejo sem copiar o significado.
+    # Testado com CD: nao mudou nada.
     return bytes(cd)
 
 
-# THE MESH EMBEDDED AT ComponentData+0x90.
+# O MESH EMBUTIDO EM ComponentData+0x90.
 #
-# Measured: in 584 of tokyo's 650 ComponentData, the word at +0x90 is the MESH
-# TOKEN, and the fields +0x98..+0xAC are byte for byte the fields +0x08..+0x1C
-# of a mesh - I lined the two up in a real component and the overlap is exact,
-# with mesh+0x00 landing on CD+0x90. So the ComponentData CARRIES A MESH INSIDE
-# IT, and in 431 of the 650 its own +0x3C points to that inner mesh instead of
-# to a separate object.
+# Medido: em 584 dos 650 ComponentData do tokyo, a palavra em +0x90 e o TOKEN
+# DE MESH, e os campos +0x98..+0xAC sao byte a byte os campos +0x08..+0x1C de
+# um mesh - alinhei os dois num componente real e a sobreposicao e exata, com
+# mesh+0x00 caindo em CD+0x90. Ou seja o ComponentData CARREGA UM MESH DENTRO
+# DELE, e em 431 dos 650 o proprio +0x3C aponta para esse mesh interno em vez
+# de para um objeto separado.
 #
-# My builder always allocated the mesh outside and left +0x90 zeroed. Writing
-# the embedded mesh fills +0x90, +0x98, +0x9C, +0xA0, +0xA8 and +0xAC at once
-# with values whose semantics I know entirely, because it is the same mesh
-# header I already emit - and it puts the component in retail's MAJORITY form.
-MESH_SIZE = 0x20
-OFF_EMBEDDED_MESH = 0x90
+# O meu builder sempre alocou o mesh fora e deixou +0x90 zerado. Escrever o
+# mesh embutido preenche de uma vez +0x90, +0x98, +0x9C, +0xA0, +0xA8 e +0xAC
+# com valores cuja semantica eu conheco inteira, porque e o mesmo cabecalho de
+# mesh que eu ja emito - e poe o componente na forma MAJORITARIA do varejo.
+TAM_MESH = 0x20
+OFF_MESH_EMBUTIDO = 0x90
 
 
-def put_embedded_mesh(e, off_cd, key_mt, key_gt, blocks, map_key, slot_count=1):
-    """Write the mesh header inside the ComponentData and point +0x3C to it."""
-    m = off_cd + OFF_EMBEDDED_MESH
-    # THE COUNT HAS TO BE THAT OF THE TABLE THIS MESH REUSES, not a fixed 1. This
-    # mesh points `+0x10` to `key_gt`, which on the grouped path has
-    # `len(GAME_GROUPS)` entries - and the ctor `rmcModelGeom(datResource&)` uses
-    # ONLY this u16 to know how many `rmcGeometry` to relocate. With 1 here and N
-    # in the table, the remaining N-1 groups keep the raw file offset in place of
-    # the pointer and their geometry draws from the start of RAM. The comment
-    # below had already caught the N for the CPV chain; it was missing here.
-    n_groups = len(GAME_GROUPS) if GAME_GROUPS else 1
+def poe_mesh_embutido(e, off_cd, chave_mt, chave_gt, blocos, chave, slot_count=1):
+    """Escreve o cabecalho de mesh dentro do ComponentData e aponta +0x3C pra ele."""
+    m = off_cd + OFF_MESH_EMBUTIDO
+    # A CONTAGEM TEM QUE SER A DA TABELA QUE ESTE MESH REUSA, nao 1 fixo. Este
+    # mesh aponta `+0x10` para `chave_gt`, que no caminho agrupado tem
+    # `len(GRUPOS_DO_JOGO)` entradas - e o ctor `rmcModelGeom(datResource&)` usa
+    # SO este u16 para saber quantos `rmcGeometry` relocar. Com 1 aqui e N na
+    # tabela, os N-1 grupos restantes ficam com o offset de arquivo cru no lugar
+    # do ponteiro e a geometria deles desenha a partir do inicio da RAM. O
+    # comentario abaixo ja tinha percebido o N para a cadeia CPV; faltava aqui.
+    n_grupos = len(GRUPOS_DO_JOGO) if GRUPOS_DO_JOGO else 1
     struct.pack_into('<IIHHIIII', e.d, m,
-                     tok(VT_MESH_TOKEN), 0, n_groups, slot_count, 0, 0, 0, 1)
-    e.point(m + 0x0C, key_mt)
-    e.point(m + 0x10, key_gt)
-    # This mesh REUSES the component's group table (key_gt), so its chain has to
-    # match THAT table and not my blocks. With --pck-mesh the table holds the
-    # game's packets; building the chain from `blocks` produced 101 entries for
-    # a list of 26.
-    # The chain has to match the group table this mesh REUSES. With GAME_GROUPS
-    # the table has N groups, so the chain needs N as well - building it from
-    # the flattened blocks gave 82 of 298 invalid meshes.
-    if GAME_GROUPS:
-        cpv_groups = [[([0] * nv,) for _p, _q, nv in pac] for pac in GAME_GROUPS]
+                     tok(VT_MESH_TOKEN), 0, n_grupos, slot_count, 0, 0, 0, 1)
+    e.aponta(m + 0x0C, chave_mt)
+    e.aponta(m + 0x10, chave_gt)
+    # Este mesh REUSA a tabela de grupos do componente (chave_gt), entao a
+    # cadeia dele tem que casar com ELA e nao com os meus blocos. Com
+    # --pck-malha a tabela tem os pacotes do jogo; montar a cadeia a partir
+    # de `blocos` produzia 101 entradas para uma lista de 26.
+    # A cadeia tem que casar com a tabela de grupos que este mesh REUSA. Com
+    # GRUPOS_DO_JOGO a tabela tem N grupos, entao a cadeia precisa de N tambem -
+    # montar a partir dos blocos achatados dava 82 de 298 malhas invalidas.
+    if GRUPOS_DO_JOGO:
+        grupos_cpv = [[([0] * nv,) for _p, _q, nv in pac] for pac in GRUPOS_DO_JOGO]
     else:
-        cpv_groups = [([0] * nv,) for _p, _q, nv in GAME_PACKETS]             if GAME_PACKETS else blocks
-        cpv_groups = [cpv_groups]
-    emit_per_vertex_chain(e, cpv_groups, map_key + '_t14', slot_count=slot_count)
-    e.point(m + 0x14, map_key + '_t14')
+        grupos_cpv = [([0] * nv,) for _p, _q, nv in PACOTES_DO_JOGO]             if PACOTES_DO_JOGO else blocos
+        grupos_cpv = [grupos_cpv]
+    emite_cadeia_por_vertice(e, grupos_cpv, chave + '_t14', slot_count=slot_count)
+    e.aponta(m + 0x14, chave + '_t14')
     e.u32(off_cd + 0x3C, e.va(m))
 
 
-def generated_geometry(p, blocks):
-    """Append mesh + ComponentData + component to an existing .pck.
+def geometria_gerada(p, blocos):
+    """Anexa mesh + ComponentData + componente num .pck existente.
 
-    Returns (off_mesh, off_cd, off_comp, radius). Nothing in the file moves:
-    everything is APPENDED and only the new fields point here.
+    Devolve (off_mesh, off_cd, off_comp, raio). Nada do arquivo se move: tudo e
+    ANEXADO e so os campos novos apontam pra ca.
     """
-    scale = mc2.pick_scale(blocks)
-    pks = [mc2.make_block(pos, uv, nr, scale, i % 2 == 1)
-           for i, (pos, uv, nr, _o) in enumerate(blocks)]
+    escala = mc2.pick_scale(blocos)
+    pks = [mc2.make_block(pos, uv, nr, escala, i % 2 == 1)
+           for i, (pos, uv, nr, _o) in enumerate(blocos)]
     offs = [p.append(pk) for pk in pks]
-    items = b''.join(struct.pack('<IHH', p.V(o), (len(pk) + 15) // 16, len(bl[0]))
-                     for o, pk, bl in zip(offs, pks, blocks))
-    list_va = p.V(p.append(items))
-    off_gt = p.append(struct.pack('<IHH', 0, len(blocks), 0))
-    struct.pack_into('<I', p.data, off_gt, list_va)
+    lista = b''.join(struct.pack('<IHH', p.V(o), (len(pk) + 15) // 16, len(bl[0]))
+                     for o, pk, bl in zip(offs, pks, blocos))
+    va_lista = p.V(p.append(lista))
+    off_gt = p.append(struct.pack('<IHH', 0, len(blocos), 0))
+    struct.pack_into('<I', p.data, off_gt, va_lista)
     off_mt = p.append(struct.pack('<H', 1) + bytes([0, 0]))
     off_mesh = p.append(struct.pack('<IIHHIIII', tok(VT_MESH_TOKEN), 0, 1,
-                                    CPV_SLOTS_PER_COMPONENT, 0, 0, 0, 1))
+                                    SLOTS_CPV_COMPONENTE, 0, 0, 0, 1))
     struct.pack_into('<I', p.data, off_mesh + 0x0C, p.V(off_mt))
     struct.pack_into('<I', p.data, off_mesh + 0x10, p.V(off_gt))
-    off_t14 = append_per_vertex_chain(p, [blocks])
+    off_t14 = anexa_cadeia_por_vertice(p, [blocos])
     struct.pack_into('<I', p.data, off_mesh + 0x14, p.V(off_t14))
 
-    pts = [c for pos, _u, _n, _o in blocks for c in pos]
-    radius = max((q[0] ** 2 + q[1] ** 2 + q[2] ** 2) ** 0.5 for q in pts)
-    off_cd = p.append(compdata(radius, (-400.0, 5.0, 700.0)))
+    pts = [c for pos, _u, _n, _o in blocos for c in pos]
+    raio = max((q[0] ** 2 + q[1] ** 2 + q[2] ** 2) ** 0.5 for q in pts)
+    off_cd = p.append(compdata(raio, (-400.0, 5.0, 700.0)))
     struct.pack_into('<I', p.data, off_cd + 0x3C, p.V(off_mesh))
 
-    comp = bytearray(COMPONENT_SIZE)
-    # +0x10 is the type_va, and it was MISSING here - the hood1 graft wrote zero
-    # and hung with PC=0x00650073 (UTF-16 text), a different failure from the
-    # builder's. Without this the graft tested its own bug, not the file's.
-    struct.pack_into('<I', comp, 0x10, tok(VT_COMPONENT_TOKEN))
-    struct.pack_into('<f', comp, 0x18, radius)
+    comp = bytearray(TAM_COMPONENTE)
+    # +0x10 e o type_va, e ele FALTAVA aqui - o enxerto hood1 gravava zero e
+    # travava com PC=0x00650073 (texto UTF-16), que e outra falha que a do
+    # builder. Sem isto o enxerto testava o proprio bug, nao o do arquivo.
+    struct.pack_into('<I', comp, 0x10, tok(VT_COMPONENTE_TOKEN))
+    struct.pack_into('<f', comp, 0x18, raio)
     off_comp = p.append(bytes(comp))
     struct.pack_into('<I', p.data, off_comp + 0x0C, p.V(off_cd))
-    return off_mesh, off_cd, off_comp, radius
+    return off_mesh, off_cd, off_comp, raio
 
 
-def graft(base, out_path, piece, side=40.0):
-    """Differential bisection: a file that LOADS, with ONE generated piece.
+def enxerta(base, saida, peca, lado=40.0):
+    """Bissecção diferencial: um arquivo que CARREGA, com UMA peça gerada.
 
-    Building from scratch fails and does not say where. Starting from the real
-    file and swapping one piece at a time makes each boot rule out half the
-    space instead of testing one field. And the criterion does not even need
-    the screen: the savestate says **how many of the MapRoot's six pointers were
-    relocated**, and in a file that loads it is all of them.
+    Construir do zero falha e não diz onde. Partir do arquivo real e trocar uma
+    peça por vez faz cada boot excluir metade do espaço em vez de testar um
+    campo. E o critério não precisa nem de tela: o savestate diz **quantos dos
+    seis ponteiros do MapRoot foram relocados**, e num arquivo que carrega são
+    todos.
 
-    Nothing already in the file moves - the new pieces are APPENDED and only the
-    MapRoot pointers are rewritten. It is the same discipline as the hood fill.
+    Nada que já está no arquivo se move - as peças novas são ANEXADAS e só os
+    ponteiros do MapRoot são reescritos. É a mesma disciplina do hood fill.
     """
-    # The graft's token space is the BASE's, not atlanta's where the constants
-    # were measured. Without this the graft writes atlanta tokens into a tokyo
-    # file and stops being a clean test.
-    globals()['TOKEN_SHIFT'] = donor_token(base)
+    # O espaco de token do enxerto e o da BASE, nao o do atlanta em que as
+    # constantes foram medidas. Sem isto o enxerto grava tokens de atlanta num
+    # arquivo do tokyo e deixa de ser um teste limpo.
+    globals()['DESLOC_TOKEN'] = token_do_doador(base)
     p = mc2.Pck(base)
     r = 0x80
 
-    def put(blob, align=16):
+    def poe(blob, align=16):
         return p.V(p.append(blob, align))
 
-    if piece == 'palettes':
-        struct.pack_into('<I', p.data, r + 0x2C, put(grey_palette()))
-        struct.pack_into('<I', p.data, r + 0x30, put(grey_palette()))
-        note = 'both palettes replaced by generated ramps'
+    if peca == 'paletas':
+        struct.pack_into('<I', p.data, r + 0x2C, poe(paleta_cinza()))
+        struct.pack_into('<I', p.data, r + 0x30, poe(paleta_cinza()))
+        nota = 'as duas paletas trocadas por rampas geradas'
 
-    elif piece == 'group':
-        # THE SHADER GROUP DESCRIPTOR the way a from-scratch file builds it: ONE
-        # group of 64 slots instead of retail's 18 of 1329. The shader objects
-        # stay the file's own - only the table's shape changes, which is what has
-        # not been isolated yet.
-        n_groups = struct.unpack_from('<I', p.data, r + 0x08)[0]
+    elif peca == 'grupo':
+        # O DESCRITOR DE GRUPO DE SHADER do jeito que um arquivo do zero o
+        # monta: UM grupo de 64 slots no lugar dos 18 de 1329 do retail. Os
+        # objetos de shader continuam sendo os do proprio arquivo - so a forma
+        # da tabela muda, que e o que ainda nao foi isolado.
+        n_grupos = struct.unpack_from('<I', p.data, r + 0x08)[0]
         base_desc = p.F(struct.unpack_from('<I', p.data, r + 0x0C)[0])
-        data = p.F(struct.unpack_from('<I', p.data, base_desc + 4)[0])
+        dados = p.F(struct.unpack_from('<I', p.data, base_desc + 4)[0])
         n0 = struct.unpack_from('<H', p.data, base_desc + 8)[0]
-        live = []
+        vivos = []
         for i in range(n0):
-            v = struct.unpack_from('<I', p.data, data + 4 * i)[0]
+            v = struct.unpack_from('<I', p.data, dados + 4 * i)[0]
             if v and p.inside(p.F(v)):
-                live.append(v)
-            if len(live) == 64:
+                vivos.append(v)
+            if len(vivos) == 64:
                 break
-        arr = put(b''.join(struct.pack('<I', v) for v in live))
-        desc = put(struct.pack('<IIHHI', tok(VT_ARRAY), 0, len(live), len(live), 0))
+        arr = poe(b''.join(struct.pack('<I', v) for v in vivos))
+        desc = poe(struct.pack('<IIHHI', tok(VT_ARRAY), 0, len(vivos), len(vivos), 0))
         struct.pack_into('<I', p.data, p.F(desc) + 4, arr)
         struct.pack_into('<I', p.data, r + 0x08, 1)
         struct.pack_into('<I', p.data, r + 0x0C, desc)
-        note = ('%d shader groups became 1 group of %d slots'
-                % (n_groups, len(live)))
+        nota = ('%d grupos de shader viraram 1 grupo de %d slots'
+                % (n_grupos, len(vivos)))
 
-    elif piece == 'extras':
-        # THE FOUR STRUCTURES AT +0x190/+0x194/+0x198/+0x228, the way a
-        # from-scratch file builds them: COPIED from the file itself, with the
-        # COUNTS ZEROED, and the +0x194 head pointing to the same ComponentData
-        # chain that is already there.
+    elif peca == 'extras':
+        # AS QUATRO ESTRUTURAS DE +0x190/+0x194/+0x198/+0x228, do jeito que um
+        # arquivo do zero as monta: COPIADAS do proprio arquivo, com as
+        # CONTAGENS ZERADAS, e a cabeca do +0x194 apontando para a mesma cadeia
+        # de ComponentData que ja esta la.
         #
-        # It is the piece no earlier graft tested. Shader passed, palettes
-        # passed, and the hood ones loaded and only broke when getting close -
-        # so what is left of a generated file, and was never isolated, is this
-        # block of zeroed counts.
-        made = []
-        for off, _who, counts, size_ in EXTRA_STRUCTURES:
+        # E a peca que nenhum enxerto anterior testou. Shader passou, paletas
+        # passaram, e os de hood carregaram e so quebraram ao chegar perto -
+        # entao o que sobra de um arquivo gerado, e nunca foi isolado, e este
+        # bloco de contagens zeradas.
+        feitas = []
+        for off, _quem, contagens, tam in ESTRUTURAS_EXTRA:
             va = struct.unpack_from('<I', p.data, r + off)[0]
             if not va or not p.inside(p.F(va)):
                 continue
             o = p.F(va)
-            blob = bytearray(p.data[o:o + size_])
-            before = [struct.unpack_from('<I', blob, c)[0] for c in counts]
-            for c in counts:
+            blob = bytearray(p.data[o:o + tam])
+            antes = [struct.unpack_from('<I', blob, c)[0] for c in contagens]
+            for c in contagens:
                 struct.pack_into('<I', blob, c, 0)
-            struct.pack_into('<I', p.data, r + off, put(bytes(blob)))
-            made.append('+0x%X %s->0' % (off, before))
-        note = 'extra structures copied with zeroed counts: %s' % ', '.join(made)
+            struct.pack_into('<I', p.data, r + off, poe(bytes(blob)))
+            feitas.append('+0x%X %s->0' % (off, antes))
+        nota = 'estruturas extra copiadas com contagem zerada: %s' % ', '.join(feitas)
 
-    elif piece == 'shaders':
-        # MIRRORS THE RETAIL PATTERN, instead of "filling everything".
+    elif peca == 'shaders':
+        # ESPELHA O PADRAO DO RETAIL, em vez de "preencher tudo".
         #
-        # The loop at 0x2AF9E8 has no "already placed" guard: it runs the handler
-        # once per SLOT. In retail each object appears in EXACTLY one slot (4117
-        # objects in 4117 slots, measured) and the rest is null. Filling every
-        # slot with the same shader - which I did thinking it avoided nulls - puts
-        # the same object in thousands of slots, and the handler re-adds the
-        # delta to its internal pointers once per slot.
+        # O laco de 0x2AF9E8 nao tem guarda de "ja colocado": ele roda o handler
+        # uma vez por SLOT. No retail cada objeto aparece em EXATAMENTE um slot
+        # (4117 objetos em 4117 slots, medido) e o resto e nulo. Preencher todo
+        # slot com o mesmo shader - que eu fiz achando que evitava nulo - poe o
+        # mesmo objeto em milhares de slots e o handler re-soma o delta nos
+        # ponteiros internos dele uma vez por slot.
         #
-        # So: where retail has an object, put a NEW copy; where it has null,
-        # leave null.
-        block, k = shader_block(base)
-        n_groups = struct.unpack_from('<I', p.data, r + 0x08)[0]
+        # Entao: onde o retail tem objeto, poe uma copia NOVA; onde tem nulo,
+        # deixa nulo.
+        bloco, k = bloco_shader(base)
+        n_grupos = struct.unpack_from('<I', p.data, r + 0x08)[0]
         base_desc = p.F(struct.unpack_from('<I', p.data, r + 0x0C)[0])
-        arrays, made_n = [], 0
-        for g in range(n_groups):
-            data = p.F(struct.unpack_from('<I', p.data, base_desc + 16 * g + 4)[0])
+        arrays, feitos = [], 0
+        for g in range(n_grupos):
+            dados = p.F(struct.unpack_from('<I', p.data, base_desc + 16 * g + 4)[0])
             n = struct.unpack_from('<H', p.data, base_desc + 16 * g + 8)[0]
             slots = []
             for i in range(n):
-                v = struct.unpack_from('<I', p.data, data + 4 * i)[0]
+                v = struct.unpack_from('<I', p.data, dados + 4 * i)[0]
                 if v and p.inside(p.F(v)):
-                    o = p.append(block)
+                    o = p.append(bloco)
                     struct.pack_into('<I', p.data, o + 8, p.V(o + 0x10))
                     slots.append(p.V(o))
-                    made_n += 1
+                    feitos += 1
                 else:
                     slots.append(0)
-            arrays.append(put(b''.join(struct.pack('<I', x) for x in slots)))
+            arrays.append(poe(b''.join(struct.pack('<I', x) for x in slots)))
         desc = b''.join(struct.pack('<IIHHI', tok(VT_ARRAY), 0,
                                     struct.unpack_from('<H', p.data, base_desc + 16 * g2 + 8)[0],
                                     struct.unpack_from('<H', p.data, base_desc + 16 * g2 + 8)[0], 0)
-                        for g2 in range(n_groups))
+                        for g2 in range(n_grupos))
         off_g = p.append(desc)
-        for g in range(n_groups):
+        for g in range(n_grupos):
             struct.pack_into('<I', p.data, off_g + 16 * g + 4, arrays[g])
         struct.pack_into('<I', p.data, r + 0x0C, p.V(off_g))
-        note = ('%d groups, %d new copies (one per slot retail fills)'
-                % (n_groups, made_n))
+        nota = ('%d grupos, %d copias novas (uma por slot que o retail preenche)'
+                % (n_grupos, feitos))
 
-    elif piece == 'hood2':
-        # One step BEFORE hood1: keep the ORIGINAL component and only repoint
-        # its `+0x0C` to our ComponentData. The trio then is:
-        #   cubos_ug  original comp + original CD + our geometry  -> LOADS
-        #   hood2     original comp + OUR CD      + our geometry  -> ?
-        #   hood1     OUR comp      + OUR CD      + our geometry  -> ?
-        # Whichever hangs first points at the exact piece.
+    elif peca == 'hood2':
+        # Um passo ANTES do hood1: mantem o componente ORIGINAL e so reaponta o
+        # `+0x0C` dele pro nosso ComponentData. Assim o trio fica:
+        #   cubos_ug  comp original + CD original + geometria nossa  -> CARREGA
+        #   hood2     comp original + CD NOSSO    + geometria nossa  -> ?
+        #   hood1     comp NOSSO    + CD NOSSO    + geometria nossa  -> ?
+        # Qualquer que seja o primeiro a travar, aponta a peca exata.
         hb = p.F(struct.unpack_from('<I', p.data, r + 0x18)[0])
         nh = struct.unpack_from('<I', p.data, r + 0x14)[0]
-        target = 0
+        alvo = 0
         for h in range(nh):
             rec = p.F(struct.unpack_from('<I', p.data, hb + 20 * h)[0])
             if bytes(p.data[rec:rec + 3]).startswith(b'ug'):
-                target = h
+                alvo = h
                 break
-        au = p.F(struct.unpack_from('<I', p.data, hb + 20 * target + 8)[0])
-        _m, off_cd, _c, _r = generated_geometry(p, cube(side))
-        struct.pack_into('<I', p.data, au + 0x0C, p.V(off_cd))   # 1st component
-        struct.pack_into('<I', p.data, hb + 20 * target + 4, 1)    # only it
-        note = 'hood %d: ORIGINAL component pointing to our ComponentData' % target
+        au = p.F(struct.unpack_from('<I', p.data, hb + 20 * alvo + 8)[0])
+        _m, off_cd, _c, _r = geometria_gerada(p, cubo(lado))
+        struct.pack_into('<I', p.data, au + 0x0C, p.V(off_cd))   # 1o componente
+        struct.pack_into('<I', p.data, hb + 20 * alvo + 4, 1)    # so ele
+        nota = 'hood %d: componente ORIGINAL apontando pro nosso ComponentData' % alvo
 
-    elif piece == 'hood1':
-        # MINIMUM DELTA from what already works.
+    elif peca == 'hood1':
+        # DELTA MINIMO a partir do que ja funciona.
         #
-        # `cubos_ug` loads: 7 original hoods, ORIGINAL components, only the
-        # geometry swapped. `zero6` hangs: 7 hoods with the right names but
-        # GENERATED components. The step between the two is this one: keep the
-        # 7 hoods and the target hood intact, and swap only its UNIQUES ARRAY for
-        # a component + ComponentData generated by us. If it hangs, the problem is
-        # in the generated component; if it loads, it is elsewhere in the
-        # from-scratch file.
+        # `cubos_ug` carrega: 7 hoods originais, componentes ORIGINAIS, so a
+        # geometria trocada. `zero6` trava: 7 hoods com os nomes certos mas
+        # componentes GERADOS. O passo entre os dois e este: manter os 7 hoods e
+        # o hood alvo intacto, e trocar so o ARRAY DE UNIQUES dele por um
+        # componente + ComponentData gerados por nos. Se travar, o problema esta
+        # no componente gerado; se carregar, esta em outro lugar do arquivo do
+        # zero.
         hb = p.F(struct.unpack_from('<I', p.data, r + 0x18)[0])
         nh = struct.unpack_from('<I', p.data, r + 0x14)[0]
-        target = None
+        alvo = None
         for h in range(nh):
             rec = p.F(struct.unpack_from('<I', p.data, hb + 20 * h)[0])
             if bytes(p.data[rec:rec + 3]).startswith(b'ug'):
-                target = h
+                alvo = h
                 break
-        if target is None:
-            target = 0
-        off_mesh, off_cd, off_comp, radius = generated_geometry(p, cube(side))
-        struct.pack_into('<I', p.data, hb + 20 * target + 4, 1)          # 1 unique
-        struct.pack_into('<I', p.data, hb + 20 * target + 8, p.V(off_comp))
-        note = ('hood %d intact, uniques array replaced by 1 generated component'
-                % target)
+        if alvo is None:
+            alvo = 0
+        off_mesh, off_cd, off_comp, raio = geometria_gerada(p, cubo(lado))
+        struct.pack_into('<I', p.data, hb + 20 * alvo + 4, 1)          # 1 unique
+        struct.pack_into('<I', p.data, hb + 20 * alvo + 8, p.V(off_comp))
+        nota = ('hood %d intacto, array de uniques trocado por 1 componente gerado'
+                % alvo)
 
-    elif piece == 'hood':
-        blocks = cube(side)
-        scale = mc2.pick_scale(blocks)
-        pks = [mc2.make_block(pos, uv, nr, scale, i % 2 == 1)
-               for i, (pos, uv, nr, _o) in enumerate(blocks)]
+    elif peca == 'hood':
+        blocos = cubo(lado)
+        escala = mc2.pick_scale(blocos)
+        pks = [mc2.make_block(pos, uv, nr, escala, i % 2 == 1)
+               for i, (pos, uv, nr, _o) in enumerate(blocos)]
         offs = [p.append(pk) for pk in pks]
-        items = b''.join(struct.pack('<IHH', p.V(o), (len(pk) + 15) // 16, len(bl[0]))
-                         for o, pk, bl in zip(offs, pks, blocks))
-        list_va = put(items)
-        off_gt = p.append(struct.pack('<IHH', 0, len(blocks), 0))
-        struct.pack_into('<I', p.data, off_gt, list_va)
+        lista = b''.join(struct.pack('<IHH', p.V(o), (len(pk) + 15) // 16, len(bl[0]))
+                         for o, pk, bl in zip(offs, pks, blocos))
+        va_lista = poe(lista)
+        off_gt = p.append(struct.pack('<IHH', 0, len(blocos), 0))
+        struct.pack_into('<I', p.data, off_gt, va_lista)
         off_mt = p.append(struct.pack('<H', 1) + bytes([0, 0]))
-        # This old probe does not emit +0x14: disable CPV explicitly.
+        # Esta sonda antiga nao emite +0x14: desabilite CPV explicitamente.
         off_mesh = p.append(struct.pack('<IIHHIIII', tok(VT_MESH_TOKEN), 0, 1, 0, 0, 0, 0, 1))
         struct.pack_into('<I', p.data, off_mesh + 0x0C, p.V(off_mt))
         struct.pack_into('<I', p.data, off_mesh + 0x10, p.V(off_gt))
 
-        pts = [c for pos, _u, _n, _o in blocks for c in pos]
-        radius = max((q[0] ** 2 + q[1] ** 2 + q[2] ** 2) ** 0.5 for q in pts)
-        off_cd = p.append(compdata(radius, (-400.0, 5.0, 700.0)))
+        pts = [c for pos, _u, _n, _o in blocos for c in pos]
+        raio = max((q[0] ** 2 + q[1] ** 2 + q[2] ** 2) ** 0.5 for q in pts)
+        off_cd = p.append(compdata(raio, (-400.0, 5.0, 700.0)))
         struct.pack_into('<I', p.data, off_cd + 0x3C, p.V(off_mesh))
 
-        comp = bytearray(COMPONENT_SIZE)
-        struct.pack_into('<f', comp, 0x18, radius)
+        comp = bytearray(TAM_COMPONENTE)
+        struct.pack_into('<f', comp, 0x18, raio)
         off_comp = p.append(bytes(comp))
         struct.pack_into('<I', p.data, off_comp + 0x0C, p.V(off_cd))
 
-        # record: a copy of the file's own first hood, with the name changed
+        # registro: copia do primeiro hood do proprio arquivo, nome trocado
         hb = p.F(struct.unpack_from('<I', p.data, r + 0x18)[0])
         rec0 = p.F(struct.unpack_from('<I', p.data, hb)[0])
         blob = bytearray(p.data[rec0:rec0 + 0xB0])
         blob[0:4] = b'zz' + bytes(2)
-        chain = bytes(p.data[rec0 + 0xB4:rec0 + 0xB4 + 0xA0])
+        cadeia = bytes(p.data[rec0 + 0xB4:rec0 + 0xB4 + 0xA0])
         off_rec = p.append(bytes(blob))
-        va_cad = put(chain)
+        va_cad = poe(cadeia)
         struct.pack_into('<I', p.data, off_rec + 0xAC, va_cad)
 
-        # the INSTANCE array has to exist even with a zero count: a null pointer
-        # here is the same trap as MapRoot+0x10 (on the PS2 address 0 reads, it
-        # does not fault, and Place wanders off into garbage)
-        va_inst = put(bytes(96))
-        ent = bytearray(HOOD_ENTRY_SIZE)
+        # o array de INSTANCE tem que existir mesmo com contagem zero: ponteiro
+        # nulo aqui e a mesma armadilha do MapRoot+0x10 (no PS2 o endereco 0 le,
+        # nao falha, e o Place sai andando em lixo)
+        va_inst = poe(bytes(96))
+        ent = bytearray(TAM_ENTRADA_HOOD)
         struct.pack_into('<I', ent, 4, 1)
         struct.pack_into('<I', ent, 16, va_inst)
         off_ent = p.append(bytes(ent))
@@ -3019,123 +3016,123 @@ def graft(base, out_path, piece, side=40.0):
         struct.pack_into('<I', p.data, off_ent + 8, p.V(off_comp))
         struct.pack_into('<I', p.data, r + 0x14, 1)
         struct.pack_into('<I', p.data, r + 0x18, p.V(off_ent))
-        note = '1 hood generated with 1 cube; the %d original hoods stay in the file but out of the table' % 0
+        nota = '1 hood gerado com 1 cubo; os %d hoods originais ficam no arquivo mas fora da tabela' % 0
     else:
-        raise SystemExit('unknown piece: %s' % piece)
+        raise SystemExit('peca desconhecida: %s' % peca)
 
-    p.save(out_path)
-    print('%-10s -> %s (%d bytes)  %s' % (piece, os.path.basename(out_path), len(p.data), note))
+    p.save(saida)
+    print('%-10s -> %s (%d bytes)  %s' % (peca, os.path.basename(saida), len(p.data), nota))
 
 
-def verify(file_path):
-    """Reopen the file with the readers that already exist in the toolkit.
+def verifica(caminho):
+    """Reabre o arquivo com os leitores que ja existem no toolkit.
 
-    It does not prove the game accepts it - it proves the structure agrees with
-    the reading that was validated on the retail files, which is the only
-    automatic test possible before booting.
+    Nao prova que o jogo aceita - prova que a estrutura fecha com a leitura que
+    foi validada nos arquivos do retail, que e o unico teste automatico possivel
+    antes de bootar.
     """
     spec = importlib.util.spec_from_file_location(
-        'hf', os.path.join(_HERE, 'mc3_hood_fill.py'))
+        'hf', os.path.join(_AQUI, 'mc3_hood_fill.py'))
     hf = importlib.util.module_from_spec(spec)
     sys.modules['hf'] = hf
     spec.loader.exec_module(hf)
 
-    p = mc2.Pck(file_path)
-    base, kind, ver, body = struct.unpack_from('<4I', p.data, 0)
-    print('%s' % os.path.basename(file_path))
-    print('  header: base %08X, kind %d, version %d, body %d (file %d)'
-          % (base, kind, ver, body, len(p.data)))
+    p = mc2.Pck(caminho)
+    base, tipo, ver, corpo = struct.unpack_from('<4I', p.data, 0)
+    print('%s' % os.path.basename(caminho))
+    print('  cabecalho: base %08X, tipo %d, versao %d, corpo %d (arquivo %d)'
+          % (base, tipo, ver, corpo, len(p.data)))
     ok = True
-    if kind != CITY_KIND:
-        print('  ERROR: kind %d, expected %d - the loader fails SILENTLY'
-              % (kind, CITY_KIND))
+    if tipo != TIPO_CIDADE:
+        print('  ERRO: tipo %d, esperado %d - o carregador falha em SILENCIO'
+              % (tipo, TIPO_CIDADE))
         ok = False
-    if body != len(p.data) - 0x80:
-        print('  ERROR: declared body does not match the file')
+    if corpo != len(p.data) - 0x80:
+        print('  ERRO: corpo declarado nao bate com o arquivo')
         ok = False
     if len(p.data) % 16:
-        print('  ERROR: file is not aligned to 16')
+        print('  ERRO: arquivo nao esta alinhado em 16')
         ok = False
 
     hs = hf.hoods(p)
     print('  %d hood(s): %s' % (len(hs), ', '.join(h[0] for h in hs)))
     for i, h in enumerate(hs):
-        u = hf.hood_uniques(p, i)
-        print('    [%d] %-6s %d unique, %d instance -> %d readable component(s)'
+        u = hf.uniques_do_hood(p, i)
+        print('    [%d] %-6s %d unique, %d instance -> %d componente(s) legivel(is)'
               % (i, h[0], h[1], h[3], len(u)))
         for nm, meshes, comp, cd in u:
             pos = struct.unpack_from('<3f', p.data, cd + 0x2C)
-            radius = struct.unpack_from('<f', p.data, cd + 0x38)[0]
+            raio = struct.unpack_from('<f', p.data, cd + 0x38)[0]
             for m in meshes:
                 ab = hf.aabb_local(p, m)
                 ng = struct.unpack_from('<H', p.data, m + 8)[0]
-                print('       %-12s pos (%.1f %.1f %.1f) radius %.1f, %d group(s), AABB %s'
-                      % (nm, pos[0], pos[1], pos[2], radius, ng,
+                print('       %-12s pos (%.1f %.1f %.1f) raio %.1f, %d grupo(s), AABB %s'
+                      % (nm, pos[0], pos[1], pos[2], raio, ng,
                          ('%.1f x %.1f x %.1f' % tuple(ab[1][k] - ab[0][k] for k in range(3)))
-                         if ab else 'UNREADABLE'))
-                # An unreadable AABB is NOT an error: atlanta itself in retail
-                # has 18 meshes like that (empty group or a layout the reader
-                # does not cover), and the game loads. Count, do not fail.
-    # MATERIAL INDEX AGAINST THE GROUP SIZE. `rmcModel::FixupShaders`
-    # (0x2A8A18) walks the mesh's groups and does
+                         if ab else 'ILEGIVEL'))
+                # AABB ilegivel NAO e erro: o proprio atlanta do retail tem 18
+                # meshes assim (grupo vazio ou layout que o leitor nao cobre), e
+                # o jogo carrega. Contar, nao reprovar.
+    # INDICE DE MATERIAL CONTRA O TAMANHO DO GRUPO. `rmcModel::FixupShaders`
+    # (0x2A8A18) percorre os grupos do mesh e faz
     #
-    #     if (*(u16*)(group+8) < material_index[i])  while (1) ;
+    #     if (*(u16*)(grupo+8) < indice_material[i])  while (1) ;
     #
-    # so an index larger than the group's COUNT hangs the game in an empty loop
-    # - the exact signature of "endless loading". Nothing is fixed at 1329:
-    # atlanta sizes 1329 and uses up to 1328, tokyo sizes 1720 and uses up to
-    # 1719. The table is the size of the largest index plus one.
+    # ou seja, indice maior que a CONTAGEM do grupo trava o jogo num laco vazio
+    # - a assinatura exata de "loading infinito". Nao ha nada fixo em 1329: o
+    # atlanta dimensiona 1329 e usa ate 1328, o tokyo dimensiona 1720 e usa ate
+    # 1719. A tabela e do tamanho do maior indice mais um.
     ng_mr = struct.unpack_from('<I', p.data, 0x80 + 0x08)[0]
     if ng_mr:
         base_g = p.F(struct.unpack_from('<I', p.data, 0x80 + 0x0C)[0])
-        smallest = min(struct.unpack_from('<H', p.data, base_g + 16 * g + 8)[0]
+        menor = min(struct.unpack_from('<H', p.data, base_g + 16 * g + 8)[0]
                     for g in range(ng_mr))
-        largest = 0
+        maior = 0
         for i in range(len(hs)):
-            for _n, meshes, _c, _cd in hf.hood_uniques(p, i):
+            for _n, meshes, _c, _cd in hf.uniques_do_hood(p, i):
                 for m in meshes:
                     n = struct.unpack_from('<H', p.data, m + 8)[0]
                     mt = p.F(struct.unpack_from('<I', p.data, m + 0x0C)[0])
                     if not p.inside(mt):
                         continue
                     for k in range(n):
-                        largest = max(largest, struct.unpack_from('<H', p.data,
+                        maior = max(maior, struct.unpack_from('<H', p.data,
                                                               mt + 2 * k)[0])
-        print('  material: largest index used %d, smallest group has %d slot(s)'
-              % (largest, smallest))
-        if largest > smallest:
-            print('     index above the count: FixupShaders falls into while(1)')
+        print('  material: maior indice usado %d, menor grupo tem %d slot(s)'
+              % (maior, menor))
+        if maior > menor:
+            print('     indice acima da contagem: FixupShaders cai em while(1)')
             ok = False
 
-    # A NULL SLOT IN A USED GROUP = A CALL THROUGH A NULL POINTER.
-    # `rmcModel::FixupShaders` dereferences array[index] and calls the virtual at
-    # +24 without checking. Retail lives with nulls because each mesh only takes
-    # part in the passes where its material exists; imported geometry has no such
-    # guarantee. Here it only FAILS an index filled in NO group, which is an
-    # error in any case, and reports the minimum as a hint when a shader hangs.
+    # SLOT NULO NO GRUPO USADO = CHAMADA EM PONTEIRO NULO.
+    # `rmcModel::FixupShaders` desreferencia array[indice] e chama o virtual de
+    # +24 sem checar. O varejo convive com nulo porque cada malha so participa
+    # dos passes onde seu material existe; geometria importada nao tem essa
+    # garantia. Aqui so REPROVA indice preenchido em grupo NENHUM, que e erro em
+    # qualquer caso, e informa o minimo para dar pista quando travar num shader.
     if ng_mr:
         base_g2 = p.F(struct.unpack_from('<I', p.data, 0x80 + 0x0C)[0])
         n0 = struct.unpack_from('<H', p.data, base_g2 + 8)[0]
-        full = [0] * n0
+        cheio = [0] * n0
         for g in range(ng_mr):
             dd = p.F(struct.unpack_from('<I', p.data, base_g2 + 16 * g + 4)[0])
             if not p.inside(dd):
                 continue
             for i in range(n0):
                 if struct.unpack_from('<I', p.data, dd + 4 * i)[0]:
-                    full[i] += 1
-        used_set = set()
-        mesh_targets = []
+                    cheio[i] += 1
+        usados = set()
+        alvos_mesh = []
         for i in range(len(hs)):
-            for _n, meshes, _c, _cd in hf.hood_uniques(p, i):
-                mesh_targets.append(meshes)
+            for _n, meshes, _c, _cd in hf.uniques_do_hood(p, i):
+                alvos_mesh.append(meshes)
         try:
-            _sl, _tp = hf.instance_kinds(p)
+            _sl, _tp = hf.tipos_de_instancia(p)
             for _va, (_nm, _cd2, ms) in _tp.items():
-                mesh_targets.append(ms)
+                alvos_mesh.append(ms)
         except Exception:
             pass
-        for meshes in mesh_targets:
+        for meshes in alvos_mesh:
             if True:
                 for m in meshes:
                     nn = struct.unpack_from('<H', p.data, m + 8)[0]
@@ -3143,139 +3140,139 @@ def verify(file_path):
                     if not p.inside(mt):
                         continue
                     for k in range(nn):
-                        used_set.add(struct.unpack_from('<H', p.data, mt + 2 * k)[0])
-        if used_set:
-            worst_ = min(full[i] for i in used_set if i < n0)
-            empties = [i for i in used_set if i < n0 and full[i] == 0]
-            print('  shader slots: the rarest index in use exists in %d of '
-                  '%d group(s)%s' % (worst_, ng_mr,
-                                     '; %d in NONE' % len(empties) if empties else ''))
-            if empties:
-                print('     index with no shader in any group: call through a null pointer')
+                        usados.add(struct.unpack_from('<H', p.data, mt + 2 * k)[0])
+        if usados:
+            pior = min(cheio[i] for i in usados if i < n0)
+            vazios = [i for i in usados if i < n0 and cheio[i] == 0]
+            print('  slots de shader: o indice mais raro em uso existe em %d de '
+                  '%d grupo(s)%s' % (pior, ng_mr,
+                                     '; %d em NENHUM' % len(vazios) if vazios else ''))
+            if vazios:
+                print('     indice sem shader em grupo nenhum: chamada em ponteiro nulo')
                 ok = False
 
-    # PER-VERTEX CHAIN OF rmcModelGeom+0x14. The Draw path builds an UNPACK S-8
-    # from this structure. In a generated mesh a null pointer does not mean "no
-    # attribute": NUM=0 in VIF means 256, and the DMA starts consuming the next
-    # geometry packet as data until it loses alignment.
+    # CADEIA POR VERTICE DE rmcModelGeom+0x14. O caminho de Draw monta um
+    # UNPACK S-8 a partir desta estrutura. Em um mesh gerado, ponteiro nulo nao
+    # significa "sem atributo": NUM=0 no VIF significa 256, e o DMA passa a
+    # consumir o pacote geometrico seguinte como dados ate perder alinhamento.
     #
-    # Retail has a few special meshes without the chain, so its absence only
-    # fails the ComponentData this builder marks as generated_*. Every chain
-    # present, retail or generated, is still validated in full.
-    required_by_kind = {}
+    # O varejo tem alguns meshes especiais sem a cadeia, por isso a ausencia so
+    # reprova os ComponentData que este builder marca como gerado_*. Toda cadeia
+    # presente, de varejo ou gerada, ainda e validada integralmente.
+    requeridos_por_tipo = {}
     hb_cpv = p.F(struct.unpack_from('<I', p.data, 0x80 + 0x18)[0])
     for h_cpv in range(len(hs)):
-        cpv_entry = hb_cpv + 20 * h_cpv
-        n_cpv = struct.unpack_from('<I', p.data, cpv_entry + 0x0C)[0]
-        arr_cpv = p.F(struct.unpack_from('<I', p.data, cpv_entry + 0x10)[0])
+        entrada_cpv = hb_cpv + 20 * h_cpv
+        n_cpv = struct.unpack_from('<I', p.data, entrada_cpv + 0x0C)[0]
+        arr_cpv = p.F(struct.unpack_from('<I', p.data, entrada_cpv + 0x10)[0])
         if not p.inside(arr_cpv):
             continue
         for k_cpv in range(n_cpv):
-            inst_cpv = arr_cpv + INSTANCE_SIZE * k_cpv
-            cpv_kind = struct.unpack_from('<I', p.data, inst_cpv + 0x0C)[0]
-            cpv_index = struct.unpack_from('<I', p.data, inst_cpv + 0x1C)[0]
-            required_by_kind[cpv_kind] = max(
-                required_by_kind.get(cpv_kind, 0), cpv_index + 1)
+            inst_cpv = arr_cpv + TAM_INSTANCE * k_cpv
+            tipo_cpv = struct.unpack_from('<I', p.data, inst_cpv + 0x0C)[0]
+            indice_cpv = struct.unpack_from('<I', p.data, inst_cpv + 0x1C)[0]
+            requeridos_por_tipo[tipo_cpv] = max(
+                requeridos_por_tipo.get(tipo_cpv, 0), indice_cpv + 1)
 
-    chain_targets = []
+    alvos_cadeia = []
     for i in range(len(hs)):
-        for nm, meshes, _c, _cd in hf.hood_uniques(p, i):
-            chain_targets += [(m, nm, CPV_SLOTS_PER_COMPONENT) for m in meshes]
+        for nm, meshes, _c, _cd in hf.uniques_do_hood(p, i):
+            alvos_cadeia += [(m, nm, SLOTS_CPV_COMPONENTE) for m in meshes]
     try:
-        _sl4, _tp4 = hf.instance_kinds(p)
+        _sl4, _tp4 = hf.tipos_de_instancia(p)
         for _va4, (nm4, _cd4, ms4) in _tp4.items():
-            required4 = required_by_kind.get(_va4, CPV_SLOTS_PER_COMPONENT)
-            chain_targets += [(m, nm4, required4) for m in ms4]
+            exigido4 = requeridos_por_tipo.get(_va4, SLOTS_CPV_COMPONENTE)
+            alvos_cadeia += [(m, nm4, exigido4) for m in ms4]
     except Exception:
         pass
 
-    # The same mesh can be reached from more than one table; validate it once
-    # and keep the largest cardinality if there are aliases.
-    chain_uniques = {}
-    for m, nm, required in chain_targets:
-        previous = chain_uniques.get(m)
-        if previous is None or required > previous[1]:
-            chain_uniques[m] = (nm, required)
+    # O mesmo mesh pode ser alcancado por mais de uma tabela; validar uma vez e
+    # conservar a maior cardinalidade se houver aliases.
+    unicos_cadeia = {}
+    for m, nm, exigido in alvos_cadeia:
+        anterior = unicos_cadeia.get(m)
+        if anterior is None or exigido > anterior[1]:
+            unicos_cadeia[m] = (nm, exigido)
 
-    errors_t14 = []
-    n_valid_t14 = n_blocks_t14 = n_slot_groups_t14 = n_retail_nulls = 0
-    # THE MESH'S GROUP COUNT AGAINST THE TABLE'S OWN. The constructor
-    # `rmcModelGeom::rmcModelGeom(datResource&)` (retail 0x2A9D18) reads the u16
-    # at `mesh+0x08` and IT ALONE decides how many `rmcGeometry` to build:
+    erros_t14 = []
+    n_validos_t14 = n_blocos_t14 = n_grupos_slot_t14 = n_nulos_retail = 0
+    # A CONTAGEM DE GRUPOS DO MESH CONTRA A DA PROPRIA TABELA. O construtor
+    # `rmcModelGeom::rmcModelGeom(datResource&)` (varejo 0x2A9D18) le o u16 de
+    # `mesh+0x08` e SO ELE decide quantos `rmcGeometry` construir:
     #
     #     for (i < *(u16*)(this+8))  rmcGeometry(*(this+0x10) + i*8, res)
     #
-    # and each `rmcGeometry` relocates the pointer of its own packet list. With a
-    # count smaller than the real number of groups the walk stops early: the
-    # remaining groups keep the raw FILE OFFSET in place of the pointer, and a
-    # file offset read as an EE address lands near the start of RAM - which is
-    # exactly the "several objects piled in a narrow strip" symptom. Nothing in
-    # the other checks catches this, because they all use `ng` as the TRUTH to
-    # size the table and only look at the groups it declares.
+    # e cada `rmcGeometry` reloca o ponteiro da propria lista de pacotes. Com a
+    # contagem menor que o numero real de grupos o passeio para cedo: os grupos
+    # que sobram ficam com o OFFSET DE ARQUIVO cru no lugar do ponteiro, e um
+    # offset de arquivo lido como endereco de EE cai perto do inicio da RAM -
+    # que e exatamente o sintoma "varios objetos empilhados numa faixa estreita".
+    # Nada nas outras verificacoes pega isso, porque todas usam `ng` como
+    # VERDADE para dimensionar a tabela e so olham os grupos que ele declara.
     #
-    # The table knows its own size: `emit_grouped_mesh` writes the count as a
-    # u32 16 bytes BEFORE the array, the three-level convention of the rest of
-    # the file. If the two numbers differ, the file contradicts itself.
+    # A tabela sabe o proprio tamanho: `emite_malha_agrupada` grava a contagem
+    # como u32 16 bytes ANTES do array, a convencao dos tres niveis do resto do
+    # arquivo. Se os dois numeros divergem, o arquivo se contradiz.
     #
-    # MEASURED BEFORE COMING IN HERE, so as not to create a false positive: with
-    # `mesh+0x08 != 0` the rule holds in 6152 retail meshes (atlanta 807, sd
-    # 1751, detroit 1705, tokyo 1889) with ZERO mismatches. The case
-    # `mesh+0x08 == 0` is left out on purpose - the ctor loop does not run, the
-    # pointer is never walked and the prefix means nothing; atlanta alone has
-    # 544 such meshes, all legitimate.
-    errors_ng = []
-    n_ng_ok = n_ng_zero = n_ng_unprefixed = 0
+    # MEDIDO ANTES DE ENTRAR AQUI, para nao criar falso positivo: com
+    # `mesh+0x08 != 0` a regra vale em 6152 malhas de varejo (atlanta 807,
+    # sd 1751, detroit 1705, tokyo 1889) com ZERO divergencia. O caso
+    # `mesh+0x08 == 0` fica de fora de proposito - o laco do ctor nao roda, o
+    # ponteiro nunca e percorrido e o prefixo nao quer dizer nada; so o atlanta
+    # tem 544 malhas assim, todas legitimas.
+    erros_ng = []
+    n_ng_ok = n_ng_zero = n_ng_sem_prefixo = 0
 
-    def _off_va_t14(va, byte_size=1):
+    def _off_va_t14(va, tamanho=1):
         if not va:
             return None
         f = p.F(va)
-        if f < 0x80 or f + byte_size > len(p.data):
+        if f < 0x80 or f + tamanho > len(p.data):
             return None
         return f
 
-    def _generated_name_t14(nm):
+    def _nome_gerado_t14(nm):
         if isinstance(nm, bytes):
             nm = nm.decode('ascii', 'ignore')
-        return str(nm).lower().startswith(('generated_', 'gerado_'))
+        return str(nm).lower().startswith('gerado_')
 
-    for m, (nm, required_slots) in sorted(chain_uniques.items()):
-        if m < 0x80 or m + MESH_SIZE > len(p.data):
-            errors_t14.append('mesh 0x%X outside the file' % m)
+    for m, (nm, slots_exigidos) in sorted(unicos_cadeia.items()):
+        if m < 0x80 or m + TAM_MESH > len(p.data):
+            erros_t14.append('mesh 0x%X fora do arquivo' % m)
             continue
         ng, ns = struct.unpack_from('<HH', p.data, m + 8)
         gt = _off_va_t14(struct.unpack_from('<I', p.data, m + 0x10)[0], 8 * ng)
         if not ng:
             n_ng_zero += 1
         elif gt is None or gt < 0x90:
-            n_ng_unprefixed += 1
+            n_ng_sem_prefixo += 1
         else:
             pref = struct.unpack_from('<I', p.data, gt - 16)[0]
             if not 1 <= pref <= 4096:
-                n_ng_unprefixed += 1
+                n_ng_sem_prefixo += 1
             elif pref == ng:
                 n_ng_ok += 1
             else:
-                errors_ng.append(
-                    'mesh 0x%X (%s) declares %d group(s) at +0x08 but the table '
-                    'has %d: the ctor only relocates %d, the rest keep a raw '
-                    'file offset' % (m, nm, ng, pref, ng))
+                erros_ng.append(
+                    'mesh 0x%X (%s) declara %d grupo(s) em +0x08 mas a tabela '
+                    'tem %d: o ctor so reloca %d, o resto fica com offset de '
+                    'arquivo cru' % (m, nm, ng, pref, ng))
         va_t14 = struct.unpack_from('<I', p.data, m + 0x14)[0]
         t14 = _off_va_t14(va_t14, 4 * ns)
-        mandatory = _generated_name_t14(nm)
-        slots_cpv_ok = not mandatory or ns >= required_slots
+        obrigatorio = _nome_gerado_t14(nm)
+        slots_cpv_ok = not obrigatorio or ns >= slots_exigidos
         if not slots_cpv_ok:
-            errors_t14.append(
-                'generated mesh 0x%X (%s) declares %d CPV slot(s); '
-                'Instance+0x1C requires %d' % (m, nm, ns, required_slots))
+            erros_t14.append(
+                'mesh gerado 0x%X (%s) declara %d slot(s) CPV; '
+                'Instance+0x1C exige %d' % (m, nm, ns, slots_exigidos))
         if not va_t14:
-            if mandatory:
-                errors_t14.append('generated mesh 0x%X (%s) with a null +0x14' % (m, nm))
+            if obrigatorio:
+                erros_t14.append('mesh gerado 0x%X (%s) com +0x14 nulo' % (m, nm))
             else:
-                n_retail_nulls += 1
+                n_nulos_retail += 1
             continue
         if not ng or not ns or gt is None or t14 is None:
-            errors_t14.append('mesh 0x%X with an invalid header/+0x14 pointer' % m)
+            erros_t14.append('mesh 0x%X com cabecalho/ponteiro +0x14 invalido' % m)
             continue
 
         mesh_ok = slots_cpv_ok
@@ -3283,95 +3280,95 @@ def verify(file_path):
             tab = _off_va_t14(struct.unpack_from('<I', p.data, t14 + 4 * s)[0],
                               8 * ng)
             if tab is None:
-                errors_t14.append('mesh 0x%X slot %d points outside' % (m, s))
+                erros_t14.append('mesh 0x%X slot %d aponta fora' % (m, s))
                 mesh_ok = False
                 continue
             for g in range(ng):
                 gdesc = gt + 8 * g
-                list_va, nb, _res = struct.unpack_from('<IHH', p.data, gdesc)
-                n_slot_groups_t14 += 1
+                va_lista, nb, _res = struct.unpack_from('<IHH', p.data, gdesc)
+                n_grupos_slot_t14 += 1
                 if not nb:
                     continue
-                items = _off_va_t14(list_va, 8 * nb)
+                lista = _off_va_t14(va_lista, 8 * nb)
                 pa_va, pb_va = struct.unpack_from('<II', p.data, tab + 8 * g)
                 pa = _off_va_t14(pa_va, 4 + 4 * nb)
                 pb = _off_va_t14(pb_va, 4 * nb)
-                if items is None or pa is None or pb is None:
-                    errors_t14.append('mesh 0x%X slot %d group %d points outside' %
+                if lista is None or pa is None or pb is None:
+                    erros_t14.append('mesh 0x%X slot %d grupo %d aponta fora' %
                                       (m, s, g))
                     mesh_ok = False
                     continue
-                declared_n = struct.unpack_from('<I', p.data, pa)[0]
-                if declared_n != nb:
-                    errors_t14.append('mesh 0x%X slot %d group %d: count %d != %d' %
-                                      (m, s, g, declared_n, nb))
+                declarado = struct.unpack_from('<I', p.data, pa)[0]
+                if declarado != nb:
+                    erros_t14.append('mesh 0x%X slot %d grupo %d: count %d != %d' %
+                                      (m, s, g, declarado, nb))
                     mesh_ok = False
                 for b in range(nb):
-                    nv = struct.unpack_from('<H', p.data, items + 8 * b + 6)[0]
+                    nv = struct.unpack_from('<H', p.data, lista + 8 * b + 6)[0]
                     nv_t14 = struct.unpack_from('<I', p.data, pa + 4 + 4 * b)[0]
                     if nv_t14 != nv:
-                        errors_t14.append(
-                            'mesh 0x%X slot %d group %d block %d: vertices %d != %d'
+                        erros_t14.append(
+                            'mesh 0x%X slot %d grupo %d bloco %d: vertices %d != %d'
                             % (m, s, g, b, nv_t14, nv))
                         mesh_ok = False
                     payload_va = struct.unpack_from('<I', p.data, pb + 4 * b)[0]
                     if _off_va_t14(payload_va, max(1, nv)) is None:
-                        errors_t14.append(
-                            'mesh 0x%X slot %d group %d block %d: payload outside'
+                        erros_t14.append(
+                            'mesh 0x%X slot %d grupo %d bloco %d: payload fora'
                             % (m, s, g, b))
                         mesh_ok = False
-                    n_blocks_t14 += 1
+                    n_blocos_t14 += 1
         if mesh_ok:
-            n_valid_t14 += 1
+            n_validos_t14 += 1
 
-    print('  mesh+0x14 chain: %d/%d valid mesh(es), %d group-slot(s), '
-          '%d block(s)%s' %
-          (n_valid_t14, len(chain_uniques), n_slot_groups_t14, n_blocks_t14,
-           '; %d retail null(s) tolerated' % n_retail_nulls
-           if n_retail_nulls else ''))
-    if errors_t14:
+    print('  cadeia mesh+0x14: %d/%d mesh(es) valida(s), %d grupo-slot, '
+          '%d bloco(s)%s' %
+          (n_validos_t14, len(unicos_cadeia), n_grupos_slot_t14, n_blocos_t14,
+           '; %d nulo(s) de varejo tolerado(s)' % n_nulos_retail
+           if n_nulos_retail else ''))
+    if erros_t14:
         ok = False
-        print('     %d error(s) in the per-vertex chain:' % len(errors_t14))
-        for error in errors_t14[:8]:
-            print('       ' + error)
-        if len(errors_t14) > 8:
-            print('       ... and %d more' % (len(errors_t14) - 8))
+        print('     %d erro(s) na cadeia por vertice:' % len(erros_t14))
+        for erro in erros_t14[:8]:
+            print('       ' + erro)
+        if len(erros_t14) > 8:
+            print('       ... e mais %d' % (len(erros_t14) - 8))
 
-    print('  group count (mesh+0x08 vs the table): %d ok, %d mismatched'
+    print('  contagem de grupos (mesh+0x08 vs a tabela): %d ok, %d divergente(s)'
           '%s%s'
-          % (n_ng_ok, len(errors_ng),
-             ', %d with +0x08=0 (the ctor loop does not run)' % n_ng_zero
+          % (n_ng_ok, len(erros_ng),
+             ', %d com +0x08=0 (o laco do ctor nao roda)' % n_ng_zero
              if n_ng_zero else '',
-             ', %d without a readable prefix' % n_ng_unprefixed
-             if n_ng_unprefixed else ''))
-    if errors_ng:
+             ', %d sem prefixo legivel' % n_ng_sem_prefixo
+             if n_ng_sem_prefixo else ''))
+    if erros_ng:
         ok = False
-        for error in errors_ng[:6]:
-            print('       ' + error)
-        if len(errors_ng) > 6:
-            print('       ... and %d more' % (len(errors_ng) - 6))
+        for erro in erros_ng[:6]:
+            print('       ' + erro)
+        if len(erros_ng) > 6:
+            print('       ... e mais %d' % (len(erros_ng) - 6))
 
-    # THE CULLING GRID ORIGIN has to match the extents.
-    # `mcCity::CalcAbsCellXZ` (0x257CC8) does floor(x/40) without an origin, and
-    # `CalcRelCellXZ` (0x257C60) subtracts +0x274 and +0x278. In the four retail
-    # cities, 8 of 8: +0x274 == floor(extents_min.x/40), +0x278 == floor(min.z/40).
+    # A ORIGEM DA GRADE DE CULLING tem que casar com os extents.
+    # `mcCity::CalcAbsCellXZ` (0x257CC8) faz floor(x/40) sem origem, e
+    # `CalcRelCellXZ` (0x257C60) subtrai +0x274 e +0x278. Nas quatro cidades de
+    # varejo, 8 de 8: +0x274 == floor(extents_min.x/40), +0x278 == floor(min.z/40).
     import math as _m
     _mn = struct.unpack_from('<3f', p.data, 0x80 + 0x238)
     _ox, _oz = struct.unpack_from('<2i', p.data, 0x80 + 0x274)
     _ex = int(_m.floor(_mn[0] / 40.0)); _ez = int(_m.floor(_mn[2] / 40.0))
-    print('  grid: origin +0x274/+0x278 = %d, %d (the extents ask for %d, %d)'
+    print('  grade: origem +0x274/+0x278 = %d, %d (extents pedem %d, %d)'
           % (_ox, _oz, _ex, _ez))
     if (_ox, _oz) != (_ex, _ez):
-        print('     cell origin does not match the extents: culling shifted '
-              '%d cells in x and %d in z' % (_ex - _ox, _ez - _oz))
+        print('     origem de celula nao casa com os extents: culling deslocado '
+              '%d celulas em x e %d em z' % (_ex - _ox, _ez - _oz))
         ok = False
 
-    # THE INSTANCES ARE CHAINED PER KIND. `+0x00` is the next and `+0x04` the
-    # previous, and the chain only links records with the SAME `+0x0C`. Measured
-    # on atlanta: 3377 links, all to the same kind, none crossed, 231 chains.
-    # Repointing `+0x0C` without redoing the chains mixes the kinds and the game
-    # stays in endless loading - which is what happened in the first version of
-    # the instance port.
+    # AS INSTANCIAS SAO ENCADEADAS POR TIPO. `+0x00` e o proximo e `+0x04` o
+    # anterior, e a cadeia so liga registros com o MESMO `+0x0C`. Medido no
+    # atlanta: 3377 elos, todos para o mesmo tipo, nenhum cruzado, 231 cadeias.
+    # Reapontar `+0x0C` sem refazer as cadeias mistura os tipos e o jogo fica em
+    # loading infinito - foi o que aconteceu na primeira versao do porte de
+    # instancia.
     hb3 = p.F(struct.unpack_from('<I', p.data, 0x80 + 0x18)[0])
     ins = []
     for h in range(len(hs)):
@@ -3381,89 +3378,90 @@ def verify(file_path):
         if p.inside(arr3):
             ins += [arr3 + 96 * k for k in range(cnt3)]
     if ins:
-        misaligned = [o for o in ins if (p.V(o) + 0x20) & 15]
-        print('  instance Matrix34: %d/%d aligned to 16 bytes'
-              % (len(ins) - len(misaligned), len(ins)))
-        if misaligned:
-            print('     DoSetWorld/LQ would truncate the matrix at %s'
+        desalinhadas = [o for o in ins if (p.V(o) + 0x20) & 15]
+        print('  Matrix34 de instancia: %d/%d alinhadas a 16 bytes'
+              % (len(ins) - len(desalinhadas), len(ins)))
+        if desalinhadas:
+            print('     DoSetWorld/LQ truncaria a matriz em %s'
                   % ', '.join('0x%08X' % (p.V(o) + 0x20)
-                              for o in misaligned[:6]))
+                              for o in desalinhadas[:6]))
             ok = False
-        by_va = dict((p.V(o), o) for o in ins)
+        porva = dict((p.V(o), o) for o in ins)
         tp = dict((o, struct.unpack_from('<I', p.data, o + 0x0C)[0]) for o in ins)
-        crossed = 0
+        cruzado = 0
         for o in ins:
-            d = by_va.get(struct.unpack_from('<I', p.data, o)[0])
+            d = porva.get(struct.unpack_from('<I', p.data, o)[0])
             if d is not None and tp[d] != tp[o]:
-                crossed += 1
-        print('  instances: %d in %d kind(s), %d link(s) crossing kinds'
-              % (len(ins), len(set(tp.values())), crossed))
-        if crossed:
-            print('     instance chain mixes kinds')
+                cruzado += 1
+        print('  instancias: %d em %d tipo(s), %d elo(s) cruzando tipo'
+              % (len(ins), len(set(tp.values())), cruzado))
+        if cruzado:
+            print('     cadeia de instancia mistura tipos')
             ok = False
 
-    # THE PASS MASKS OF THE TWO CITY CLASSES. The global scheduler uses +0x00
-    # directly; zero stops even RenderAllTypes from being called. All the retail
-    # cities measured use 0x4E (passes 2, 4, 8 and 64).
-    for off, name in ((0x194, 'mcCityModelClass'),
+    # AS MASCARAS DE PASSE DAS DUAS CLASSES DE CIDADE. O scheduler global usa
+    # diretamente o +0x00; zero impede ate RenderAllTypes de ser chamado. Todas
+    # as cidades retail medidas usam 0x4E (passes 2, 4, 8 e 64).
+    for off, nome in ((0x194, 'mcCityModelClass'),
                       (0x198, 'mcInstCityModelClass')):
         va = struct.unpack_from('<I', p.data, 0x80 + off)[0]
-        mask = None
+        mascara = None
         if va and p.inside(p.F(va)):
-            mask = struct.unpack_from('<I', p.data, p.F(va))[0]
-        print('  pass mask %s (+0x%X): %s'
-              % (name, off,
-                 'INVALID' if mask is None else '0x%08X' % mask))
-        if mask != 0x4E:
-            print('     expected 0x0000004E; zero removes the class from the scheduler')
+            mascara = struct.unpack_from('<I', p.data, p.F(va))[0]
+        print('  mascara de passes %s (+0x%X): %s'
+              % (nome, off,
+                 'INVALIDA' if mascara is None else '0x%08X' % mascara))
+        if mascara != 0x4E:
+            print('     esperado 0x0000004E; zero remove a classe do scheduler')
             ok = False
 
-    # THE ComponentData CHAIN. `CullableTypeFixup` (0x24AE58) walks
-    # `while (v3) { ctor(v3); v3 = *(v3+0x0C); }` from the head at
-    # `MapRoot+0x194`, which points to the LAST object of the file. A node
-    # outside the chain is never built - and Place stops there, silently.
+    # A CADEIA DE ComponentData. `CullableTypeFixup` (0x24AE58) anda
+    # `while (v3) { ctor(v3); v3 = *(v3+0x0C); }` a partir da cabeca em
+    # `MapRoot+0x194`, que aponta pro ULTIMO objeto do arquivo. Um no fora da
+    # cadeia nunca e construido - e o Place para ali, calado.
     #
-    # Checked on retail before becoming a test: atlanta walks 651 nodes and has
-    # 651 components.
-    total = sum(len(hf.hood_uniques(p, i)) for i in range(len(hs)))
+    # Conferido no varejo antes de virar teste: atlanta anda 651 nos e tem 651
+    # componentes.
+    total = sum(len(hf.uniques_do_hood(p, i)) for i in range(len(hs)))
     o194 = struct.unpack_from('<I', p.data, 0x80 + 0x194)[0]
-    n_chain, outside = 0, False
+    n_cadeia, fora = 0, False
     if o194 and p.inside(p.F(o194)):
         cur = struct.unpack_from('<I', p.data, p.F(o194) + 4)[0]
-        while cur and n_chain < 20000:
+        while cur and n_cadeia < 20000:
             f = p.F(cur)
             if not p.inside(f):
-                outside = True
+                fora = True
                 break
             cur = struct.unpack_from('<I', p.data, f + 0x0C)[0]
-            n_chain += 1
-    print('  ComponentData chain (MapRoot+0x194): %d node(s) for %d component(s)%s'
-          % (n_chain, total, '  POINTER OUTSIDE THE FILE' if outside else ''))
-    if outside or (total and n_chain != total):
-        print('     the chain does not cover them all: Place only builds as far as it goes')
+            n_cadeia += 1
+    print('  cadeia de ComponentData (MapRoot+0x194): %d no(s) para %d componente(s)%s'
+          % (n_cadeia, total, '  PONTEIRO FORA DO ARQUIVO' if fora else ''))
+    if fora or (total and n_cadeia != total):
+        print('     a cadeia nao cobre todos: o Place constroi so ate onde ela vai')
         ok = False
 
-    # GENERAL SWEEP: no raw RAM address should be left in the file.
-    # Retail never writes a resolved vtable - always a token - and I found that
-    # out field by field, burning a boot per field (ComponentData+0x28,
-    # Component+0x10, Instance+0x10, kind+0x28 and finally mesh+0x00). This sweep
-    # exists so the next forgotten field shows up here and not in a savestate.
+    # VARREDURA GERAL: nenhum endereco de RAM cru deve sobrar no arquivo.
+    # O varejo nunca escreve vtable resolvida - sempre token - e eu descobri
+    # isso campo a campo, queimando um boot por campo (ComponentData+0x28,
+    # Componente+0x10, Instance+0x10, tipo+0x28 e por fim mesh+0x00). Esta
+    # varredura existe para que o proximo campo esquecido apareca aqui e nao
+    # num savestate.
     #
-    # The whole 0x62xxxx-0x64xxxx range is NOT a valid test: retail tokyo has
-    # 165 words there and atlanta 191, all coincidental data (vertices, floats).
-    # What retail has at ZERO are the RESOLVED vtables, so the test is by exact
-    # value.
-    d = open(file_path, 'rb').read()
-    RAW_VTABLES = {VT_COMPDATA: 'ComponentData+0x28', VT_COMPONENT: 'Component+0x10',
-            VT_INST: 'Instance+0x10', VT_INST_KIND: 'instance kind+0x28',
+    # A faixa inteira 0x62xxxx-0x64xxxx NAO serve de teste: o tokyo do varejo
+    # tem 165 palavras la e o atlanta 191, todas dado coincidente (vertice,
+    # float). O que o varejo tem em ZERO sao as vtables RESOLVIDAS, entao o
+    # teste e por valor exato.
+    d = open(caminho, 'rb').read()
+    CRUS = {VT_COMPDATA: 'ComponentData+0x28', VT_COMPONENTE: 'Componente+0x10',
+            VT_INST: 'Instance+0x10', VT_INST_TIPO: 'tipo de instancia+0x28',
             VT_MESH: 'mesh+0x00'}
-    found = {}
-    # SKIP THE VIF PAYLOADS. Vertex data produces any 32-bit value, and with
-    # 3.9 MB of geometry the raw sweep reported 0x00625190 five times as an
-    # "instance kind" in a city that has NO instances at all - all five fell
-    # inside payload. Looking for vtables only makes sense where there is
-    # structure.
-    payload_ranges = []
+    achados = {}
+    # PULAR OS PAYLOADS DE VIF. Dado de vertice produz qualquer valor de 32
+    # bits, e com 3,9 MB de geometria a varredura crua acusou 0x00625190 cinco
+    # vezes como "tipo de instancia" numa cidade que NAO TEM instancia nenhuma -
+    # as cinco caiam dentro de payload. So vale procurar vtable onde ha
+    # estrutura.
+    faixas_payload = []
     for o in range(0x80, len(d) - 32, 4):
         if struct.unpack_from('<I', d, o)[0] >> 20 != 0x007:
             continue
@@ -3472,262 +3470,262 @@ def verify(file_path):
         fo_gt = gt - base + 0x80
         if not (1 <= g <= 64) or not (0x80 <= fo_gt < len(d) - 8):
             continue
-        # ALL the groups, not just the first. With an N-group mesh (which is what
-        # texture per material requires) protecting only group 0 leaves the rest
-        # of the payload exposed, and the vtable false positive comes back.
+        # TODOS os grupos, nao so o primeiro. Com uma malha de N grupos (que e
+        # o que a textura por material exige) proteger so o grupo 0 deixa o
+        # resto do payload exposto, e o falso positivo de vtable volta.
         for gi in range(g):
             ge = fo_gt + 8 * gi
             if ge + 8 > len(d):
                 break
-            items = struct.unpack_from('<I', d, ge)[0] - base + 0x80
+            lista = struct.unpack_from('<I', d, ge)[0] - base + 0x80
             nb = struct.unpack_from('<H', d, ge + 4)[0]
-            if not (0x80 <= items < len(d)) or not (1 <= nb <= 4096):
+            if not (0x80 <= lista < len(d)) or not (1 <= nb <= 4096):
                 continue
             for k in range(nb):
-                e = items + 8 * k
+                e = lista + 8 * k
                 if e + 8 > len(d):
                     break
                 dp = struct.unpack_from('<I', d, e)[0] - base + 0x80
                 qw = struct.unpack_from('<H', d, e + 4)[0]
                 if 0x80 <= dp < len(d) and qw:
-                    payload_ranges.append((dp, min(len(d), dp + 16 * qw)))
-    payload_ranges.sort()
+                    faixas_payload.append((dp, min(len(d), dp + 16 * qw)))
+    faixas_payload.sort()
 
-    def in_payload(x, _f=payload_ranges):
+    def em_payload(x, _f=faixas_payload):
         import bisect
         i = bisect.bisect_right(_f, (x, 1 << 30)) - 1
         return i >= 0 and _f[i][0] <= x < _f[i][1]
 
     for i in range(0x80, len(d) - 4, 4):
-        if in_payload(i):
+        if em_payload(i):
             continue
         w = struct.unpack_from('<I', d, i)[0]
-        if w in RAW_VTABLES:
-            found[w] = found.get(w, 0) + 1
-    if found:
+        if w in CRUS:
+            achados[w] = achados.get(w, 0) + 1
+    if achados:
         ok = False
-        print('  RESOLVED VTABLE WRITTEN TO THE FILE (retail only writes tokens):')
-        for w, c in sorted(found.items(), key=lambda x: -x[1]):
-            print('     0x%08X  x%-5d  %s' % (w, c, RAW_VTABLES[w]))
+        print('  VTABLE RESOLVIDA GRAVADA NO ARQUIVO (o varejo so grava token):')
+        for w, c in sorted(achados.items(), key=lambda x: -x[1]):
+            print('     0x%08X  x%-5d  %s' % (w, c, CRUS[w]))
     else:
-        print('  tokens: no resolved vtable in the file, as in retail')
-    print('  %s' % ('structure is consistent' if ok else 'STRUCTURE HAS ERRORS'))
+        print('  tokens: nenhuma vtable resolvida no arquivo, como no varejo')
+    print('  %s' % ('estrutura fecha' if ok else 'ESTRUTURA COM ERRO'))
     return ok
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[1],
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--textures', metavar='DIR',
-                    help='folder of .tex.pck files the GAME built; each becomes '
-                         'a shader slot and the mesh gets one group per material')
-    ap.add_argument('--runtime-binding', action='store_true',
-                    help='empty, marked slots, for a mod to supply the texture '
-                         'later; avoids the serialised form entirely')
-    ap.add_argument('--identity-map', metavar='TSV',
-                    help='native_texture_map.tsv: the REAL identity of each dump '
-                         '(447/510 file names are wrong)')
-    ap.add_argument('--ppf-manifest', metavar='JSON',
-                    help='the .ppf manifest; links the STREAMING datChunkRef '
-                         'instead of the resident one')
-    ap.add_argument('--texture-map', metavar='JSON',
-                    help='model -> texture names in mtl order')
-    ap.add_argument('--pck-mesh', metavar='PCK',
-                    help='use the VIF packets of a mesh.pck that THE GAME generated '
-                         '(mc3_heap_to_pck.py) instead of emitting by hand')
-    ap.add_argument('--donor', help='retail city .pck: where the shader comes from')
-    ap.add_argument('--out-path')
-    ap.add_argument('--xmod', help='MC2 model; without it a test cube is used')
-    ap.add_argument('--scale', type=float, default=1.0)
-    ap.add_argument('--side', type=float, default=40.0, help='side of the test cube')
+    ap.add_argument('--texturas', metavar='DIR',
+                    help='pasta de .tex.pck que o JOGO construiu; cada um vira '
+                         'um slot de shader e a malha ganha um grupo por material')
+    ap.add_argument('--ligacao-runtime', action='store_true',
+                    help='slots vazios e marcados, para um mod dar a textura '
+                         'depois; evita a forma serializada por completo')
+    ap.add_argument('--mapa-identidade', metavar='TSV',
+                    help='native_texture_map.tsv: identidade REAL de cada dump '
+                         '(447/510 nomes de arquivo estao errados)')
+    ap.add_argument('--manifesto-ppf', metavar='JSON',
+                    help='manifesto do .ppf; liga o datChunkRef de STREAMING '
+                         'em vez do residente')
+    ap.add_argument('--mapa-textura', metavar='JSON',
+                    help='modelo -> nomes de textura na ordem dos mtl')
+    ap.add_argument('--pck-malha', metavar='PCK',
+                    help='usa os pacotes VIF de um mesh.pck que O JOGO gerou '
+                         '(mc3_heap_to_pck.py) em vez de emitir a mao')
+    ap.add_argument('--doador', help='.pck de cidade do retail: de onde sai o shader')
+    ap.add_argument('--saida')
+    ap.add_argument('--xmod', help='modelo do MC2; sem isto usa um cubo de teste')
+    ap.add_argument('--escala', type=float, default=1.0)
+    ap.add_argument('--lado', type=float, default=40.0, help='lado do cubo de teste')
     ap.add_argument('--pos', default='0,0,0')
     ap.add_argument('--extents-min', metavar='X,Y,Z',
-                    help='minimum extents for the synthetic shell (without --place)')
+                    help='extents minimos para a shell sintetica (sem --place)')
     ap.add_argument('--extents-max', metavar='X,Y,Z',
-                    help='maximum extents for the synthetic shell (without --place)')
+                    help='extents maximos para a shell sintetica (sem --place)')
     ap.add_argument('--hoods',
-                    help='comma-separated hood names, replacing the '
-                         "donor's; AT MOST THREE CHARACTERS each")
+                    help='nomes de hood separados por virgula, no lugar '
+                         'dos do doador; MAXIMO TRES CARACTERES cada')
     ap.add_argument('--hood', default='zz')
     ap.add_argument('--slots', type=int, default=1329,
-                    help='slots per shader group (retail: 1329)')
-    ap.add_argument('--groups', type=int, default=18,
-                    help='shader groups (retail: 18)')
+                    help='slots por grupo de shader (retail: 1329)')
+    ap.add_argument('--grupos', type=int, default=18,
+                    help='grupos de shader (retail: 18)')
     ap.add_argument('--max-inst', type=int, default=None,
-                    help="instance ceiling (default: the donor's)")
+                    help='teto de instancias (padrao: o do doador)')
     ap.add_argument('--material', type=int, default=1)
-    ap.add_argument('--probe', action='store_true',
-                    help='a city with ZERO hoods and ZERO shader groups: if it '
-                         'loads, the problem is in the content, not the skeleton')
+    ap.add_argument('--sonda', action='store_true',
+                    help='cidade com ZERO hoods e ZERO grupos de shader: se ela '
+                         'carrega, o problema esta no conteudo, nao no esqueleto')
     ap.add_argument('--shader-slot', type=int, metavar='N',
-                    help='which donor slot provides the shader. Without it the '
-                         'first usable one is taken (slot 30 in atlanta), which '
-                         'does NOT read the ITOP+2 stream. The atlanta blocks '
-                         'that carry the stream use indices 19, 72, 65, 24, '
-                         '293, 7, 71 and 26')
-    ap.add_argument('--shader-list', action='store_true',
-                    help='list the donor slots that have a usable shader')
+                    help='qual slot do doador fornece o shader. Sem isto pega '
+                         'o primeiro que serve (slot 30 no atlanta), que NAO '
+                         'le o stream de ITOP+2. Os blocos do atlanta que '
+                         'carregam o stream usam os indices 19, 72, 65, 24, '
+                         '293, 7, 71 e 26')
+    ap.add_argument('--lista-shaders', action='store_true',
+                    help='lista os slots do doador que tem shader utilizavel')
     ap.add_argument('--flip-winding', action='store_true',
-                    help='reverse the winding of each packet (MC2 -> MC3)')
-    ap.add_argument('--normals', action='store_true',
-                    help='emit the per-vertex light stream (ITOP+2, V4-8). '
-                         'CPV stays on in the city pass through '
-                         'mcCityModelClass::SetRenderStates, so the data is '
-                         'always consumed; use TOGETHER with --shader-slot of a '
-                         'slot whose blocks carry the stream')
+                    help='inverte o winding de cada pacote (MC2 -> MC3)')
+    ap.add_argument('--normais', action='store_true',
+                    help='emite o stream de luz por vertice (ITOP+2, V4-8). '
+                         'O CPV fica ligado no passe da cidade por '
+                         'mcCityModelClass::SetRenderStates, entao o dado e '
+                         'sempre consumido; use JUNTO com --shader-slot de um '
+                         'slot cujos blocos carreguem o stream')
     ap.add_argument('--padding', type=int, default=0, metavar='N',
-                    help='CONTROL: N dead bytes right after the MapRoot, to '
-                         'shift the layout without changing any content')
-    ap.add_argument('--light', type=int, default=None, metavar='N',
-                    help='per-vertex palette index for --normals '
-                         '(0..255; default 148, the retail median)')
-    ap.add_argument('--mc2-palette', metavar='CPVS.RSC',
-                    help='use the CPP0 palette of an MC2 PS2 <hour>_cpvs.rsc '
-                         'instead of the white palette')
-    ap.add_argument('--texture-donor', metavar='PCK',
-                    help='where the MapRoot+0x1D4 root texture comes from. The '
-                         'MipBuffer varies by city: atlanta 0x10500 '
+                    help='CONTROLE: N bytes mortos logo apos o MapRoot, para '
+                         'deslocar o layout sem mudar conteudo nenhum')
+    ap.add_argument('--luz', type=int, default=None, metavar='N',
+                    help='indice de paleta por vertice do --normais '
+                         '(0..255; padrao 148, a mediana do retail)')
+    ap.add_argument('--paleta-mc2', metavar='CPVS.RSC',
+                    help='usa a paleta CPP0 de um <hora>_cpvs.rsc do MC2 de '
+                         'PS2 no lugar da paleta branca')
+    ap.add_argument('--doador-textura', metavar='PCK',
+                    help='de onde vem a textura raiz de MapRoot+0x1D4. O '
+                         'MipBuffer varia por cidade: atlanta 0x10500 '
                          '(256x256), tokyo 0x160')
-    ap.add_argument('--donor-shader', metavar='PCK',
-                    help='where to take ONLY the shader block from, when the '
-                         'main donor has none of the typical kind')
+    ap.add_argument('--doador-shader', metavar='PCK',
+                    help='de onde tirar SO o bloco de shader, quando o doador '
+                         'principal nao tem um do tipo tipico')
     ap.add_argument('--place', metavar='TSV',
-                    help='placement table from mc2_port.py; uses the real '
-                         'geometry instead of the cube')
-    ap.add_argument('--models-dir', metavar='DIR',
-                    help='model/ folder of the exported package (default: next '
-                         'to --place)')
-    ap.add_argument('--limit', type=int, help='only the first N components')
-    ap.add_argument('--only-hood', help='only the lines of this place.tsv hood')
-    ap.add_argument('--verify-only', metavar='FILE', help='only reopen and check')
-    ap.add_argument('--base', help='real .pck that ALREADY loads, for bisection')
-    ap.add_argument('--graft', choices=('palettes', 'shaders', 'extras', 'group', 'hood', 'hood1', 'hood2'),
-                    help='replace ONE piece of --base with the generated version')
+                    help='tabela de colocacao do mc2_port.py; usa a geometria '
+                         'de verdade em vez do cubo')
+    ap.add_argument('--modelos', metavar='DIR',
+                    help='pasta model/ do pacote exportado (padrao: ao lado do '
+                         '--place)')
+    ap.add_argument('--limite', type=int, help='so os N primeiros componentes')
+    ap.add_argument('--so-hood', help='so as linhas deste hood do place.tsv')
+    ap.add_argument('--verificar', metavar='ARQ', help='so reabre e confere')
+    ap.add_argument('--base', help='.pck real que JA carrega, pra bisseccao')
+    ap.add_argument('--enxerta', choices=('paletas', 'shaders', 'extras', 'grupo', 'hood', 'hood1', 'hood2'),
+                    help='troca UMA peca do --base pela versao gerada')
     a = ap.parse_args()
 
-    if a.textures:
-        print('  game textures: %d shader slot(s)'
-              % load_textures(a.textures, a.identity_map))
-    if a.runtime_binding:
-        globals()['RUNTIME_BINDING'] = True
-        print('  runtime binding: empty slots, marked with MC3TEXSLOTS')
-    if a.ppf_manifest:
-        print('  .ppf manifest: %d texture(s)' % load_ppf_manifest(a.ppf_manifest))
-    if a.texture_map:
+    if a.texturas:
+        print('  texturas do jogo: %d slot(s) de shader'
+              % carrega_texturas(a.texturas, a.mapa_identidade))
+    if a.ligacao_runtime:
+        globals()['LIGACAO_RUNTIME'] = True
+        print('  ligacao em runtime: slots vazios, marcados com MC3TEXSLOTS')
+    if a.manifesto_ppf:
+        print('  manifesto do .ppf: %d textura(s)' % carrega_manifesto_ppf(a.manifesto_ppf))
+    if a.mapa_textura:
         import json
-        global TEXTURES_PER_MODEL
-        TEXTURES_PER_MODEL = {k.lower(): v for k, v in
-                               json.load(open(a.texture_map)).items()}
-        print('  texture map: %d model(s)' % len(TEXTURES_PER_MODEL))
-    if a.pck_mesh:
-        global GAME_PACKETS, PCK_FOLDER
-        if os.path.isdir(a.pck_mesh):
-            PCK_FOLDER = a.pck_mesh
-            for f in sorted(os.listdir(PCK_FOLDER)):
+        global TEXTURAS_POR_MODELO
+        TEXTURAS_POR_MODELO = {k.lower(): v for k, v in
+                               json.load(open(a.mapa_textura)).items()}
+        print('  mapa de textura: %d modelo(s)' % len(TEXTURAS_POR_MODELO))
+    if a.pck_malha:
+        global PACOTES_DO_JOGO, PASTA_PCK
+        if os.path.isdir(a.pck_malha):
+            PASTA_PCK = a.pck_malha
+            for f in sorted(os.listdir(PASTA_PCK)):
                 if f.endswith('.mesh.pck'):
-                    pck_path = os.path.join(PCK_FOLDER, f)
-                    key_m = f[:-len('.mesh.pck')].lower()
-                    PCK_PER_MODEL[key_m] = read_pck_packets(pck_path)
-                    GROUPS_PER_MODEL[key_m] = read_pck_groups(pck_path)
-                    c = real_pck_centre(pck_path)
+                    cam = os.path.join(PASTA_PCK, f)
+                    chave_m = f[:-len('.mesh.pck')].lower()
+                    PCK_POR_MODELO[chave_m] = le_pacotes_de_pck(cam)
+                    GRUPOS_POR_MODELO[chave_m] = le_grupos_de_pck(cam)
+                    c = centro_real_do_pck(cam)
                     if c:
-                        REAL_PCK_CENTRE[key_m] = c
-            print('  game .pck files in the folder: %d model(s), %d packet(s) in total'
-                  % (len(PCK_PER_MODEL),
-                     sum(len(v) for v in PCK_PER_MODEL.values())))
+                        CENTRO_REAL_DO_PCK[chave_m] = c
+            print('  .pck do jogo na pasta: %d modelo(s), %d pacote(s) no total'
+                  % (len(PCK_POR_MODELO),
+                     sum(len(v) for v in PCK_POR_MODELO.values())))
         else:
-            GAME_PACKETS = read_pck_packets(a.pck_mesh)
-            print('  packets from the game: %d, %d quadwords, %d vertices'
-                  % (len(GAME_PACKETS), sum(p[1] for p in GAME_PACKETS),
-                     sum(p[2] for p in GAME_PACKETS)))
+            PACOTES_DO_JOGO = le_pacotes_de_pck(a.pck_malha)
+            print('  pacotes vindos do jogo: %d, %d quadwords, %d vertices'
+                  % (len(PACOTES_DO_JOGO), sum(p[1] for p in PACOTES_DO_JOGO),
+                     sum(p[2] for p in PACOTES_DO_JOGO)))
 
-    # Both of these touch mc2_to_mc3 globals and have to take effect before any
-    # make_block. See the CPV note further up.
+    # As duas mexem em globais do mc2_to_mc3 e tem que valer antes de
+    # qualquer make_block. Ver a nota do CPV la em cima.
     if a.flip_winding:
         globals()['FLIP_WINDING'] = True
-        print('  winding flip: on')
-    if a.normals:
-        mc2.NORMALS = True
-    if a.mc2_palette:
-        globals()['MC2_PALETTE'] = palette_from_mc2(a.mc2_palette)
-        print('  palette: 256 MC2 colours (%s)'
-              % os.path.basename(a.mc2_palette))
+        print('  flip de winding: ligado')
+    if a.normais:
+        mc2.NORMAIS = True
+    if a.paleta_mc2:
+        globals()['PALETA_MC2'] = paleta_do_mc2(a.paleta_mc2)
+        print('  paleta: 256 cores do MC2 (%s)'
+              % os.path.basename(a.paleta_mc2))
     if a.padding:
-        globals()['TEST_PADDING'] = a.padding
-    if a.light is not None:
-        if not 0 <= a.light <= 255:
-            ap.error('--light goes from 0 to 255')
-        mc2.LIGHT = a.light
+        globals()['PADDING_TESTE'] = a.padding
+    if a.luz is not None:
+        if not 0 <= a.luz <= 255:
+            ap.error('--luz vai de 0 a 255')
+        mc2.LUZ = a.luz
 
-    if a.base and a.graft:
-        graft(a.base, a.out_path, a.graft, a.side)
+    if a.base and a.enxerta:
+        enxerta(a.base, a.saida, a.enxerta, a.lado)
         raise SystemExit(0)
-    if a.verify_only:
-        raise SystemExit(0 if verify(a.verify_only) else 1)
-    if a.shader_list:
-        target = a.donor_shader or a.donor
-        good = shader_slots(target)
-        print('%s: %d slot(s) with a usable shader' % (os.path.basename(target),
-                                                       len(good)))
-        print('   ' + ' '.join(str(k) for k in good))
-        # The ones Fork City MODS measured carrying the ITOP+2 stream. Having a
-        # usable shader and being the right pair for --normals are different
-        # things: CPV is always on in the city pass, but the active VU program
-        # is re-sent per list, so it is still worth picking a slot whose blocks
-        # provably carry the stream.
-        marked = [k for k in good if k in (19, 72, 65, 24, 293, 7, 71, 26)]
-        print('   of those the blocks with the stream use: %s'
-              % (' '.join(str(k) for k in marked) if marked
-                 else 'none in this donor'))
+    if a.verificar:
+        raise SystemExit(0 if verifica(a.verificar) else 1)
+    if a.lista_shaders:
+        alvo = a.doador_shader or a.doador
+        bons = slots_de_shader(alvo)
+        print('%s: %d slot(s) com shader utilizavel' % (os.path.basename(alvo),
+                                                        len(bons)))
+        print('   ' + ' '.join(str(k) for k in bons))
+        # Os que a Fork City MODS mediu carregando o stream de ITOP+2. Ter um
+        # shader utilizavel e ser o par certo para --normais sao coisas
+        # diferentes: o CPV esta sempre ligado no passe da cidade, mas o
+        # programa de VU vigente e reenviado por lista, entao ainda vale
+        # escolher um slot cujos blocos comprovadamente carregam o stream.
+        marcados = [k for k in bons if k in (19, 72, 65, 24, 293, 7, 71, 26)]
+        print('   dos que os blocos com stream usam: %s'
+              % (' '.join(str(k) for k in marcados) if marcados
+                 else 'nenhum neste doador'))
         return
 
-    if not (a.donor and a.out_path):
-        ap.error('--donor and --out-path are required (or use --verify-only)')
+    if not (a.doador and a.saida):
+        ap.error('--doador e --saida sao obrigatorios (ou use --verificar)')
 
     if a.place:
-        models_dir = a.models_dir or os.path.join(os.path.dirname(a.place), 'model')
-        if not os.path.isdir(models_dir):
-            ap.error('models folder not found: %s' % models_dir)
-        build_place(a.out_path, a.donor, a.place, models_dir, a.slots, a.groups,
-                    a.material, a.limit, a.only_hood, a.donor_shader,
-                    a.max_inst, a.shader_slot, a.texture_donor,
-                    [h.strip() for h in a.hoods.split(',')] if a.hoods else None)
+        modelos = a.modelos or os.path.join(os.path.dirname(a.place), 'model')
+        if not os.path.isdir(modelos):
+            ap.error('nao achei a pasta de modelos: %s' % modelos)
+        constroi_place(a.saida, a.doador, a.place, modelos, a.slots, a.grupos,
+                       a.material, a.limite, a.so_hood, a.doador_shader,
+                       a.max_inst, a.shader_slot, a.doador_textura,
+                       [h.strip() for h in a.hoods.split(',')] if a.hoods else None)
         print()
-        raise SystemExit(0 if verify(a.out_path) else 1)
+        raise SystemExit(0 if verifica(a.saida) else 1)
 
-    blocks = read_model(a.xmod, a.scale) if a.xmod else cube(a.side)
-    if not blocks:
-        raise SystemExit('empty model')
-    # The guard applies to HAND emission. With --pck-mesh the packets come
-    # ready from the game and the `blocks` only serve for extents and counts, so
-    # counting mine here would block a file the game itself assembled.
-    if len(blocks) > mc2.MAX_BLOCKS and not GAME_PACKETS:
-        raise SystemExit('%d blocks, retail never goes above %d'
-                         % (len(blocks), mc2.MAX_BLOCKS))
-    if GAME_PACKETS and len(GAME_PACKETS) > mc2.MAX_BLOCKS:
-        raise SystemExit('%d packets from the game, retail never goes above %d'
-                         % (len(GAME_PACKETS), mc2.MAX_BLOCKS))
+    blocos = le_modelo(a.xmod, a.escala) if a.xmod else cubo(a.lado)
+    if not blocos:
+        raise SystemExit('modelo vazio')
+    # A guarda vale para a emissao A MAO. Com --pck-malha os pacotes vem
+    # prontos do jogo e os `blocos` servem so para extents e contagens, entao
+    # contar os meus aqui barraria um arquivo que o proprio jogo montou.
+    if len(blocos) > mc2.MAX_BLOCKS and not PACOTES_DO_JOGO:
+        raise SystemExit('%d blocos, o retail nunca passa de %d'
+                         % (len(blocos), mc2.MAX_BLOCKS))
+    if PACOTES_DO_JOGO and len(PACOTES_DO_JOGO) > mc2.MAX_BLOCKS:
+        raise SystemExit('%d pacotes vindos do jogo, o retail nunca passa de %d'
+                         % (len(PACOTES_DO_JOGO), mc2.MAX_BLOCKS))
     pos = tuple(float(x) for x in a.pos.split(','))
     hoods = [h.strip() for h in a.hoods.split(',')] if a.hoods else None
     if hoods:
-        too_long = [h for h in hoods if len(h) > 3]
-        if too_long:
-            raise SystemExit('a hood name has at most 3 characters '
-                             '(the .pck field has 4 bytes): %s'
-                             % ', '.join(too_long))
+        longos = [h for h in hoods if len(h) > 3]
+        if longos:
+            raise SystemExit('nome de hood tem no maximo 3 caracteres '
+                             '(o campo no .pck tem 4 bytes): %s'
+                             % ', '.join(longos))
     if bool(a.extents_min) != bool(a.extents_max):
-        ap.error('--extents-min and --extents-max go together')
+        ap.error('--extents-min e --extents-max devem ser usados juntos')
     extents = None
     if a.extents_min:
         mn = tuple(float(x) for x in a.extents_min.split(','))
         mx = tuple(float(x) for x in a.extents_max.split(','))
         if len(mn) != 3 or len(mx) != 3:
-            ap.error('extents take three values X,Y,Z')
+            ap.error('extents devem ter tres valores X,Y,Z')
         extents = (mn, mx)
-    build(a.out_path, a.donor, blocks, a.hood, pos, a.slots, a.groups, a.material,
-          a.probe, hoods, a.shader_slot, a.texture_donor, extents)
+    constroi(a.saida, a.doador, blocos, a.hood, pos, a.slots, a.grupos, a.material,
+             a.sonda, hoods, a.shader_slot, a.doador_textura, extents)
     print()
-    verify(a.out_path)
+    verifica(a.saida)
 
 
 if __name__ == '__main__':

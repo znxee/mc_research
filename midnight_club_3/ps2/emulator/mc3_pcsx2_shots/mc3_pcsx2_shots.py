@@ -26,9 +26,8 @@ import time
 
 from PIL import ImageGrab
 
-PCSX2 = os.environ.get('MC3_PCSX2', 'pcsx2-qt.exe')
-LOG = os.path.join(os.environ.get('MC3_PCSX2_DATA', os.path.expanduser('~/Documents/PCSX2')),
-                   'logs', 'cli_test.txt')
+PCSX2 = os.path.join(os.environ.get('MC3_PCSX2_DIR', ''), 'pcsx2-qt.exe')
+LOG = os.path.join(os.environ.get('MC3_PCSX2_DATA', ''), 'logs/cli_teste.txt')
 
 user32 = ctypes.windll.user32
 user32.SetProcessDPIAware()
@@ -78,7 +77,7 @@ def shoot(pid, path):
 
 
 VK_F1 = 0x70
-SSTATES = os.path.join(os.environ.get('MC3_PCSX2_DATA', 'PCSX2'), 'sstates')
+SSTATES = os.path.join(os.environ.get('MC3_PCSX2_DATA', ''), 'sstates')
 
 
 def newest_state():
@@ -112,7 +111,7 @@ def save_state(pid, timeout=30.0):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
-    ap.add_argument('--elf', default=os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'mc3boot.elf'))
+    ap.add_argument('--elf', default=os.path.join(os.environ.get('MC3_HOSTFS', ''), 'mc3boot.elf'))
     ap.add_argument('--at', type=float, nargs='+', required=True,
                     help='seconds after launch to take each screenshot')
     ap.add_argument('--out', required=True, help='directory for the PNGs')

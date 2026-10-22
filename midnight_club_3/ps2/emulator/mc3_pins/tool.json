@@ -6,17 +6,17 @@
   "type": "emulator",
   "entry": "mc3_pins.py",
   "summary": "The pins marked in game (city_mc2_rsc_draw_test: keys 1/2/3, Shift = on",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

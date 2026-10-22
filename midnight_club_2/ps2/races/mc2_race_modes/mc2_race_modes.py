@@ -174,11 +174,11 @@ def locinf_block(rel, rinf):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
-    ap.add_argument('--mc3', default=os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'ASSETS/tune/race'))
+    ap.add_argument('--mc3', default=os.path.join(os.environ.get('MC3_HOSTFS', ''), 'ASSETS/tune/race'))
     ap.add_argument('--city', default='losangeles', help='MC3 city (losangeles = LA, paris)')
     ap.add_argument('--mc2-city', default=None, help='MC2 city (default losangeles for losangeles)')
-    ap.add_argument('--fonts', default=os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'ASSETS/fonts'))
-    ap.add_argument('--strtbl', default=os.environ.get('MC3_STRTBL', 'strtbl.py'))
+    ap.add_argument('--fonts', default=os.path.join(os.environ.get('MC3_HOSTFS', ''), 'ASSETS/fonts'))
+    ap.add_argument('--strtbl', default=os.path.join(os.environ.get('MC_WORK_DIR', ''), 'strtbl.py'))
     a = ap.parse_args()
     mc2_city = a.mc2_city or ('losangeles' if a.city == 'losangeles' else a.city)
     root = os.path.join(a.mc3, a.city)

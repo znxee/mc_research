@@ -22,7 +22,7 @@ import sys
 import mc2_rsc as R
 import mc2_tex_gs as TG
 
-VU_DIR = os.path.join(os.environ.get('MC3_WORK', '.'), 'output', 'vu_mc3')
+VU_DIR = os.path.join(os.environ.get('MC_OUTPUT_DIR', ''), 'vu_mc3')
 MAIN_BIN = os.path.join(VU_DIR, 'vu_26387.bin')     # rv1_code_main
 TAIL_BIN = os.path.join(VU_DIR, 'vu_12963.bin')     # rv1_code (chunk 0 = 256 empty bytes)
 TAIL_VU = 0x1F40                                    # where the tail chunks live in VU memory

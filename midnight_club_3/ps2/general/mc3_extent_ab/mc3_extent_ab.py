@@ -1,40 +1,41 @@
-"""mc3_extent_ab.py - why two decoders disagree about the extent
+"""mc3_extent_ab.py - por que dois decodificadores discordam da extensao
 
-Fork Alpha 2004 measured 120 of LA's 729 `.mesh.pck` with a local extent of
-~4096 and called it a quantisation overflow. With my fixed decoder I measure
-ZERO above 2000 in the same files, and on `l_beverlyhills_blk_hotel_01_x` I
-match the exact vertex count (4150/4150) but get an extent of 198.8.
+A Fork Alpha 2004 mediu 120 dos 729 `.mesh.pck` de LA com extensao local de
+~4096 e chamou isso de overflow de quantizacao. Com o meu decodificador
+consertado eu meco ZERO acima de 2000 nos mesmos arquivos, e no
+`l_beverlyhills_blk_hotel_01_x` eu bato a contagem de vertice exata (4150/4150)
+mas dou extensao 198,8.
 
-This script does not decide who is right. It runs BOTH readings over the same
-bytes and shows which assumption produces which number, so the disagreement
-becomes a command line instead of two claims.
+Este script nao decide quem esta certo. Ele roda as DUAS leituras sobre os
+mesmos bytes e mostra qual suposicao produz qual numero, para a discordancia
+virar uma linha de comando em vez de duas afirmacoes.
 
-The difference is in ONE choice: which VIF streams are position.
+A diferenca esta em UMA escolha: quais fluxos de VIF sao posicao.
 
-  A  V3 stream only at POSITION addresses   (0x100..0x1C4 and >= 0x227)
-  B  every V3 stream, including the MASKED V3-8 at 0x0A0/0x1C7
+  A  fluxo V3 so nos enderecos de POSICAO   (0x100..0x1C4 e >= 0x227)
+  B  todo fluxo V3, inclusive o V3-8 MASCARADO em 0x0A0/0x1C7
 
-In both, V3-16 and V3-8 count: position comes in both encodings, because
-PackData picks an 8-bit delta when it comes out smaller. A first version of this
-script accepted only V3-16 in reading A and so lost 733 of hotel_01's 4150
-vertices - the same kind of mistake that had already cost me the whole decoder.
+Nas duas, V3-16 e V3-8 contam: a posicao vem nas duas codificacoes, porque o
+PackData escolhe delta de 8 bits quando ela sai menor. Uma primeira versao deste
+script aceitava so V3-16 na leitura A e por isso perdia 733 dos 4150 vertices do
+hotel_01 - o mesmo tipo de erro que ja tinha me custado o decodificador inteiro.
 
-The layout, measured on a retail `.mesh.pck`: each VU buffer has colour at +2, uv
-at +0x32 and position at +0x62 from ITOP - 0x0A0/0x0D0/0x100 in the first and
-0x1C7/0x1F7/0x227 in the second. The stream at 0x0A0 is a masked V3-8, with
-STMASK and STROW in front. If it is the normal, reading A is right; if it is
-position, reading B is.
+O layout, medido num `.mesh.pck` de varejo: cada buffer de VU tem cor em +2, uv
+em +0x32 e posicao em +0x62 a partir do ITOP - 0x0A0/0x0D0/0x100 no primeiro e
+0x1C7/0x1F7/0x227 no segundo. O fluxo em 0x0A0 e um V3-8 mascarado, com STMASK
+e STROW na frente. Se ele for normal, a leitura A esta certa; se for posicao,
+a leitura B esta.
 
-USAGE
+USO
 
-    python mc3_extent_ab.py <file.mesh.pck>      one file, in detail
-    python mc3_extent_ab.py --all <folder>       the whole folder, both counts
-    python mc3_extent_ab.py --city <city.pck>    inside a city .pck
+    python mc3_extent_ab.py <arquivo.mesh.pck>      um arquivo, com detalhe
+    python mc3_extent_ab.py --todos <pasta>         a pasta inteira, as duas contagens
+    python mc3_extent_ab.py --cidade <cidade.pck>  dentro de um .pck de cidade
 
-EXAMPLE THAT REPRODUCES THE DISAGREEMENT
+EXEMPLO QUE REPRODUZ A DISCORDANCIA
 
     python mc3_extent_ab.py "output/la729_pck/l_beverlyhills_blk_hotel_01_x#geom_0_main.mesh.pck"
-    python mc3_extent_ab.py --all output/la729_pck
+    python mc3_extent_ab.py --todos output/la729_pck
 """
 import collections
 import glob
@@ -46,15 +47,15 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mc3_vifdis as V
 
 
-# The VU addresses measured on a retail .mesh.pck.
+# Os enderecos de VU medidos num .mesh.pck de varejo.
 BUF = ((0x09E, 0x0A0, 0x0D0, 0x100), (0x1C5, 0x1C7, 0x1F7, 0x227))
 
 
-def classify(addr):
-    """'pos', 'uv', 'colour' or None, by the destination address in the VU."""
-    for itop, colour, uv, pos in BUF:
-        if addr == colour:
-            return 'colour'
+def classifica(addr):
+    """'pos', 'uv', 'cor' ou None, pelo endereco de destino no VU."""
+    for itop, cor, uv, pos in BUF:
+        if addr == cor:
+            return 'cor'
         if addr == uv:
             return 'uv'
         if addr == itop:
@@ -64,22 +65,22 @@ def classify(addr):
     return None
 
 
-def le(pck, mode):
-    """Return (extent, scale, vertices, streams) under reading A or B."""
+def le(pck, modo):
+    """Devolve (extensao, escala, vertices, fluxos) sob a leitura A ou B."""
     lo = [1e30] * 3
     hi = [-1e30] * 3
-    raw_lo, raw_hi = 32767, -32768     # the values BEFORE the scale
-    scale = None
+    cru_lo, cru_hi = 32767, -32768     # os valores ANTES da escala
+    escala = None
     n = 0
-    streams = collections.Counter()
+    fluxos = collections.Counter()
 
     for off, qw, nv in V.walk_graph(pck):
-        vif_mode = 0
+        modo_vif = 0
         row = [0, 0, 0, 0]
         for o, w, t in V.walk_chain(pck, off, qw):
             cmd = (w >> 24) & 0xFF
             if cmd == 0x05:
-                vif_mode = w & 0xFF
+                modo_vif = w & 0xFF
                 continue
             if cmd == 0x30:
                 row = [V._s32(pck.w(o + 4 + k * 4)) for k in range(4)]
@@ -89,24 +90,24 @@ def le(pck, mode):
 
             addr = w & 0x3FF
             cnt = (w >> 16) & 0xFF
-            what_ = classify(addr)
+            que = classifica(addr)
 
             if cmd in (0x60, 0x6C) and cnt == 2:
                 f = struct.unpack('<f', struct.pack('<I', pck.w(o + 4)))[0]
                 if 0.0 < f <= 1.0:
-                    scale = f
+                    escala = f
                 continue
-            if scale is None:
+            if escala is None:
                 continue
 
-            masked = bool(cmd & 0x10)
-            streams['%s %s%s' % (V.unpack_name(cmd & ~0x10), what_ or '?',
-                                ' masked' if masked else '')] += 1
+            mascarado = bool(cmd & 0x10)
+            fluxos['%s %s%s' % (V.unpack_name(cmd & ~0x10), que or '?',
+                                ' masc' if mascarado else '')] += 1
 
-            # HERE IS THE DIFFERENCE BETWEEN THE TWO READINGS.
-            if ((cmd & ~0x10) & 0x0C) != 0x08:      # only V3 streams
+            # AQUI ESTA A DIFERENCA ENTRE AS DUAS LEITURAS.
+            if ((cmd & ~0x10) & 0x0C) != 0x08:      # so fluxo V3
                 continue
-            if mode == 'A' and what_ != 'pos':
+            if modo == 'A' and que != 'pos':
                 continue
 
             b = pck.off + o + 4
@@ -121,7 +122,7 @@ def le(pck, mode):
                     elif bits == 8:
                         v = pck.data[b + i * 3 + c]
                         v = v - 256 if v & 0x80 else v
-                        if vif_mode == 2:
+                        if modo_vif == 2:
                             v += row[c] if i == 0 else vals[i - 1][c]
                     else:
                         v = V._s32(pck.w(o + 4 + (i * 3 + c) * 4))
@@ -129,11 +130,11 @@ def le(pck, mode):
                 vals.append(r)
             for r in vals:
                 for c in range(3):
-                    if r[c] < raw_lo:
-                        raw_lo = r[c]
-                    if r[c] > raw_hi:
-                        raw_hi = r[c]
-                    f = r[c] * scale
+                    if r[c] < cru_lo:
+                        cru_lo = r[c]
+                    if r[c] > cru_hi:
+                        cru_hi = r[c]
+                    f = r[c] * escala
                     if f < lo[c]:
                         lo[c] = f
                     if f > hi[c]:
@@ -142,139 +143,139 @@ def le(pck, mode):
 
     if not n:
         return None
-    return (max(hi[c] - lo[c] for c in range(3)), scale, n, streams,
-            raw_lo, raw_hi)
+    return (max(hi[c] - lo[c] for c in range(3)), escala, n, fluxos,
+            cru_lo, cru_hi)
 
 
-def one(path):
-    pck = V.Pck(path)
-    declared_n = sum(nv for _, _, nv in V.walk_graph(pck))
-    print('%s' % os.path.basename(path))
-    print('  %d groups, %d packets, %d vertices declared in the slots'
-          % (pck.h(0x08), len(list(V.walk_graph(pck))), declared_n))
+def um(caminho):
+    pck = V.Pck(caminho)
+    declarado = sum(nv for _, _, nv in V.walk_graph(pck))
+    print('%s' % os.path.basename(caminho))
+    print('  %d grupos, %d pacotes, %d vertices declarados nos slots'
+          % (pck.h(0x08), len(list(V.walk_graph(pck))), declarado))
     print()
-    for mode, text in (('A', 'V3 only at position addresses'),
-                        ('B', 'every V3, including the masked one at 0x0A0')):
-        r = le(pck, mode)
+    for modo, texto in (('A', 'V3 so em endereco de posicao'),
+                        ('B', 'todo V3, inclusive o mascarado em 0x0A0')):
+        r = le(pck, modo)
         if r is None:
-            print('  %s  no geometry' % mode)
+            print('  %s  sem geometria' % modo)
             continue
-        ext, esc, n, streams, cl, ch = r
-        reach = 32767.0 * esc
-        print('  reading %s (%s)' % (mode, text))
-        print('     extent %10.1f   scale %-12g reach +-%.0f'
-              % (ext, esc, reach))
-        print('     %d vertices  %s' % (n, 'MATCHES the declared count'
-                                        if n == declared_n else
-                                        '(declared: %d)' % declared_n))
-        # The physical proof: overflow is a raw value hitting the s16 rail. If
-        # the raw value does not get near +-32767, there was no overflow - and
-        # that does not depend on who is right about which stream is position.
+        ext, esc, n, fluxos, cl, ch = r
+        alcance = 32767.0 * esc
+        print('  leitura %s (%s)' % (modo, texto))
+        print('     extensao %10.1f   escala %-12g alcance +-%.0f'
+              % (ext, esc, alcance))
+        print('     %d vertices  %s' % (n, 'BATE com o declarado'
+                                        if n == declarado else
+                                        '(declarado: %d)' % declarado))
+        # A prova fisica: overflow e valor cru batendo no trilho do s16. Se o
+        # cru nao chega perto de +-32767, nao houve estouro - e isso independe
+        # de quem esta certo sobre qual fluxo e posicao.
         rail = max(abs(cl), abs(ch))
-        print('     raw s16: %d to %d   (the rail is -32768 to 32767; uses %.1f%% of it)'
+        print('     s16 cru: %d a %d   (o trilho e -32768 a 32767; usa %.1f%% dele)'
               % (cl, ch, 100.0 * rail / 32767.0))
-        print('     overflowed: %s'
-              % ('YES - the raw value hits the rail' if rail > 32000 else
-                 'no - %.0f%% margin left' % (100.0 - 100.0 * rail / 32767.0)))
+        print('     estourou: %s'
+              % ('SIM - o cru bate no trilho' if rail > 32000 else
+                 'nao - sobra %.0f%% de margem' % (100.0 - 100.0 * rail / 32767.0)))
         print()
-    print('  streams found in the file:')
+    print('  fluxos encontrados no arquivo:')
     r = le(pck, 'B')
     if r:
         for k, v in sorted(r[3].items()):
             print('     %-22s %d' % (k, v))
     print()
-    print('  Both numbers come from the SAME bytes. The only difference is whether')
-    print('  the masked V3-8 at 0x0A0/0x1C7 counts as position or as normal.')
+    print('  Os dois numeros vem dos MESMOS bytes. A unica diferenca e se o')
+    print('  V3-8 mascarado em 0x0A0/0x1C7 conta como posicao ou como normal.')
 
 
-def all_(folder):
-    """The sweep. The signal that matters is NOT the extent - it is the rail usage.
+def todos(pasta):
+    """A varredura. O sinal que importa NAO e a extensao - e o uso do trilho.
 
-    A model far from the origin has a huge raw value and a small extent: it is
-    not big, it is just far away. Measuring the extent makes them all look safe.
-    What tells whether there is a risk of overflow is how much of the s16 range
-    the raw value already uses, because past the rail it wraps around silently.
+    Um modelo longe da origem tem valor cru enorme e extensao pequena: ele nao e
+    grande, so esta longe. Medir extensao faz todos parecerem seguros. O que
+    diz se ha risco de estouro e quanto do intervalo de s16 o valor cru ja
+    gasta, porque acima do trilho ele da a volta em silencio.
     """
-    files_ = sorted(glob.glob(os.path.join(folder, '*.pck')))
-    if not files_:
-        print('no .pck in %s' % folder)
+    arqs = sorted(glob.glob(os.path.join(pasta, '*.pck')))
+    if not arqs:
+        print('nenhum .pck em %s' % pasta)
         return 1
-    lines = []
-    exact = 0
-    for f in files_:
+    linhas = []
+    exato = 0
+    for f in arqs:
         pck = V.Pck(f)
-        declared_n = sum(nv for _, _, nv in V.walk_graph(pck))
+        declarado = sum(nv for _, _, nv in V.walk_graph(pck))
         r = le(pck, 'A')
         if r is None:
             continue
         ext, esc, n, _, cl, ch = r
-        if n == declared_n:
-            exact += 1
-        lines.append((max(abs(cl), abs(ch)) / 32767.0,
+        if n == declarado:
+            exato += 1
+        linhas.append((max(abs(cl), abs(ch)) / 32767.0,
                        os.path.basename(f)[:44], ext, esc, cl, ch))
-    lines.sort(reverse=True)
+    linhas.sort(reverse=True)
 
-    range_list = ((0.98, 'on the rail  >= 98%'),
-              (0.90, 'dangerous    90-98%'),
-              (0.75, 'tight        75-90%'),
-              (0.00, 'comfortable   < 75%'))
-    print('%d files in %s, %d with an exactly matching vertex count'
-          % (len(files_), folder, exact))
+    faixas = ((0.98, 'no trilho    >= 98%'),
+              (0.90, 'perigoso     90-98%'),
+              (0.75, 'apertado     75-90%'),
+              (0.00, 'folgado       < 75%'))
+    print('%d arquivos em %s, %d com a contagem de vertice batendo exato'
+          % (len(arqs), pasta, exato))
     print()
-    print('  s16 RAIL USAGE - the signal that matters:')
-    prev_ = 1.01
-    for threshold, name in range_list:
-        c = sum(1 for x in lines if threshold <= x[0] < prev_)
-        print('     %-22s %4d' % (name, c))
-        prev_ = threshold
+    print('  USO DO TRILHO s16 - o sinal que importa:')
+    ant = 1.01
+    for lim, nome in faixas:
+        c = sum(1 for x in linhas if lim <= x[0] < ant)
+        print('     %-22s %4d' % (nome, c))
+        ant = lim
     print()
-    print('  the closest to the rail:')
-    for u, n, ext, esc, cl, ch in lines[:8]:
-        print('     %5.1f%%  %-46s raw %7d..%-7d scale %g'
+    print('  os mais proximos do trilho:')
+    for u, n, ext, esc, cl, ch in linhas[:8]:
+        print('     %5.1f%%  %-46s cru %7d..%-7d escala %g'
               % (100 * u, n, cl, ch, esc))
     print()
-    print('  Extent, for comparison - and why it MISLEADS here:')
-    print('     above 2000: %d' % sum(1 for x in lines if x[2] > 2000))
-    print('     A model far from the origin has a big raw value and a small extent.')
-    print('     It is not big, just far away - and it is exactly that one that is')
-    print('     at risk of overflowing.')
+    print('  Extensao, para comparar - e por que ela ENGANA aqui:')
+    print('     acima de 2000: %d' % sum(1 for x in linhas if x[2] > 2000))
+    print('     Um modelo longe da origem tem cru grande e extensao pequena.')
+    print('     Ele nao e grande, so esta longe - e e exatamente esse que corre')
+    print('     risco de estourar.')
     return 0
 
 
-def city(path):
-    """Rail usage inside a CITY .pck (kind 0x43).
+def cidade(caminho):
+    """Uso do trilho dentro de um .pck de CIDADE (tipo 0x43).
 
-    A city has no mesh root at body+0, so here scanning for headers is
-    legitimate instead of lazy: each SUB-BATCH has its own 'UNPACK S-32 x2'
-    with the inverse scale, which is why hotel_01 had seven of them in a single
-    packet. Finding the headers finds the sub-batches, and the scale comes along
-    - which is all the rail measurement needs.
+    Uma cidade nao tem raiz de malha em corpo+0, entao aqui a varredura de
+    cabecalho e legitima em vez de preguicosa: cada SUB-LOTE tem o seu proprio
+    'UNPACK S-32 x2' com a escala inversa, e foi por isso que o hotel_01 tinha
+    sete deles num pacote so. Achando os cabecalhos eu acho os sub-lotes, e a
+    escala vem junto - que e tudo que a medida de trilho precisa.
 
-    The scale float is the filter against false positives: it has to be a power
-    of two in (0, 1].
+    O float da escala e o filtro contra falso positivo: tem que ser potencia de
+    dois em (0, 1].
     """
-    pck = V.Pck(path)
-    print('%s  kind 0x%02X  %d body bytes'
-          % (os.path.basename(path), pck.type, pck.body))
-    headers = V.find_chains(pck)
-    print('  %d sub-batches found' % len(headers))
-    if not headers:
+    pck = V.Pck(caminho)
+    print('%s  tipo 0x%02X  %d bytes de corpo'
+          % (os.path.basename(caminho), pck.type, pck.body))
+    cabecalhos = V.find_chains(pck)
+    print('  %d sub-lotes encontrados' % len(cabecalhos))
+    if not cabecalhos:
         return 1
 
-    scales = collections.Counter()
-    worst_ = 0
-    worst_off = 0
+    escalas = collections.Counter()
+    pior = 0
+    pior_off = 0
     nv = 0
-    usage_count = []
-    for off, esc in headers:
-        scales[esc] += 1
-        raw = 0
+    usos = []
+    for off, esc in cabecalhos:
+        escalas[esc] += 1
+        cru = 0
         for o, w, t in V.walk_chain(pck, off):
             cmd = (w >> 24) & 0xFF
             if not (0x60 <= cmd <= 0x7F):
                 continue
             addr = w & 0x3FF
-            if classify(addr) != 'pos':
+            if classifica(addr) != 'pos':
                 continue
             if ((cmd & ~0x10) & 0x0C) != 0x08:
                 continue
@@ -282,34 +283,34 @@ def city(path):
             b = pck.off + o + 4
             bits = V.unpack_bits(cmd)
             if bits != 16:
-                continue          # the delta is relative; the rail belongs to the absolute value
+                continue          # o delta e relativo; o trilho e do absoluto
             for i in range(cnt * 3):
                 v = abs(V._s16(struct.unpack_from('<H', pck.data,
                                                   b + i * 2)[0]))
-                if v > raw:
-                    raw = v
+                if v > cru:
+                    cru = v
                 nv += 1
-        if raw:
-            usage_count.append(raw / 32767.0)
-            if raw > worst_:
-                worst_, worst_off = raw, off
+        if cru:
+            usos.append(cru / 32767.0)
+            if cru > pior:
+                pior, pior_off = cru, off
 
-    print('  %d position components read' % nv)
+    print('  %d componentes de posicao lidos' % nv)
     print()
-    print('  s16 RAIL USAGE, per sub-batch:')
-    prev_ = 1.01
-    for threshold, name in ((0.98, 'on the rail  >= 98%'), (0.90, 'dangerous    90-98%'),
-                      (0.75, 'tight        75-90%'), (0.00, 'comfortable   < 75%')):
-        c = sum(1 for u in usage_count if threshold <= u < prev_)
-        print('     %-22s %5d   %5.1f%%' % (name, c, 100.0 * c / max(1, len(usage_count))))
-        prev_ = threshold
+    print('  USO DO TRILHO s16, por sub-lote:')
+    ant = 1.01
+    for lim, nome in ((0.98, 'no trilho    >= 98%'), (0.90, 'perigoso     90-98%'),
+                      (0.75, 'apertado     75-90%'), (0.00, 'folgado       < 75%')):
+        c = sum(1 for u in usos if lim <= u < ant)
+        print('     %-22s %5d   %5.1f%%' % (nome, c, 100.0 * c / max(1, len(usos))))
+        ant = lim
     print()
-    print('  worst raw value: %d of 32767 (%.1f%%), in the sub-batch at body+%06X'
-          % (worst_, 100.0 * worst_ / 32767.0, worst_off))
+    print('  pior valor cru: %d de 32767 (%.1f%%), no sub-lote em corpo+%06X'
+          % (pior, 100.0 * pior / 32767.0, pior_off))
     print()
-    print('  scales in use:')
-    for e, c in scales.most_common(6):
-        print('     %-12g %5d sub-batches   reach +-%.0f' % (e, c, 32767 * e))
+    print('  escalas em uso:')
+    for e, c in escalas.most_common(6):
+        print('     %-12g %5d sub-lotes   alcance +-%.0f' % (e, c, 32767 * e))
     return 0
 
 
@@ -317,11 +318,11 @@ def main(argv):
     if len(argv) < 2:
         print(__doc__)
         return 2
-    if argv[1] == '--all':
-        return all_(argv[2])
-    if argv[1] == '--city':
-        return city(argv[2])
-    one(argv[1])
+    if argv[1] == '--todos':
+        return todos(argv[2])
+    if argv[1] == '--cidade':
+        return cidade(argv[2])
+    um(argv[1])
     return 0
 
 

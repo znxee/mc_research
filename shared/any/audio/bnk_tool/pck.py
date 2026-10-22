@@ -123,61 +123,61 @@ ROOT_POINTERS = [
 # v0.20: role/editability notes per auxiliary category (from .vehaudio research)
 AUX_CATEGORY_INFO = {
     "Auxiliary / TurboBlower": {
-        "role": "TurboBlower Level0..2: AudioBlockFull layers; Level0 is usually empty on purpose, "
-                "Level1/2 usually have Turbo_Culture1/2.",
-        "edit": "Same structure as Engine/Exhaust: bank_name, EngineRevSound, ranges, RPMs, "
-                "distances, warble/boost and curves.",
+        "role": "TurboBlower Level0..2: camadas AudioBlockFull; Level0 costuma ser vazio de proposito, "
+                "Level1/2 costumam ter Turbo_Culture1/2.",
+        "edit": "Mesma estrutura de Engine/Exhaust: bank_name, EngineRevSound, ranges, RPMs, "
+                "distancias, warble/boost e curvas.",
     },
     "Auxiliary / Impact": {
-        "role": "Impact Level0: auxiliary collision/impact/scrape block.",
-        "edit": "Readable strings and candidate floats only; the meaning of the floats is still being researched.",
+        "role": "Impact Level0: bloco auxiliar de colisao/impacto/raspagem.",
+        "edit": "Somente strings legiveis e floats candidatos; significado dos floats ainda em pesquisa.",
     },
     "Auxiliary / BigAir": {
-        "role": "BigAir Level0: probably an airborne-state controller/modulator, not a sample player.",
-        "edit": "Raw floats only; no confirmed bank strings in the 350Z style.",
+        "role": "BigAir Level0: provavel controlador/modulador de estado no ar, nao um player de sample.",
+        "edit": "Somente floats crus; sem strings de banco confirmadas no estilo 350Z.",
     },
     "Auxiliary / Wind": {
-        "role": "Wind Level0: candidate wind/speed noise controller.",
-        "edit": "Readable strings and speed/level-like floats.",
+        "role": "Wind Level0: candidato a controlador de ruido de vento/velocidade.",
+        "edit": "Strings legiveis e floats tipo velocidade/nivel.",
     },
     "Auxiliary / Horn": {
-        "role": "Horn Level0: separate slot exposed by the .vehaudio.",
-        "edit": "Usually null/empty on the cars tested; inspection only when present.",
+        "role": "Horn Level0: slot separado exposto pelo .vehaudio.",
+        "edit": "Geralmente nulo/vazio nos carros testados; apenas inspecao quando presente.",
     },
     "Auxiliary / Powerup": {
-        "role": "Powerup Level0: formerly the unknown root+0x28, now mapped as Powerup.",
-        "edit": "Raw strings/floats only; semantics still open.",
+        "role": "Powerup Level0: antigo root+0x28 desconhecido, agora mapeado como Powerup.",
+        "edit": "Somente strings/floats cruas; semantica em aberto.",
     },
     "Auxiliary / Fire": {
-        "role": "Fire Level0: separate from Backfire; probably a fire-effect envelope/controller.",
-        "edit": "Curve/controller-like data; treat as experimental.",
+        "role": "Fire Level0: separado de Backfire; provavel envelope/controlador de efeito de fogo.",
+        "edit": "Dados tipo curva/controlador; tratar como experimental.",
     },
     "Auxiliary / Wheel": {
-        "role": "Wheel Level0..2: tyre/skid/chirp/burnout/surface audio.",
-        "edit": "Readable strings and candidate floats (probably skid thresholds/levels).",
+        "role": "Wheel Level0..2: audio de pneu/derrapagem/chirp/burnout/superficie.",
+        "edit": "Strings legiveis e floats candidatos (provaveis limiares/niveis de derrapagem).",
     },
     "Auxiliary / Suspension": {
-        "role": "Suspension Level0..2: candidate suspension/hydraulics/airbag events.",
-        "edit": "Readable strings and candidate floats.",
+        "role": "Suspension Level0..2: candidatos a eventos de suspensao/hidraulica/airbag.",
+        "edit": "Strings legiveis e floats candidatos.",
     },
     "Auxiliary / Gearshift": {
-        "role": "Gearshift Level0..2: discrete gear-shift samples (separate from the "
-                "Upshift/Downshift curves inside AudioBlockFull).",
-        "edit": "Readable gearshift strings and event-envelope-like floats.",
+        "role": "Gearshift Level0..2: samples discretos de troca de marcha (separado das curvas "
+                "Upshift/Downshift dentro do AudioBlockFull).",
+        "edit": "Strings de gearshift legiveis e floats tipo envelope de evento.",
     },
     "Auxiliary / Backfire": {
-        "role": "Backfire Level0..2: bundle of exhaust/backfire samples. Separate from Fire.",
-        "edit": "Readable Backfires:BACKFIRE strings and chance/timing/level-like floats.",
+        "role": "Backfire Level0..2: bundle de samples de escapamento/backfire. Separado de Fire.",
+        "edit": "Strings Backfires:BACKFIRE legiveis e floats tipo chance/timing/nivel.",
     },
     "Auxiliary / Unknown": {
-        "role": "Unclassified blocks or null placeholders.",
-        "edit": "Inspection only.",
+        "role": "Blocos nao classificados ou placeholders nulos.",
+        "edit": "Somente inspecao.",
     },
 }
 
 
 def aux_category_info(category: str) -> Dict[str, str]:
-    return AUX_CATEGORY_INFO.get(category, {"role": "No mapped role.", "edit": "Inspection only."})
+    return AUX_CATEGORY_INFO.get(category, {"role": "Sem papel mapeado.", "edit": "Somente inspecao."})
 
 
 class PckError(Exception):
@@ -475,8 +475,8 @@ class AudioBlock:
 
     @property
     def display_label(self) -> str:
-        bank = self.bank_name or "<no bank>"
-        role = self.role if self.ranges else "no ranges"
+        bank = self.bank_name or "<sem banco>"
+        role = self.role if self.ranges else "sem ranges"
         return f"{self.label} | {bank} | {role}"
 
 
@@ -542,7 +542,7 @@ def parse_pck(path) -> PckDocument:
     path = Path(path)
     buf = path.read_bytes()
     if len(buf) < 0xC0:
-        raise PckError("File too small to be a vehicle PCK with an audio root.")
+        raise PckError("Arquivo pequeno demais para ser um PCK de veiculo com audio root.")
 
     ptr_va = u32_le(buf, 0x00)
     base_va = ptr_va - 0x80
@@ -559,11 +559,11 @@ def parse_pck(path) -> PckDocument:
     root_va = u32_le(buf, 0xA8)
     root_off = va_to_off(root_va, 0xB8)
     if root_off is None:
-        raise PckError(f"invalid ptr_audio_root (0xA8): 0x{root_va:08X} - this PCK has no readable audio section.")
+        raise PckError(f"ptr_audio_root (0xA8) invalido: 0x{root_va:08X} - este PCK nao tem secao de audio legivel.")
 
     root_magic = u32_le(buf, root_off)
     if root_magic not in AUDIO_ROOT_MAGICS:
-        warnings.append(f"Unknown audio root magic: 0x{root_magic:08X}")
+        warnings.append(f"Magic de audio root desconhecido: 0x{root_magic:08X}")
 
     name_off = va_to_off(u32_le(buf, root_off + 0x04), 1)
     root_name = read_fixed_string(buf, name_off, 0x80) if name_off is not None else ""
@@ -585,7 +585,7 @@ def parse_pck(path) -> PckDocument:
                                    magic=magic,
                                    params=[safe_f32(buf, file_off + 0x04 + i * 4) for i in range(22)])
             if magic not in PROFILE_MAGICS:
-                profile.warnings.append(f"Unknown profile magic: 0x{magic:08X}")
+                profile.warnings.append(f"Magic de profile desconhecido: 0x{magic:08X}")
             doc.profiles.append(profile)
         else:
             preview_size = 0x200 if kind == "raw_bundle" else 0x100
@@ -609,7 +609,7 @@ def _parse_block(buf, va_to_off, key, label, category, root_rel, ptr_va, file_of
     warnings: List[str] = []
     magic = safe_u32(buf, file_off)
     if magic not in AUDIO_BLOCK_MAGICS:
-        warnings.append(f"Unexpected AudioBlockFull magic: 0x{magic:08X}")
+        warnings.append(f"Magic de AudioBlockFull inesperado: 0x{magic:08X}")
 
     active_count = safe_u32(buf, file_off + 0x34)
     ptr_range_table = safe_u32(buf, file_off + 0x38)
@@ -658,10 +658,10 @@ def _parse_block(buf, va_to_off, key, label, category, root_rel, ptr_va, file_of
             curve.point_count = safe_u32(buf, curve_off + 0x14)
             curve.ptr_points = safe_u32(buf, curve_off + 0x18)
             if curve.magic != CURVE_MAGIC:
-                curve.warning = f"Unexpected curve magic: 0x{curve.magic:08X}"
+                curve.warning = f"Magic de curva inesperado: 0x{curve.magic:08X}"
             if curve.point_count > CURVE_ROW_SLOTS:
                 curve.warning = (curve.warning + " " if curve.warning else "") + \
-                    f"point_count={curve.point_count} above the {CURVE_ROW_SLOTS} slots"
+                    f"point_count={curve.point_count} acima dos {CURVE_ROW_SLOTS} slots"
             else:
                 points_off = va_to_off(curve.ptr_points, curve.point_count * CURVE_POINT_SIZE)
                 if points_off is None and curve_off + 0x20 + curve.point_count * CURVE_POINT_SIZE <= len(buf):
@@ -685,7 +685,7 @@ def _parse_block(buf, va_to_off, key, label, category, root_rel, ptr_va, file_of
 def pack_curve_row(row) -> bytes:
     vals = [float(v) for v in row[:CURVE_POINT_FLOATS]]
     if len(vals) != CURVE_POINT_FLOATS:
-        raise PckError("a curve row needs exactly 9 floats")
+        raise PckError("linha de curva precisa de exatamente 9 floats")
     return struct.pack("<" + "f" * CURVE_POINT_FLOATS, *vals)
 
 
@@ -798,14 +798,14 @@ def pair_audio_blocks_for_import(donor_blocks, target_blocks):
 
         if donor is None:
             stats["unmatched"] += 1
-            warnings.append(f"No donor for {getattr(target, 'label', '<target>')} (key {key}).")
+            warnings.append(f"Sem doador para {getattr(target, 'label', '<alvo>')} (chave {key}).")
             continue
         used_ids.add(id(donor))
         stats["role_matched" if mode == "role" else
               "root_rel_matched" if mode == "root_rel" else "fallback_root_rel"] += 1
         if mode == "fallback_root_rel":
-            warnings.append(f"{getattr(target, 'label', '<target>')}: no pair by role; used the per-slot fallback "
-                            f"({getattr(donor, 'label', '<donor>')}).")
+            warnings.append(f"{getattr(target, 'label', '<alvo>')}: sem par por role; usado fallback por slot "
+                            f"({getattr(donor, 'label', '<doador>')}).")
         pairs.append((donor, target, mode))
 
     return pairs, stats, warnings
@@ -841,10 +841,10 @@ class PckEditor:
     # -- block fields --
     def set_block_scalar(self, block: AudioBlock, name: str, value):
         if name not in BLOCK_SCALAR_FIELDS:
-            raise PckError(f"unknown field: {name}")
+            raise PckError(f"campo desconhecido: {name}")
         rel, kind = BLOCK_SCALAR_FIELDS[name]
         if block.file_off is None:
-            raise PckError("block without a valid offset")
+            raise PckError("bloco sem offset valido")
         if kind == "f32":
             self._put_f32(block.file_off + rel, value)
         else:
@@ -855,7 +855,7 @@ class PckEditor:
         editing only the bank label usually leaves samples pointing at the old bank
         (E_Old:LOW_ENGINE). By default the prefixes are updated together."""
         if block.file_off is None:
-            raise PckError("block without a valid offset")
+            raise PckError("bloco sem offset valido")
         self._put_fixed_string(block.file_off + 0x04, name, 0x20)
         changed = 0
         if update_sample_prefixes and (name or "").strip():
@@ -864,40 +864,40 @@ class PckEditor:
                 new = replace_sample_prefix(old, name.strip())
                 if new != old:
                     if len(new.encode("ascii", errors="replace")) > 31:
-                        raise PckError(f"sample_name too long after the bank change: {new!r}")
+                        raise PckError(f"sample_name muito longo apos troca de banco: {new!r}")
                     self._put_fixed_string(r.file_off, new, 0x20)
                     changed += 1
         return changed
 
     def set_engine_rev_sound(self, block: AudioBlock, text: str):
         if block.file_off is None:
-            raise PckError("block without a valid offset")
+            raise PckError("bloco sem offset valido")
         self._put_fixed_string(block.file_off + ENGINE_REV_SOUND_OFF, text, ENGINE_REV_SOUND_SIZE)
 
     def set_aux_string(self, raw_block: RawAuxBlock, rel_off: int, text: str):
         """Overwrites an ASCII string inside a raw auxiliary block, bounded by the
         original string's field (won't grow past the next non-string byte)."""
         if raw_block.file_off is None:
-            raise PckError("auxiliary block without a valid offset")
+            raise PckError("bloco auxiliar sem offset valido")
         off = raw_block.file_off + rel_off
         old = read_fixed_string(self.buf, off, 0x20)
         if not old:
-            raise PckError("there is no string at that offset to replace")
+            raise PckError("nao ha string nesse offset para substituir")
         limit = min(0x20, len(old) + 1)  # keep within the original field + terminator
         if len(text.encode("ascii", errors="replace")) >= limit:
-            raise PckError(f"text too long (max {limit - 1} chars for this field)")
+            raise PckError(f"texto muito longo (max {limit - 1} chars para este campo)")
         self.buf[off:off + limit] = text.encode("ascii", errors="replace").ljust(limit, b"\x00")
         self.dirty = True
 
     def set_aux_float(self, raw_block: RawAuxBlock, rel_off: int, value: float):
         if raw_block.file_off is None:
-            raise PckError("auxiliary block without a valid offset")
+            raise PckError("bloco auxiliar sem offset valido")
         self._put_f32(raw_block.file_off + rel_off, value)
 
     def set_range(self, block: AudioBlock, index: int, sample_name: str = None,
                   min_rpm: float = None, mid_rpm: float = None, max_rpm: float = None):
         if not (0 <= index < len(block.ranges)):
-            raise PckError(f"range {index} out of bounds")
+            raise PckError(f"range {index} fora do intervalo")
         roff = block.ranges[index].file_off
         if sample_name is not None:
             self._put_fixed_string(roff, sample_name, 0x20)
@@ -914,14 +914,14 @@ class PckEditor:
         Unused slots (up to 8) are refilled with the standard -1 pattern."""
         curve = block.curves.get(curve_key)
         if curve is None or curve.file_off is None or curve.points_file_off is None:
-            raise PckError(f"curve {curve_key} without a valid point area")
+            raise PckError(f"curva {curve_key} sem area de pontos valida")
         if len(segments) > CURVE_ROW_SLOTS:
-            raise PckError(f"at most {CURVE_ROW_SLOTS} segments per curve")
+            raise PckError(f"maximo de {CURVE_ROW_SLOTS} segmentos por curva")
 
         for i in range(CURVE_ROW_SLOTS):
             row_off = curve.points_file_off + i * CURVE_POINT_SIZE
             if row_off + CURVE_POINT_SIZE > len(self.buf):
-                raise PckError("the point area runs past the file")
+                raise PckError("area de pontos ultrapassa o arquivo")
             if i < len(segments):
                 x0, y0, cx, cy, x1, y1 = segments[i]
                 a, b, c = fit_quadratic((x0, y0), (cx, cy), (x1, y1))
@@ -935,9 +935,9 @@ class PckEditor:
 
     def set_profile_param(self, profile: ProfileBlock, index: int, value: float):
         if not (0 <= index < 22):
-            raise PckError("parameter index out of bounds (0-21)")
+            raise PckError("indice de parametro fora do intervalo (0-21)")
         if profile.file_off is None:
-            raise PckError("profile without a valid offset")
+            raise PckError("profile sem offset valido")
         self._put_f32(profile.file_off + 0x04 + index * 4, value)
 
     # -- donor import (ported from mc3_audio_curve_gui v0.20) --
@@ -1021,7 +1021,7 @@ class PckEditor:
 
     def _import_block_experimental(self, donor, dblock, tblock, report):
         if tblock.magic != dblock.magic:
-            report["warnings"].append(f"{tblock.label}: magic differs from the donor; block skipped.")
+            report["warnings"].append(f"{tblock.label}: magic difere do doador; bloco pulado.")
             report["skipped"] += 1
             return
         self._wr_bytes(tblock.file_off + 0x04,
@@ -1034,9 +1034,9 @@ class PckEditor:
         t_active = bool(t_high and t_high.point_count > 0)
         copy_high = d_active and t_active
         if t_active and not d_active:
-            report["warnings"].append(f"{tblock.label}: donor High Pitch empty; kept the target's.")
+            report["warnings"].append(f"{tblock.label}: High Pitch do doador vazio; preservado o do alvo.")
         elif d_active and not t_active:
-            report["warnings"].append(f"{tblock.label}: target has no active High Pitch; donor High Pitch ignored.")
+            report["warnings"].append(f"{tblock.label}: alvo sem High Pitch ativo; High Pitch do doador ignorado.")
 
         # all safe scalars; +0x38 range ptr and +0x88..+0x98 curve ptrs never copied
         scalar_ranges = [(0x24, 0x10), (0x34, 0x04),
@@ -1050,7 +1050,7 @@ class PckEditor:
         common_ranges = min(len(tblock.ranges), len(dblock.ranges))
         if common_ranges < len(dblock.ranges):
             report["warnings"].append(
-                f"{tblock.label}: target has only {common_ranges}/{len(dblock.ranges)} ranges; partial copy.")
+                f"{tblock.label}: alvo tem so {common_ranges}/{len(dblock.ranges)} ranges; copia parcial.")
         for i in range(common_ranges):
             raw = bytes(donor.buf[dblock.ranges[i].file_off:dblock.ranges[i].file_off + RANGE_ENTRY_SIZE])
             self._wr_bytes(tblock.ranges[i].file_off, raw, report, "range_changed")
@@ -1070,12 +1070,12 @@ class PckEditor:
             report["skipped"] += 1
             return
         if tc.magic != dc.magic:
-            report["warnings"].append(f"{target_label}/{curve_key}: curve magic differs; skipped.")
+            report["warnings"].append(f"{target_label}/{curve_key}: magic de curva difere; pulada.")
             report["skipped"] += 1
             return
         if tc.points_file_off is None or dc.points_file_off is None:
             if dc.point_count or tc.point_count:
-                report["warnings"].append(f"{target_label}/{curve_key}: no point table; skipped.")
+                report["warnings"].append(f"{target_label}/{curve_key}: sem tabela de pontos; pulada.")
             report["skipped"] += 1
             return
 
@@ -1088,7 +1088,7 @@ class PckEditor:
         donor_rows = dc.rows[:min(donor_count, len(dc.rows))]
         if capacity <= 0:
             if donor_count:
-                report["warnings"].append(f"{target_label}/{curve_key}: target has no row capacity; skipped.")
+                report["warnings"].append(f"{target_label}/{curve_key}: alvo sem capacidade de linhas; pulada.")
                 report["skipped"] += 1
             return
         if donor_count <= capacity:
@@ -1098,8 +1098,8 @@ class PckEditor:
             rows = resample_curve_rows(donor_rows, capacity)
             new_count = capacity
             report["warnings"].append(
-                f"{target_label}/{curve_key}: donor has {donor_count} rows > capacity {capacity}; "
-                f"curve resampled to {new_count}.")
+                f"{target_label}/{curve_key}: doador tem {donor_count} linhas > capacidade {capacity}; "
+                f"curva reamostrada para {new_count}.")
         if safe_u32(self.buf, tc.file_off + 0x14) != new_count:
             self._put_u32(tc.file_off + 0x14, new_count)
             report[counter] = report.get(counter, 0) + 1
@@ -1143,7 +1143,7 @@ class PckEditor:
                         self._put_f32(dst, val)
                         report["aux_float_changed"] = report.get("aux_float_changed", 0) + 1
             elif copy_floats and traw.magic != draw.magic:
-                report["warnings"].append(f"{traw.label}: aux magic differs; floats not copied.")
+                report["warnings"].append(f"{traw.label}: magic aux difere; floats nao copiados.")
 
     def _import_commons(self, donor, report):
         donor_by_rel = {p.root_rel: p for p in donor.profiles}
@@ -1152,7 +1152,7 @@ class PckEditor:
             if dprof is None or tprof.file_off is None or dprof.file_off is None:
                 continue
             if tprof.magic != dprof.magic:
-                report["warnings"].append(f"{tprof.label}: Common magic differs; skipped.")
+                report["warnings"].append(f"{tprof.label}: magic de Common difere; pulado.")
                 report["skipped"] += 1
                 continue
             raw = bytes(donor.buf[dprof.file_off + 0x04:dprof.file_off + 0x60])

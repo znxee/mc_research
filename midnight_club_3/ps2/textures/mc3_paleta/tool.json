@@ -1,0 +1,22 @@
+{
+  "name": "mc3_paleta",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "textures",
+  "entry": "mc3_paleta.py",
+  "summary": "Troca as duas paletas de cor por vertice de um .pck de cidade ja montado.",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

@@ -5,18 +5,18 @@
   "platform": "ps2",
   "type": "cities",
   "entry": "build_hood.py",
-  "summary": "Build losangeles with a subset of LA's neighbourhoods, reproducing the v9 recipe",
+  "summary": "Monta a losangeles com um subconjunto de bairros de LA, reproduzindo a receita",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

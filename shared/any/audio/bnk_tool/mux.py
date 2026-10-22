@@ -55,8 +55,8 @@ def mux(original_bnk_path: str, manifest_path: str, out_path: str, overrides: di
 
     if len(original) != manifest["source_size"]:
         raise BnkMuxError(
-            f"the original file given has a different size from the one the manifest expects "
-            f"({len(original)} vs {manifest['source_size']}); use the correct original .bnk as the template")
+            f"o arquivo original fornecido tem tamanho diferente do esperado pelo manifest "
+            f"({len(original)} vs {manifest['source_size']}); use o .bnk original correto como template")
 
     big_endian = manifest["big_endian"]
     data_offset = manifest["data_offset"]
@@ -76,8 +76,8 @@ def mux(original_bnk_path: str, manifest_path: str, out_path: str, overrides: di
         stream_file = ov.get("file")
         if stream_file:
             report.append(
-                f"warning: stream #{idx} comes from the ZLSD section (external prefetch); MUX does not support "
-                f"replacing those streams yet, the given replacement was ignored")
+                f"aviso: stream #{idx} vem da secao ZLSD (prefetch externo); MUX ainda nao da suporte a "
+                f"substituir esses streams, a substituicao fornecida foi ignorada")
 
     new_data = bytearray()
     cursor = data_offset
@@ -89,7 +89,7 @@ def mux(original_bnk_path: str, manifest_path: str, out_path: str, overrides: di
         old_total = s["entry_total_size"]
 
         if entry_pos < cursor:
-            raise BnkMuxError(f"stream #{idx}: overlap detected in the data section (inconsistent offsets)")
+            raise BnkMuxError(f"stream #{idx}: sobreposicao detectada na secao de dados (offsets inconsistentes)")
 
         # verbatim gap/padding before this entry, if any
         if entry_pos > cursor:
@@ -111,7 +111,7 @@ def mux(original_bnk_path: str, manifest_path: str, out_path: str, overrides: di
             try:
                 gh = read_genh(raw_file_bytes)
             except GenhError as e:
-                raise BnkMuxError(f"stream #{idx}: invalid .genh file ({e})")
+                raise BnkMuxError(f"stream #{idx}: arquivo .genh invalido ({e})")
             payload = raw_file_bytes[gh["start_offset"]:gh["start_offset"] + gh["data_size"]]
 
             if gh["channels"] != s["channels"]:
@@ -126,16 +126,16 @@ def mux(original_bnk_path: str, manifest_path: str, out_path: str, overrides: di
                                                      gh["loop_start_sample"], gh["loop_end_sample"])
                     if ok:
                         report.append(
-                            f"stream #{idx}: .genh loop written into the PS-ADPCM stream "
+                            f"stream #{idx}: loop do .genh gravado no fluxo PS-ADPCM "
                             f"({gh['loop_start_sample']}-{gh['loop_end_sample']})")
                     else:
                         report.append(
-                            f"warning: stream #{idx}: .genh loop ({gh['loop_start_sample']}-"
-                            f"{gh['loop_end_sample']}) does not fall on a frame boundary (multiple of 28 "
-                            f"samples); loop was not changed")
+                            f"aviso: stream #{idx}: loop do .genh ({gh['loop_start_sample']}-"
+                            f"{gh['loop_end_sample']}) nao cai em limite de frame (multiplo de 28 "
+                            f"amostras); loop nao foi alterado")
                 else:
                     payload = clear_ps_adpcm_loop(payload, s["channels"], s["interleave"])
-                    report.append(f"stream #{idx}: loop removed from the PS-ADPCM stream")
+                    report.append(f"stream #{idx}: loop removido do fluxo PS-ADPCM")
             elif loop_changed:
                 auto_ov["loop_flag"] = gh["loop_flag"]
                 if gh["loop_flag"]:
@@ -159,16 +159,16 @@ def mux(original_bnk_path: str, manifest_path: str, out_path: str, overrides: di
             if s.get("sample_rate_float_field"):
                 f = s["sample_rate_float_field"]
                 struct.pack_into((">" if big_endian else "<") + "f", buf, f["offset"], float(target_sr))
-                report.append(f"stream #{idx}: sample_rate set to {target_sr} Hz")
+                report.append(f"stream #{idx}: sample_rate ajustado para {target_sr} Hz")
             elif s.get("center_note_field") and s.get("center_fine_field"):
                 cn, cf, achieved = sample_rate_to_center(target_sr)
                 _pack_at(buf, s["center_note_field"]["offset"], 1, cn, big_endian)
                 _pack_at(buf, s["center_fine_field"]["offset"], 1, cf, big_endian)
-                report.append(f"stream #{idx}: sample_rate set to {achieved} Hz (requested: {target_sr} Hz)")
+                report.append(f"stream #{idx}: sample_rate ajustado para {achieved} Hz (pedido: {target_sr} Hz)")
             else:
                 report.append(
-                    f"warning: stream #{idx}: the requested sample_rate ({target_sr} Hz) cannot be applied "
-                    f"(this version does not store a sample_rate per stream)")
+                    f"aviso: stream #{idx}: sample_rate pedido ({target_sr} Hz) nao pode ser aplicado "
+                    f"(esta versao nao guarda sample_rate por stream)")
 
         postdata = b"\x00" * s["postdata_size"]
 
@@ -182,8 +182,8 @@ def mux(original_bnk_path: str, manifest_path: str, out_path: str, overrides: di
             real_extradata = bytearray(full_prefix[remaining_off + 8:])
             if auto_ov and len(real_extradata) == 0:
                 report.append(
-                    f"warning: stream #{idx}: the .genh loop/channels could not be applied (this stream "
-                    f"has no extra metadata in the table to keep them)")
+                    f"aviso: stream #{idx}: loop/channels do .genh nao puderam ser aplicados (este stream "
+                    f"nao tem metadados extras na tabela para guardar isso)")
             if ov:
                 real_extradata = patch_extradata(s["codec"], big_endian, real_extradata, ov)
             new_remaining = len(real_extradata) + len(payload) + len(postdata)
@@ -194,9 +194,9 @@ def mux(original_bnk_path: str, manifest_path: str, out_path: str, overrides: di
             extradata = bytearray(bytes.fromhex(s["extradata_hex"]))
             if auto_ov and len(extradata) == 0:
                 report.append(
-                    f"warning: stream #{idx}: the .genh loop/channels could not be applied (this codec/"
-                    f"version does not keep that metadata in the table; the PS-ADPCM loop is embedded in the "
-                    f"audio stream itself)")
+                    f"aviso: stream #{idx}: loop/channels do .genh nao puderam ser aplicados (este codec/"
+                    f"versao nao guarda esses metadados na tabela; loop de PS-ADPCM fica embutido no "
+                    f"proprio fluxo de audio)")
             if ov:
                 extradata = patch_extradata(s["codec"], big_endian, extradata, ov)
             entry_bytes = bytes(extradata) + payload + postdata
@@ -216,9 +216,9 @@ def mux(original_bnk_path: str, manifest_path: str, out_path: str, overrides: di
             _pack_at(buf, size_field["offset"], size_field["size"], new_total, big_endian)
         elif delta != 0 and not s.get("embedded_header"):
             report.append(
-                f"warning: stream #{idx} changed size; this bank uses scan detection (the size field "
-                f"is 0 in the original and stays 0), so the new audio has to end with a "
-                f"valid silence/end frame for the size to be detected correctly")
+                f"aviso: stream #{idx} mudou de tamanho; este banco usa deteccao por varredura (campo de "
+                f"tamanho fica 0 no original e permanece 0), entao o novo audio precisa terminar com um "
+                f"frame de silencio/fim valido para o tamanho ser detectado corretamente")
 
         flags_field = s.get("stream_flags_field")
         if flags_field and "loop_flag" in ov:
@@ -234,13 +234,13 @@ def mux(original_bnk_path: str, manifest_path: str, out_path: str, overrides: di
         running_delta += delta
 
         if delta != 0:
-            report.append(f"stream #{idx}: size {old_total} -> {new_total} bytes (delta {delta:+d})")
+            report.append(f"stream #{idx}: tamanho {old_total} -> {new_total} bytes (delta {delta:+d})")
 
     # trailing gap after the last entry
     if cursor < data_offset + data_size:
         new_data += original[cursor:data_offset + data_size]
     elif cursor > data_offset + data_size:
-        raise BnkMuxError("the streams exceed the original size of the data section (inconsistent manifest)")
+        raise BnkMuxError("streams ultrapassam o tamanho original da secao de dados (manifest inconsistente)")
 
     new_data_size = len(new_data)
     total_delta = new_data_size - data_size
@@ -263,6 +263,6 @@ def mux(original_bnk_path: str, manifest_path: str, out_path: str, overrides: di
         td_out_path = os.path.splitext(out_path)[0] + ".td"
         with open(td_out_path, "w", encoding="latin-1") as f:
             f.write(td_text)
-        report.append(f"updated .td written to: {td_out_path}")
+        report.append(f".td atualizado escrito em: {td_out_path}")
 
     return out_path, report

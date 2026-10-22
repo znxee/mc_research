@@ -28,7 +28,7 @@ interpreter stops on the loader screen ("entering 001A0008"); use a disc
 image. A quicker check with the recompiler: PauseOnTLBMiss = true in
 [EmuCore/CPU/Recompiler] stops on the first TLB miss instead of reading zero.
 
-The .ini is PCSX2's own (MC3_PCSX2_DATA, default ~/Documents/PCSX2).
+The .ini is PCSX2's own (MC3_PCSX2_DATA, default X:\Documents\PCSX2 here).
 Do not run two PCSX2 drivers at once: they share one backup file.
 """
 import os
@@ -36,7 +36,7 @@ import re
 import shutil
 import sys
 
-DATA = os.environ.get('MC3_PCSX2_DATA', os.path.expanduser('~/Documents/PCSX2'))
+DATA = os.environ.get('MC3_PCSX2_DATA', os.environ.get('MC3_PCSX2_DATA', ''))
 INI = os.path.join(DATA, 'inis', 'PCSX2.ini')
 KEEP = INI + '.before_accurate'
 

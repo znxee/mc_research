@@ -7,7 +7,7 @@ it: the readers were compiled out. So placement is the one part that has to be
 code, and this is its PC half.
 
     python mc3_place.py output/mc2_losangeles/losangeles_place.tsv \\
-        --out $MC3_HOSTFS/losangeles.place
+        --out Y:/MC3HostFS/losangeles.place
 
 WHY A BINARY AND NOT THE TSV
 
@@ -55,27 +55,27 @@ HDR = 64
 ENTRY = 68
 
 
-def read_tsv(path):
-    """(names, entries, emin, emax). `comp` and `inst` both become entries.
+def le_tsv(caminho):
+    """(nomes, entradas, emin, emax). `comp` e `inst` viram os dois entradas.
 
     The `comp` rows carry an identity matrix and a world-space box - they are
     the fixed geometry, already placed. The `inst` rows are the repeated props
     with a real transform. Both get drawn, so both become entries here; the
     distinction only mattered to the exporter.
     """
-    names, index, entries = [], {}, []
+    nomes, indice, entradas = [], {}, []
     emin = emax = None
-    for line in io.open(path, encoding='latin1'):
-        line = line.rstrip('\n')
-        if line.startswith('# extents_min'):
-            emin = [float(x) for x in line.split('\t')[1:4]]
+    for linha in io.open(caminho, encoding='latin1'):
+        linha = linha.rstrip('\n')
+        if linha.startswith('# extents_min'):
+            emin = [float(x) for x in linha.split('\t')[1:4]]
             continue
-        if line.startswith('# extents_max'):
-            emax = [float(x) for x in line.split('\t')[1:4]]
+        if linha.startswith('# extents_max'):
+            emax = [float(x) for x in linha.split('\t')[1:4]]
             continue
-        if not line or line.startswith('#') or line.startswith('kind'):
+        if not linha or linha.startswith('#') or linha.startswith('kind'):
             continue
-        c = line.split('\t')
+        c = linha.split('\t')
         if c[0] not in ('comp', 'inst'):
             continue
         # The model file is <name>_<lod>_<part>.mod, and gfxGetModel appends the
@@ -94,19 +94,19 @@ def read_tsv(path):
         # it here keeps string handling out of a module that has no libc.
         asset = 'model/%s.mod' % (
             ('%s_%s_%s' % (c[1], c[2], c[3])).replace('#', '_'))
-        if asset not in index:
-            index[asset] = len(names)
-            names.append(asset)
+        if asset not in indice:
+            indice[asset] = len(nomes)
+            nomes.append(asset)
         m = [float(x) for x in c[4:16]]          # m00..m22 then tx ty tz
-        box = [float(x) for x in c[16:22]]     # emin xyz, emax xyz
-        centre = [(box[i] + box[i + 3]) * 0.5 for i in range(3)]
-        radius = max((box[i + 3] - box[i]) * 0.5 for i in range(3))
-        entries.append((index[asset], m, centre, radius))
-    return names, entries, emin or [0, 0, 0], emax or [0, 0, 0]
+        caixa = [float(x) for x in c[16:22]]     # emin xyz, emax xyz
+        centro = [(caixa[i] + caixa[i + 3]) * 0.5 for i in range(3)]
+        raio = max((caixa[i + 3] - caixa[i]) * 0.5 for i in range(3))
+        entradas.append((indice[asset], m, centro, raio))
+    return nomes, entradas, emin or [0, 0, 0], emax or [0, 0, 0]
 
 
-def sort_by_size(names, entries, folder, ceiling):
-    """Entries from the smallest mesh to the largest, optionally without the largest.
+def ordena(nomes, entradas, pasta, teto):
+    """Entradas da menor malha para a maior, e opcionalmente sem as maiores.
 
     The module resolves the first N distinct names it meets walking the entry
     list, so the ORDER OF THE ENTRIES decides which meshes it tries first. Draw
@@ -118,100 +118,100 @@ def sort_by_size(names, entries, folder, ceiling):
     number of models resolved into the size at which it gives up - one boot
     instead of a hand bisection.
     """
-    size = {}
-    for i, n in enumerate(names):
+    tamanho = {}
+    for i, n in enumerate(nomes):
         base = n.split('/')[-1]
         # The exporter's directory still spells the 298 component meshes with
         # '#'; only the copies under ASSETS/model were renamed. Looking up just
         # the sanitised name silently returned 0 for every one of them, which
         # sorted the BIGGEST meshes to the front - the exact opposite of the
         # point. Try both spellings, and say so when one is genuinely missing.
-        size[i] = 0
+        tamanho[i] = 0
         for cand in (base, base.replace('_geom_', '#geom_')):
             try:
-                size[i] = os.path.getsize(os.path.join(folder, cand))
+                tamanho[i] = os.path.getsize(os.path.join(pasta, cand))
                 break
             except OSError:
                 pass
 
-    missing_n = sum(1 for v in size.values() if v == 0)
-    if missing_n:
-        print('WARNING: %d of %d meshes not found in %s - they go first in the '
-              'order, which skews the measurement' % (missing_n, len(names), folder))
+    faltando = sum(1 for v in tamanho.values() if v == 0)
+    if faltando:
+        print('AVISO: %d de %d meshes nao encontrados em %s - vao primeiro na '
+              'ordem, o que falseia a medida' % (faltando, len(nomes), pasta))
 
-    keep = [i for i in range(len(names))
-              if not ceiling or size[i] <= ceiling]
-    dropped = len(names) - len(keep)
-    order = sorted(keep, key=lambda i: size[i])
+    manter = [i for i in range(len(nomes))
+              if not teto or tamanho[i] <= teto]
+    cortados = len(nomes) - len(manter)
+    ordem = sorted(manter, key=lambda i: tamanho[i])
 
-    new_idx = {}
-    new_names = []
-    for i in order:
-        new_idx[i] = len(new_names)
-        new_names.append(names[i])
+    novo_idx = {}
+    novos_nomes = []
+    for i in ordem:
+        novo_idx[i] = len(novos_nomes)
+        novos_nomes.append(nomes[i])
 
-    new_ones = [(new_idx[idx], m, c, r) for idx, m, c, r in entries
-             if idx in new_idx]
-    new_ones.sort(key=lambda e: e[0])
-    largest = max((size[i] for i in order), default=0)
-    return new_names, new_ones, dropped, largest
+    novas = [(novo_idx[idx], m, c, r) for idx, m, c, r in entradas
+             if idx in novo_idx]
+    novas.sort(key=lambda e: e[0])
+    maior = max((tamanho[i] for i in ordem), default=0)
+    return novos_nomes, novas, cortados, maior
 
 
-def write(out_path, names, entries, emin, emax):
-    table = b''
+def escreve(saida, nomes, entradas, emin, emax):
+    tabela = b''
     offs = []
-    for n in names:
-        offs.append(len(table))
-        table += n.encode('latin1') + b'\0'
-    while len(table) % 4:
-        table += b'\0'
+    for n in nomes:
+        offs.append(len(tabela))
+        tabela += n.encode('latin1') + b'\0'
+    while len(tabela) % 4:
+        tabela += b'\0'
 
-    names_off = HDR
-    entries_off = names_off + len(table)
+    nomes_off = HDR
+    entradas_off = nomes_off + len(tabela)
 
     out = bytearray()
-    out += struct.pack('<8I', MAGIC, VERSION, len(names), len(entries),
-                       names_off, len(table), entries_off, 0)
+    out += struct.pack('<8I', MAGIC, VERSION, len(nomes), len(entradas),
+                       nomes_off, len(tabela), entradas_off, 0)
     out += struct.pack('<6f', *(emin + emax))
     out += bytes(HDR - len(out))
-    out += table
-    for idx, m, centre, radius in entries:
+    out += tabela
+    for idx, m, centro, raio in entradas:
         # The name index is stored as the OFFSET into the table, so the module
         # does not need a second indirection to find the string.
         out += struct.pack('<I', offs[idx])
         out += struct.pack('<12f', *m)
-        out += struct.pack('<3f', *centre)
-        out += struct.pack('<f', radius)
+        out += struct.pack('<3f', *centro)
+        out += struct.pack('<f', raio)
 
-    io.open(out_path, 'wb').write(bytes(out))
+    io.open(saida, 'wb').write(bytes(out))
     return len(out)
 
 
 def main():
-    p = argparse.ArgumentParser(description='placement table -> binary')
+    p = argparse.ArgumentParser(description='tabela de colocacao -> binario')
     p.add_argument('tsv')
     p.add_argument('--out', required=True)
     p.add_argument('--models',
-                   help='folder of the .mod files; with it the entries come out '
-                        'sorted from the smallest mesh to the largest')
+                   help='pasta dos .mod; com ela as entradas saem ordenadas '
+                        'do menor mesh para o maior')
     p.add_argument('--max-mesh', type=int, default=0,
-                   help='drop meshes above N bytes (0 = no limit)')
+                   help='descarta mesh acima de N bytes (0 = sem limite)')
     a = p.parse_args()
 
-    names, entries, emin, emax = read_tsv(a.tsv)
+    nomes, entradas, emin, emax = le_tsv(a.tsv)
     if a.models:
-        names, entries, dropped, largest = sort_by_size(names, entries, a.models,
-                                                        a.max_mesh)
-        print('sorted from the smallest mesh to the largest; the largest left has '
-              '%d bytes%s' % (largest, (', %d dropped' % dropped)
-                              if dropped else ''))
-    size_ = write(a.out, names, entries, emin, emax)
-    print('%s: %d entries, %d unique names, %d bytes (%.0f KB)'
-          % (os.path.basename(a.out), len(entries), len(names), size_, size_ / 1024.0))
+        nomes, entradas, cortados, maior = ordena(nomes, entradas, a.models,
+                                                  a.max_mesh)
+        print('ordenado do menor mesh para o maior; o maior que sobrou tem '
+              '%d bytes%s' % (maior, (', %d descartados' % cortados)
+                              if cortados else ''))
+    tam = escreve(a.out, nomes, entradas, emin, emax)
+    print('%s: %d entradas, %d nomes unicos, %d bytes (%.0f KB)'
+          % (os.path.basename(a.out), len(entradas), len(nomes), tam, tam / 1024.0))
     print('   extents  %s .. %s'
           % (' '.join('%.0f' % v for v in emin), ' '.join('%.0f' % v for v in emax)))
-    print('   in game RAM: %.0f KB of entries + %d KB of names'
-          % (len(entries) * ENTRY / 1024.0, (size_ - HDR - len(entries) * ENTRY) // 1024))
+    print('   na RAM do jogo: %.0f KB de entradas + %d KB de nomes'
+          % (len(entradas) * ENTRY / 1024.0, (tam - HDR - len(entradas) * ENTRY) // 1024))
 
 
 if __name__ == '__main__':

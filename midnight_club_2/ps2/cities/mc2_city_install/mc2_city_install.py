@@ -2,7 +2,7 @@
 """Install the MC3 side of an MC2 city that the city mods draw from MC2's own
 files (geometry, collision, props and lighting stay in MC2.DAT).
 
-    python mc2_city_install.py --hostfs $MC3_HOSTFS \
+    python mc2_city_install.py --hostfs Y:/mc3.2_alpha_hostfs \
         --mc2-city tokyo --city tokyo_mc2 --code k --label "Tokyo MC2"
 
 What an MC2 city needs in ASSETS, with an installed MC2 city (--template,
@@ -22,8 +22,8 @@ default paris) as the model:
   - a race catalogue holding only Cruise (tune/race/<city>.loc/.locinf); the
     MC2 races come next with mc2_races_to_mc3.py --mc2-city <mc2> --city
     <city>, the modes with --add-types and mc2_race_modes.py.
-The city still needs registering (mods/city_paris_slot7 here; city_psp_slots
-in the MCLA PSP fork's combined install) and its slot in mods/mc2_city_config.h. Every file written is listed in
+The city still needs registering (city_psp_slots in the alpha install) and
+its slot in payload/mc2_city_config.h. Every file written is listed in
 <hostfs>/<city>_install.json (and, as it goes, <city>_install.log); a file
 that was there before is backed up once as <file>.before_<city>.
 """
@@ -141,7 +141,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
     ap.add_argument('--hostfs', required=True)
     ap.add_argument('--mc2-dat', help='MC2 PS2 ASSETS.DAT (default <hostfs>/MC2.DAT)')
-    ap.add_argument('--mc2-tree', default=os.environ.get('MC2_PS2_ASSETS', 'mc2_ps2/assets'),
+    ap.add_argument('--mc2-tree', default=os.path.join(os.environ.get('MC2_PS2_RESEARCH', ''), 'assets'),
                     help="MC2 PS2 assets extracted (for the generators' --mc2)")
     ap.add_argument('--mc2-city', required=True, help='MC2 name: losangeles, paris, tokyo')
     ap.add_argument('--city', required=True, help='MC3 name the city is registered as')
@@ -211,8 +211,8 @@ def main():
             rel = 'resources/city/%s_%s_%s.pck' % (city, t, wx)
             out = os.path.join(a.hostfs, 'ASSETS', *rel.split('/'))
             w.keep(rel, out)
-            subprocess.run([sys.executable, os.path.join(HERE, 'mc3_city_build.py'), '--donor', donor,
-                            '--out-path', out, '--side', '1',
+            subprocess.run([sys.executable, os.path.join(HERE, 'mc3_city_build.py'), '--doador', donor,
+                            '--saida', out, '--lado', '1',
                             '--extents-min=%g,%g,%g' % lo, '--extents-max=%g,%g,%g' % hi],
                            check=True, stdout=subprocess.DEVNULL)
             w.mine(rel)

@@ -68,7 +68,7 @@ class Pck:
         with open(path, "rb") as fh:
             self.data = fh.read()
         if len(self.data) < 0x90:
-            raise ValueError("file too small for a city PCK")
+            raise ValueError("arquivo pequeno demais para um PCK de cidade")
         self.va = self.u32(0)
         self.base = self.va - 0x80
         self.token_shift = detect_token_shift(self)
@@ -120,14 +120,14 @@ def descriptors(pck: Pck):
     ptr = pck.u32(0x80 + 0x0C)
     off = pck.file(ptr)
     if not (0 < count <= 128 and pck.inside(off, count * 16)):
-        raise ValueError("invalid shader descriptors")
+        raise ValueError("descritores de shader invalidos")
     out = []
     for group in range(count):
         desc = off + 16 * group
         array = pck.file(pck.u32(desc + 4))
         slots = pck.u16(desc + 8)
         if not pck.inside(array, slots * 4):
-            raise ValueError("group %d array points outside the file" % group)
+            raise ValueError("array do grupo %d aponta fora do arquivo" % group)
         out.append((desc, array, slots))
     return out
 
@@ -135,16 +135,16 @@ def descriptors(pck: Pck):
 def slot_at(pck: Pck, group: int, material: int) -> Slot | None:
     ds = descriptors(pck)
     if not 0 <= group < len(ds):
-        raise ValueError("group %d outside 0..%d" % (group, len(ds) - 1))
+        raise ValueError("grupo %d fora de 0..%d" % (group, len(ds) - 1))
     _desc, array, count = ds[group]
     if not 0 <= material < count:
-        raise ValueError("material %d outside 0..%d" % (material, count - 1))
+        raise ValueError("material %d fora de 0..%d" % (material, count - 1))
     va = pck.u32(array + 4 * material)
     if not va:
         return None
     off = pck.file(va)
     if not pck.inside(off, 12):
-        raise ValueError("slot g%d:m%d points outside the file: %08X" %
+        raise ValueError("slot g%d:m%d aponta fora do arquivo: %08X" %
                          (group, material, va))
     return Slot(group, material, va, off, pck.u32(off), pck.u32(off + 4) & 0x7F)
 
@@ -352,7 +352,7 @@ def main():
             missing.append("A g%d:m%d" % (args.group_a, args.a))
         if b is None:
             missing.append("B g%d:m%d" % (args.group_b, args.b))
-        raise SystemExit("empty slot: " + ", ".join(missing))
+        raise SystemExit("slot vazio: " + ", ".join(missing))
 
     print(os.path.basename(args.pck))
     profile = ("Atlanta-family" if pck.token_shift == 0 else

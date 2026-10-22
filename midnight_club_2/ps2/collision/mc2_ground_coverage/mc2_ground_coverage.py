@@ -2,8 +2,8 @@
 """Where a MC2 city's drivable ground is missing, or drawn without texture,
 in the geometry the Los Angeles renderer (city_mc2_rsc_draw_test) draws.
 
-    python mc2_ground_coverage.py --out out/coverage
-    python mc2_ground_coverage.py --out out/coverage --at=-339,425 --at=-697,325
+    python mc2_ground_coverage.py --out Y:/temp/coverage
+    python mc2_ground_coverage.py --out Y:/temp/coverage --at=-339,425 --at=-697,325
 
 Reference = the collision's walkable polygons (BND0 of <city>.rsc, normal
 y >= 0.3 - the same surfaces losangeles_bound gives the game). For each cell of a
@@ -36,7 +36,7 @@ import sys
 
 import mc2_rsc as R
 
-MC2 = os.environ.get('MC2_PS2_ASSETS', 'mc2_ps2/assets')
+MC2 = os.path.join(os.environ.get('MC2_PS2_RESEARCH', ''), 'assets')
 OK, WHITE, BADTEX, HOLE = 0, 1, 2, 3
 NAMES = ('ok', 'white', 'badtex', 'hole')
 COLOURS = {OK: (120, 120, 120), WHITE: (235, 210, 40), BADTEX: (220, 40, 220),

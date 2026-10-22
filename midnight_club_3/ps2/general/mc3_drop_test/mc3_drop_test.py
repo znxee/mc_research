@@ -3,8 +3,8 @@
 dropped on a list of points and where it ends up tells whether the collision
 the game built (losangeles_bound, from the MC2 .rsc) holds it there.
 
-    python mc2_ground_coverage.py --out out/coverage        # makes drop_points.txt
-    python mc3_drop_test.py --points out/coverage/drop_points.txt --out out/drop --max 600
+    python mc2_ground_coverage.py --out Y:/temp/coverage        # makes drop_points.txt
+    python mc3_drop_test.py --points Y:/temp/coverage/drop_points.txt --out Y:/temp/drop --max 600
 
 Uses the renderer's [boot] mc2g = F (city_mc2_rsc_draw_test): the car is put
 1.5 m above each point and left F frames. Result per point:
@@ -25,7 +25,7 @@ import sys
 
 import mc3_race_tour as T
 
-HOSTFS = os.environ.get('MC3_HOSTFS', 'MC3HostFS')
+HOSTFS = os.environ.get('MC3_HOSTFS', '')
 DROP = os.path.join(HOSTFS, 'mc2_droptest.txt')
 HERE = os.path.dirname(os.path.abspath(__file__))
 

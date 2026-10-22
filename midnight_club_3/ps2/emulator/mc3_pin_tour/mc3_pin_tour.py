@@ -2,7 +2,7 @@
 
     python pin_tour.py CITY_LABEL PINS_FILE OUT [--extra ex,ey,ez,tx,ty,tz ...] [--boot k=v ...]
 
-Writes $MC3_HOSTFS/mc2_camtour.txt (removed at the end), drives
+Writes Y:/mc3.2_alpha_hostfs/mc2_camtour.txt (removed at the end), drives
 Arcade -> CITY_LABEL -> Ordered Race with mc2t=SLOT, takes one shot in the
 middle of every slot (matched to RTOU markers) named v<slot>.png.
 """
@@ -14,8 +14,8 @@ import subprocess
 import sys
 import time
 
-TOOLS = os.path.dirname(os.path.abspath(__file__))
-HOST = os.environ.get('MC3_HOSTFS', 'MC3HostFS')
+TOOLS = os.environ.get('MC_RESEARCH_ROOT', '')
+HOST = os.environ.get('MC3_ALPHA_HOSTFS', '')
 TOUR = os.path.join(HOST, 'mc2_camtour.txt')
 SLOT = 8
 

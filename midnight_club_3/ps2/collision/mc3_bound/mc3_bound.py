@@ -260,14 +260,14 @@ def lift(b, cx, cz, radius, dy, kind=9):
     nv = b.u32(node + 0x4C)
     vat = b.off(b.u32(node + 0x68))
     data = bytearray(b.data)
-    every = radius <= 0                 # radius 0 or less means the whole mesh
+    todo = radius <= 0                 # radius 0 or less means the whole mesh
     moved = 0
     for i in range(nv):
         x, _y, z = struct.unpack_from('<3f', data, vat + 12 * i)
-        if every or (x - cx) ** 2 + (z - cz) ** 2 <= radius * radius:
+        if todo or (x - cx) ** 2 + (z - cz) ** 2 <= radius * radius:
             struct.pack_into('<f', data, vat + 12 * i + 4, _y + dy)
             moved += 1
-    if every:
+    if todo:
         # Moving everything keeps the file exactly consistent: no polygon is
         # left half-moved, and shifting the node AABB by the same amount drags
         # every octree cell along with the geometry, so each face stays in the
@@ -425,13 +425,13 @@ def insert(b, new_verts, new_polys, kind=9, material_global_id=17):
     nlo = [min(bx[0][a] for bx in pbox) for a in range(3)]
     nhi = [max(bx[1][a] for bx in pbox) for a in range(3)]
 
-    blocks = {}
+    blocos = {}
     for start, count, slot, clo, chi in cells(b, node, nlo, nhi, kind):
         got = [npoly + k for k, (plo, phi) in enumerate(pbox)
                if all(plo[a] <= chi[a] and phi[a] >= clo[a] for a in range(3))]
         if got:
-            blocks[slot] = (start, count, got)
-    if not blocks:
+            blocos[slot] = (start, count, got)
+    if not blocos:
         raise ValueError('the new geometry reaches no leaf - is it inside the '
                          'city at all?')
 
@@ -440,35 +440,35 @@ def insert(b, new_verts, new_polys, kind=9, material_global_id=17):
     # 5580 cover all 56573 entries with no gap, no overlap and no entry used
     # twice. An empty leaf's start is meaningless, so it is never spliced into -
     # it is given a range of its own at the end of the list instead.
-    all_items = b.leaves(node, kind)
-    full_ = [t for t in all_items if t[1]]
-    if sum(c for _s, c, _sl in full_) != nidx:
+    todas = b.leaves(node, kind)
+    cheias = [t for t in todas if t[1]]
+    if sum(c for _s, c, _sl in cheias) != nidx:
         raise ValueError('leaf ranges do not partition the index list (%d vs %d)'
-                         % (sum(c for _s, c, _sl in full_), nidx))
+                         % (sum(c for _s, c, _sl in cheias), nidx))
 
-    seams = sorted((st + ct, blocks[sl][2]) for st, ct, sl in full_
-                     if sl in blocks)
-    new_idx, prev = [], 0
-    for pos, block in seams:
-        new_idx.extend(idx[prev:pos])
-        new_idx.extend(block)
+    emendas = sorted((st + ct, blocos[sl][2]) for st, ct, sl in cheias
+                     if sl in blocos)
+    novo_idx, prev = [], 0
+    for pos, bloco in emendas:
+        novo_idx.extend(idx[prev:pos])
+        novo_idx.extend(bloco)
         prev = pos
-    new_idx.extend(idx[prev:])
+    novo_idx.extend(idx[prev:])
 
-    def shift(x):
-        return sum(len(bl) for pos, bl in seams if pos <= x)
+    def desloc(x):
+        return sum(len(bl) for pos, bl in emendas if pos <= x)
 
     # a chosen leaf that was empty gets a fresh range parked at the end
-    end = {}
-    for start, count, slot in all_items:
-        if count or slot not in blocks:
+    fim = {}
+    for start, count, slot in todas:
+        if count or slot not in blocos:
             continue
-        end[slot] = len(new_idx)
-        new_idx.extend(blocks[slot][2])
+        fim[slot] = len(novo_idx)
+        novo_idx.extend(blocos[slot][2])
 
-    if len(new_idx) > 0xFFFF:
+    if len(novo_idx) > 0xFFFF:
         raise ValueError('index list would reach %d, past what a 16-bit start '
-                         'can address' % len(new_idx))
+                         'can address' % len(novo_idx))
 
     data = bytearray(b.data)
     material_ids = b.materials(node)
@@ -505,7 +505,7 @@ def insert(b, new_verts, new_polys, kind=9, material_global_id=17):
 
     nvoff = stick(bytes(vblob))
     npoff = stick(bytes(pblob))
-    nioff = stick(struct.pack('<%dH' % len(new_idx), *new_idx))
+    nioff = stick(struct.pack('<%dH' % len(novo_idx), *novo_idx))
 
     def V(o):
         return o + b.base
@@ -519,16 +519,16 @@ def insert(b, new_verts, new_polys, kind=9, material_global_id=17):
     pay = b.off(b.u32(node + (0x94 if kind == 9 else 0x78)))
     struct.pack_into('<I', data, pay + 0x08, npoly + len(new_polys))
     struct.pack_into('<I', data, pay + 0x0C, nv + len(new_verts))
-    struct.pack_into('<I', data, pay + 0x10, len(new_idx))
+    struct.pack_into('<I', data, pay + 0x10, len(novo_idx))
     struct.pack_into('<I', data, pay + 0x14, V(nioff))
 
-    for start, count, slot in all_items:
-        got = blocks.get(slot)
+    for start, count, slot in todas:
+        got = blocos.get(slot)
         if count:
-            start += shift(start)
+            start += desloc(start)
             count += len(got[2]) if got else 0
-        elif slot in end:
-            start, count = end[slot], len(got[2])
+        elif slot in fim:
+            start, count = fim[slot], len(got[2])
         struct.pack_into('<I', data, slot, (start << 16) | (count << 2) | 1)
 
     # The node AABB is deliberately left alone - see grid().
@@ -542,8 +542,8 @@ def insert(b, new_verts, new_polys, kind=9, material_global_id=17):
         data.append(0xCD)
     struct.pack_into('<I', data, 0x0C, len(data) - 0x80)
     b.data = bytes(data)
-    return dict(leaves=len(blocks), polys=len(new_polys), verts=len(new_verts),
-                indices=len(new_idx), added=len(new_idx) - nidx,
+    return dict(leaves=len(blocos), polys=len(new_polys), verts=len(new_verts),
+                indices=len(novo_idx), added=len(novo_idx) - nidx,
                 box=(nlo, nhi))
 
 

@@ -28,8 +28,8 @@ in the ELF):
 which is `count`, then `x y z heading name` per line. Add a line there to start
 next to whatever you are testing.
 
-    python mc3_city_strip.py atlanta_midnight_clear.pck --near 580,406,300 --out out.pck
-    python mc3_city_strip.py atlanta_midnight_clear.pck --keep "ghto_06|_rd_" --out out.pck
+    python mc3_city_strip.py atlanta_midnight_clear.pck --perto 580,406,300 --out saida.pck
+    python mc3_city_strip.py atlanta_midnight_clear.pck --manter "ghto_06|_rd_" --out saida.pck
 """
 
 import argparse
@@ -38,8 +38,8 @@ import os
 import re
 import struct
 
-NGRP_AT = 0x08            # u16: how many groups the mesh has
-GT_AT = 0x10              # pointer to the group table
+NGRP_AT = 0x08            # u16: quantos grupos o mesh tem
+GT_AT = 0x10              # ponteiro pra tabela de grupos
 
 
 class City:
@@ -192,9 +192,9 @@ class City:
                         mp = self.u32(cd + 0x3C + 4 * slot)
                         if not self.ok(mp):
                             continue
-                        name, items = out.setdefault(self.off(mp), (nm, []))
+                        nome, lista = out.setdefault(self.off(mp), (nm, []))
                         if pos is not None:
-                            items.append(pos)
+                            lista.append(pos)
         return out
 
     def meshes(self):
@@ -221,47 +221,47 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[1],
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('pck')
-    ap.add_argument('--near', metavar='X,Z,RADIUS',
+    ap.add_argument('--perto', metavar='X,Z,RADIUS',
                     help='keep every mesh whose instance sits within RADIUS of (X, Z)')
-    ap.add_argument('--keep', metavar='REGEX', help='keep meshes whose name matches')
-    ap.add_argument('--ownerless', action='store_true',
+    ap.add_argument('--manter', metavar='REGEX', help='keep meshes whose name matches')
+    ap.add_argument('--sem-dono', action='store_true',
                     help='keep meshes with no owner too (they have no position, '
-                         'so --near cannot judge them)')
+                         'so --perto cannot judge them)')
     ap.add_argument('--out', help='where to write the stripped city')
     a = ap.parse_args()
 
     city = City(a.pck)
-    all_ = city.meshes()
+    todos = city.meshes()
     print('%s: tag %08X, %d meshes, %d with an owner'
-          % (os.path.basename(a.pck), city.tag, len(all_), len(city.owners)))
+          % (os.path.basename(a.pck), city.tag, len(todos), len(city.owners)))
 
-    rx = re.compile(a.keep, re.I) if a.keep else None
+    rx = re.compile(a.manter, re.I) if a.manter else None
     cx = cz = rad = None
-    if a.near:
-        cx, cz, rad = (float(x) for x in a.near.split(','))
+    if a.perto:
+        cx, cz, rad = (float(x) for x in a.perto.split(','))
 
-    def keep(mo, nm, positions):
+    def keep(mo, nm, posicoes):
         if rx and nm and rx.search(nm):
             return True
-        if not positions:
-            return bool(a.ownerless)
+        if not posicoes:
+            return bool(a.sem_dono)
         if rad is None:
             return False
-        # any instance inside the radius is enough
-        return any((p[0] - cx) ** 2 + (p[2] - cz) ** 2 <= rad * rad for p in positions)
+        # qualquer instancia dentro do raio basta
+        return any((p[0] - cx) ** 2 + (p[2] - cz) ** 2 <= rad * rad for p in posicoes)
 
     if rx is None and rad is None:
-        raise SystemExit('nothing would be kept; pass --near and/or --keep')
+        raise SystemExit('nothing would be kept; pass --perto and/or --manter')
 
-    stay = [(mo, city.owners.get(mo, ('', []))) for mo in all_
+    ficam = [(mo, city.owners.get(mo, ('', []))) for mo in todos
              if keep(mo, *city.owners.get(mo, ('', [])))]
     kept, emptied = strip(city, keep)
     print('  kept %d, emptied %d' % (kept, emptied))
-    names = collections.Counter(nm for _mo, (nm, _p) in stay if nm)
-    if names:
+    nomes = collections.Counter(nm for _mo, (nm, _p) in ficam if nm)
+    if nomes:
         print('  kept by name: %s%s'
-              % (', '.join('%s x%d' % kv for kv in names.most_common(10)),
-                 ' ...' if len(names) > 10 else ''))
+              % (', '.join('%s x%d' % kv for kv in nomes.most_common(10)),
+                 ' ...' if len(nomes) > 10 else ''))
     if not kept:
         print('  WARNING: nothing kept - the city will be completely empty')
 
@@ -269,11 +269,11 @@ def main():
     open(out, 'wb').write(bytes(city.data))
     print('wrote %s (%d bytes, %d changed)'
           % (out, len(city.data), 2 * emptied))
-    if a.near:
+    if a.perto:
         print()
         print('to start next to it, add a line to ASSETS/tune/city/<city>.reset')
         print('and bump the count on its first line:')
-        print('    %.1f 0.2 %.1f 0.0 Test' % (cx, cz))
+        print('    %.1f 0.2 %.1f 0.0 Teste' % (cx, cz))
 
 
 if __name__ == '__main__':

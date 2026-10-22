@@ -29,9 +29,9 @@ What does NOT come across, and why:
 Usage:
 
     python mc2_to_pck.py <city.rsc>                   # everything, to output/
-    python mc2_to_pck.py <city.rsc> --filter rd_23    # just the ones matching
+    python mc2_to_pck.py <city.rsc> --filtro rd_23    # just the ones matching
     python mc2_to_pck.py <city.rsc> --materials m.tsv # texture name -> slot
-    python mc2_to_pck.py <city.rsc> --manifest-only    # tables only, no .pck
+    python mc2_to_pck.py <city.rsc> --so-manifesto    # tables only, no .pck
 
 Writes into the output folder: one `.mesh.pck` per model, a
 `<city>_place.tsv` in the same column layout `mc3_city_build.py --place`
@@ -47,7 +47,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mc2_rsc as R
 import mc3_mesh_convert as M
-import mc3_output
+import mc3_saida
 
 
 IDENT = (1, 0, 0, 0, 1, 0, 0, 0, 1)
@@ -80,7 +80,7 @@ def mesh_from_batches(rsc, batches):
     mesh = M.Mesh()
     mesh.scale = scale
     mesh.source = 'mc2-pmd0'
-    textures = []
+    texturas = []
     for handle, bs in by.items():
         strips = []
         for b in bs:
@@ -96,120 +96,120 @@ def mesh_from_batches(rsc, batches):
                 strips.append(st)
         if strips:
             mesh.groups.append({'material': 0, 'strips': strips})
-            textures.append(rsc.texture_name(handle) or 'none')
+            texturas.append(rsc.texture_name(handle) or 'none')
     if not mesh.groups:
         return None, []
     # MC2 ships no normals; without these every surface exports flat with a zero
     # normal, and the normal stream is also where MC3 carries the ADC bit.
     M._recompute_normals(mesh)
-    return mesh, textures
+    return mesh, texturas
 
 
-def read_extents(folder, city, comps, insts):
-    """extents of `<city>.lvl`, falling back to the data box if there is none."""
-    lvl = os.path.join(folder, city + '.lvl')
+def le_extents(pasta, cidade, comps, insts):
+    """extents do `<cidade>.lvl`, caindo para a caixa dos dados se nao houver."""
+    lvl = os.path.join(pasta, cidade + '.lvl')
     if os.path.isfile(lvl):
         txt = open(lvl, 'r', errors='replace').read()
         got = {}
-        for key in ('extents_min', 'extents_max'):
-            m = re.search(key + r'\s*\{([^}]*)\}', txt)
+        for chave in ('extents_min', 'extents_max'):
+            m = re.search(chave + r'\s*\{([^}]*)\}', txt)
             if m:
-                got[key] = [float(x) for x in m.group(1).split()][:3]
+                got[chave] = [float(x) for x in m.group(1).split()][:3]
         if len(got) == 2:
             return got['extents_min'], got['extents_max']
-    boxes = [c.emin for c in comps] + [i.emin for i in insts]
-    high_ = [c.emax for c in comps] + [i.emax for i in insts]
-    if not boxes:
+    caixas = [c.emin for c in comps] + [i.emin for i in insts]
+    altas = [c.emax for c in comps] + [i.emax for i in insts]
+    if not caixas:
         return [0.0] * 3, [0.0] * 3
-    return ([min(v[k] for v in boxes) for k in range(3)],
-            [max(v[k] for v in high_) for k in range(3)])
+    return ([min(v[k] for v in caixas) for k in range(3)],
+            [max(v[k] for v in altas) for k in range(3)])
 
 
-def filename(name):
-    return re.sub(r'[^A-Za-z0-9_.#-]', '_', name)
+def nome_de_arquivo(nome):
+    return re.sub(r'[^A-Za-z0-9_.#-]', '_', nome)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('file_')
+    ap.add_argument('arquivo')
     ap.add_argument('--out')
-    ap.add_argument('--filter', dest='filter_')
+    ap.add_argument('--filtro')
     ap.add_argument('--lod', type=int)
-    ap.add_argument('--materials', help='TSV with "texture_name<TAB>slot"')
-    ap.add_argument('--limit', type=int)
-    ap.add_argument('--manifest-only', action='store_true')
+    ap.add_argument('--materials', help='TSV com "nome_da_textura<TAB>slot"')
+    ap.add_argument('--limite', type=int)
+    ap.add_argument('--so-manifesto', action='store_true')
     a = ap.parse_args()
 
-    rsc = R.Rsc(a.file_)
-    city = os.path.splitext(os.path.basename(rsc.path))[0]
-    out = a.out or os.path.join(mc3_output.folder(), 'mc2_pck', city)
+    rsc = R.Rsc(a.arquivo)
+    cidade = os.path.splitext(os.path.basename(rsc.path))[0]
+    out = a.out or os.path.join(mc3_saida.pasta(), 'mc2_pck', cidade)
     if not os.path.isdir(out):
         os.makedirs(out)
 
-    mapping = {}
+    mapa = {}
     if a.materials:
         for l in open(a.materials, 'r', errors='replace'):
             p = l.split('#')[0].split('\t')
             if len(p) >= 2 and p[0].strip():
-                mapping[p[0].strip().lower()] = int(p[1], 0)
+                mapa[p[0].strip().lower()] = int(p[1], 0)
 
-    city_folder = R.city_folder(rsc.path)
-    comps, insts = R.read_hoods(city_folder)
-    byKind = collections.defaultdict(list)
+    pasta_cidade = R.city_folder(rsc.path)
+    comps, insts = R.read_hoods(pasta_cidade)
+    porTipo = collections.defaultdict(list)
     for i in insts:
-        byKind[i.type.lower()].append(i)
+        porTipo[i.type.lower()].append(i)
     # The .lvl's own extents, not the bounding box of the data: the cell grid
     # is derived from them, and they are round numbers the data does not quite
     # reach (LA declares -2000..1600 while the geometry stops at -1989.7).
-    emin, emax = read_extents(city_folder, city, comps, insts)
+    emin, emax = le_extents(pasta_cidade, cidade, comps, insts)
 
-    lines = []
+    linhas = []
     mats = []
-    n_pck = n_group = n_tri = 0
+    n_pck = n_grupo = n_tri = 0
     bytes_pck = 0
-    models_dir = R.read_models(rsc)
-    if a.filter_:
-        models_dir = [m for m in models_dir if a.filter_ in m.name]
-    if a.limit:
-        models_dir = models_dir[:a.limit]
+    modelos = R.read_models(rsc)
+    if a.filtro:
+        modelos = [m for m in modelos if a.filtro in m.name]
+    if a.limite:
+        modelos = modelos[:a.limite]
 
-    for mo in models_dir:
+    for mo in modelos:
         bs = batches_of(rsc, mo, a.lod)
         if not bs:
             continue
-        mesh, textures = mesh_from_batches(rsc, bs)
+        mesh, texturas = mesh_from_batches(rsc, bs)
         if mesh is None:
             continue
-        for gi, tex in enumerate(textures):
-            slot = mapping.get(os.path.basename(tex.replace('\\', '/')).lower(), 0)
+        for gi, tex in enumerate(texturas):
+            slot = mapa.get(os.path.basename(tex.replace('\\', '/')).lower(), 0)
             mesh.groups[gi]['material'] = slot
             mats.append((mo.name, gi, tex, slot))
-        fname = filename(mo.name) + '.mesh.pck'
-        if not a.manifest_only:
-            bytes_pck += M.write_pck(mesh, os.path.join(out, fname), restrip=False)
+        arq = nome_de_arquivo(mo.name) + '.mesh.pck'
+        if not a.so_manifesto:
+            bytes_pck += M.write_pck(mesh, os.path.join(out, arq), restrip=False)
         n_pck += 1
-        n_group += len(mesh.groups)
+        n_grupo += len(mesh.groups)
         n_tri += mesh.stats()[3]
 
-        key = mo.name.lower()
-        if key in byKind:
-            for i in byKind[key]:
-                lines.append(('inst', mo.name,
+        chave = mo.name.lower()
+        if chave in porTipo:
+            for i in porTipo[chave]:
+                linhas.append(('inst', mo.name,
                                [i.rot[0][0], i.rot[0][1], i.rot[0][2],
                                 i.rot[1][0], i.rot[1][1], i.rot[1][2],
                                 i.rot[2][0], i.rot[2][1], i.rot[2][2]],
                                i.pos, i.emin, i.emax, i.hood))
         else:
-            c = next((c for c in comps if c.name.lower() == key), None)
-            lines.append(('comp', mo.name, list(IDENT), (0.0, 0.0, 0.0),
+            c = next((c for c in comps if c.name.lower() == chave), None)
+            linhas.append(('comp', mo.name, list(IDENT), (0.0, 0.0, 0.0),
                            c.emin if c else (0, 0, 0), c.emax if c else (0, 0, 0),
                            c.hood if c else '-'))
 
-    place = os.path.join(out, city + '_place.tsv')
+    place = os.path.join(out, cidade + '_place.tsv')
     with open(place, 'w') as f:
-        f.write('# %s: generated by mc2_to_pck.py from %s\n'
-                % (city, os.path.basename(rsc.path)))
+        f.write('# %s: gerado por mc2_to_pck.py a partir de %s\n'
+                % (cidade, os.path.basename(rsc.path)))
         f.write('# extents_min\t%f\t%f\t%f\n' % tuple(emin))
         f.write('# extents_max\t%f\t%f\t%f\n' % tuple(emax))
         f.write('\t'.join(['kind', 'name', 'lod', 'part',
@@ -217,37 +217,37 @@ def main():
                            'm20', 'm21', 'm22', 'tx', 'ty', 'tz',
                            'eminx', 'eminy', 'eminz', 'emaxx', 'emaxy', 'emaxz',
                            'hood']) + '\n')
-        for kind, name, rot, pos, mn, mx, hood in lines:
+        for kind, nome, rot, pos, mn, mx, hood in linhas:
             f.write('%s\t%s\t0\tmain\t%s\t%s\t%s\t%s\t%s\n'
-                    % (kind, name,
+                    % (kind, nome,
                        '\t'.join('%f' % x for x in rot),
                        '\t'.join('%f' % x for x in pos),
                        '\t'.join('%f' % x for x in mn),
                        '\t'.join('%f' % x for x in mx),
-                       # without the extension, which is how mc2_port's
-                       # place.tsv already named the hood
+                       # sem a extensao, que e como o place.tsv do mc2_port
+                       # ja nomeava o hood
                        os.path.splitext(hood)[0]))
 
-    table = os.path.join(out, city + '_materials.tsv')
-    with open(table, 'w') as f:
-        f.write('# model\tgroup\tmc2_texture\tslot\n')
-        for name, gi, tex, slot in mats:
-            f.write('%s\t%d\t%s\t%d\n' % (name, gi, tex, slot))
+    tabela = os.path.join(out, cidade + '_materials.tsv')
+    with open(tabela, 'w') as f:
+        f.write('# modelo\tgrupo\ttextura_mc2\tslot\n')
+        for nome, gi, tex, slot in mats:
+            f.write('%s\t%d\t%s\t%d\n' % (nome, gi, tex, slot))
 
-    distinct = len({t for _, _, t, _ in mats})
+    distintas = len({t for _, _, t, _ in mats})
     print('%s' % out)
-    print('  %d models -> .mesh.pck  (%d groups, %d triangles, %d bytes)'
-          % (n_pck, n_group, n_tri, bytes_pck))
-    print('  %s  %d lines (%d comp, %d inst)'
-          % (os.path.basename(place), len(lines),
-             sum(1 for l in lines if l[0] == 'comp'),
-             sum(1 for l in lines if l[0] == 'inst')))
-    print('  %s  %d groups, %d distinct textures, %d mapped to slot != 0'
-          % (os.path.basename(table), len(mats), distinct,
+    print('  %d modelos -> .mesh.pck  (%d grupos, %d triangulos, %d bytes)'
+          % (n_pck, n_grupo, n_tri, bytes_pck))
+    print('  %s  %d linhas (%d comp, %d inst)'
+          % (os.path.basename(place), len(linhas),
+             sum(1 for l in linhas if l[0] == 'comp'),
+             sum(1 for l in linhas if l[0] == 'inst')))
+    print('  %s  %d grupos, %d texturas distintas, %d mapeadas para slot != 0'
+          % (os.path.basename(tabela), len(mats), distintas,
              sum(1 for _, _, _, s in mats if s)))
-    if not mapping:
-        print('  WARNING: without --materials, every group came out with slot 0. The')
-        print('  texture name is in _materials.tsv for you to map.')
+    if not mapa:
+        print('  AVISO: sem --materials, todo grupo saiu com slot 0. O nome da')
+        print('  textura esta no _materials.tsv para voces mapearem.')
     return 0
 
 

@@ -514,7 +514,7 @@ def _contains(ranges, off: int) -> bool:
 
 
 def _clone_reachable(target: Pck, donor: Pck, donor_group: ShaderGroup,
-                     donor_indices: tuple[int, ...]) -> CloneResult:
+                     donor_indices: tuple[int, ...], arena_boundaries=()) -> CloneResult:
     """Clone complete selected shaders and their reachable dependencies.
 
     Top-level shader ownership intervals are copied whole.  Dependencies that
@@ -533,6 +533,11 @@ def _clone_reachable(target: Pck, donor: Pck, donor_group: ShaderGroup,
     pointer_offsets = [off for off, _va in pointers]
     targets = graph.targets()
     shader_ranges = _shader_resource_ranges(donor, donor_group, graph)
+    # Traffic serializers interleave mesh groups/skeletons between shaders.
+    # Caller-supplied typed boundaries prevent those owners entering the clone.
+    for start, end in tuple(shader_ranges.items()):
+        shader_ranges[start] = min([end] + [b for b in arena_boundaries
+                                          if start < b < end])
     texture_regions = _texture_regions(donor)
     texture_by_descriptor = {item.descriptor_off: item
                              for item in texture_regions}
@@ -542,6 +547,7 @@ def _clone_reachable(target: Pck, donor: Pck, donor_group: ShaderGroup,
     selected_roots = [donor_group.entries[index].resource_off
                       for index in donor_indices]
     requested_ranges = [(root, shader_ranges[root]) for root in selected_roots]
+    dependency_trace = []
     mapped_points = set(selected_roots)
 
     # Local-list nodes are fixed 12-byte records.  Treating the entire gap up
@@ -628,7 +634,15 @@ def _clone_reachable(target: Pck, donor: Pck, donor_group: ShaderGroup,
             mapped_points.add(dependency)
             if _contains(blocks, dependency):
                 continue
-            requested_ranges.append(dependency_range(dependency))
+            try:
+                interval = dependency_range(dependency)
+                requested_ranges.append(interval)
+                dependency_trace.append((field, dependency, interval))
+            except ValueError as exc:
+                trace = "; ".join("%#x -> %#x [%#x,%#x)" % (f, d, a, b)
+                                  for f, d, (a, b) in dependency_trace[-8:])
+                raise ValueError("%s (pointer field %#x; dependencies: %s)" %
+                                 (exc, field, trace)) from exc
             changed = True
         if not changed:
             break
@@ -790,13 +804,17 @@ def clone_shader_into_slot(target_source, donor_source, donor_index: int,
 
 
 def transplant(target_source, donor_source, group_pointer_field: int,
-               donor_indices, preserve_indices=()) -> TransplantResult:
+               donor_indices, preserve_indices=(), *, donor_group_off=None,
+               donor_arena_boundaries=()) -> TransplantResult:
     """Append a per-vehicle group and return ``{donor_index: new_index}``.
 
     ``group_pointer_field`` is normally ``traffic_vehicle_root + 0x08``.
     Target entries listed in ``preserve_indices`` remain at their old indices;
     this keeps the generic traffic wheels and shadow intact.  Donor shaders are
     packed consecutively after the highest preserved index.
+    ``donor_group_off`` selects one owner in multi-vehicle donors. Typed object
+    offsets in ``donor_arena_boundaries`` cap ownership intervals when traffic
+    serialization interleaves a mesh group/skeleton between shader resources.
     """
     target = target_source if isinstance(target_source, Pck) else Pck(target_source)
     donor = donor_source if isinstance(donor_source, Pck) else Pck(donor_source)
@@ -811,7 +829,8 @@ def transplant(target_source, donor_source, group_pointer_field: int,
         if index >= len(old_group.entries) or old_group.entries[index] is None:
             raise ValueError("target shader %d cannot be preserved" % index)
 
-    donor_group = find_shader_group(donor)
+    donor_group = (find_shader_group(donor) if donor_group_off is None
+                   else read_shader_group(donor, donor_group_off))
     selected = tuple(sorted(set(int(index) for index in donor_indices)))
     if not selected:
         raise ValueError("no donor shader indices requested")
@@ -824,7 +843,8 @@ def transplant(target_source, donor_source, group_pointer_field: int,
 
     first_new = max(preserve, default=-1) + 1
     shader_map = {old: first_new + pos for pos, old in enumerate(selected)}
-    clone = _clone_reachable(target, donor, donor_group, selected)
+    clone = _clone_reachable(target, donor, donor_group, selected,
+                             donor_arena_boundaries)
 
     while len(target.data) % 16:
         target.data += b"\xCD"

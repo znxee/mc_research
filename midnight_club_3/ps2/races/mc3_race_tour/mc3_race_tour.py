@@ -3,8 +3,8 @@
 and photograph them - a sweep for map problems (holes, missing geometry or
 textures, cars falling through) along every route the AI drives.
 
-    python mc3_race_tour.py --out out/tour            # every MC2 race
-    python mc3_race_tour.py --out out/tour --races arcade_circuit_one arcade_circuit_two
+    python mc3_race_tour.py --out Y:/temp/tour            # every MC2 race
+    python mc3_race_tour.py --out Y:/temp/tour --races arcade_circuit_one arcade_circuit_two
 
 For each race it writes the [boot] section of mc3boot.ini (race_nofe boots
 straight into it: rnam, racetype, time and weather from the city's .locinf,
@@ -22,10 +22,10 @@ import subprocess
 import sys
 import time
 
-ROOT = os.environ.get('MC3_HOSTFS', 'MC3HostFS')
+ROOT = os.environ.get('MC3_HOSTFS', '')
 INI = os.path.join(ROOT, 'mc3boot.ini')
 RACE_DIR = os.path.join(ROOT, 'ASSETS', 'tune', 'race')
-LOG = os.path.join(os.environ.get('MC3_PCSX2_DATA', os.path.expanduser('~/Documents/PCSX2')), 'logs/cli_test.txt')
+LOG = os.path.join(os.environ.get('MC3_PCSX2_DATA', ''), 'logs/cli_teste.txt')
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 

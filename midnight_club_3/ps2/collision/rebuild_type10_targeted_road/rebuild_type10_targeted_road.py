@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Rebuild type10 from the global network and explicitly chosen type9 batches.
+"""Reconstroi o type10 com a rede global e lotes type9 explicitamente escolhidos.
 
-v14 proved that copying every type9 ``road`` floor into type10 is not a valid
-contract: 12,378 faces stop the loader from reaching streaming. This generator
-keeps the right idea (use the already validated type9 geometry), but only
-accepts documented index ranges. For the v15 candidate the ranges are:
+A v14 provou que copiar todos os pisos ``road`` do type9 para o type10 nao e
+um contrato valido: 12.378 faces impedem o loader de chegar ao streaming. Este
+gerador conserva a ideia correta (usar a geometria type9 ja validada), mas so
+aceita intervalos de indices documentados. Para o candidato v15 os intervalos
+sao:
 
-* 0:20372       the global type9 before the instances; includes roadSG and also
+* 0:20372       type9 global anterior as instancias; inclui roadSG e tambem
                 alwaysdry/alwaysdry_int/alwaysdry_upass/bridge;
-* 24826:25336   batch of 510 crosswalk triangles added on 2026-09-08.
+* 24826:25336   lote de 510 triangulos de crosswalk adicionado em 2026-09-08.
 
-Faces without the global ``road`` physical material stay excluded. The ranges
-are parameters so a future type9 change does not silently reuse offsets that no
-longer mean the same thing.
+Faces sem material fisico global ``road`` continuam excluidas. Os intervalos
+sao parametros para que uma mudanca futura no type9 nao reutilize silenciosa-
+mente offsets que deixaram de significar a mesma coisa.
 """
 
 import argparse
@@ -34,15 +35,15 @@ def parse_ranges(specs):
     for spec in specs:
         first, sep, last = spec.partition(':')
         if not sep:
-            raise ValueError('invalid range %r; use START:END' % spec)
+            raise ValueError('intervalo invalido %r; use INICIO:FIM' % spec)
         start, end = int(first, 0), int(last, 0)
         if start < 0 or end <= start:
-            raise ValueError('invalid range %r' % spec)
+            raise ValueError('intervalo invalido %r' % spec)
         ranges.append((start, end))
     ranges.sort()
     for previous, current in zip(ranges, ranges[1:]):
         if current[0] < previous[1]:
-            raise ValueError('overlapping ranges: %r and %r' %
+            raise ValueError('intervalos sobrepostos: %r e %r' %
                              (previous, current))
     return ranges
 
@@ -61,7 +62,7 @@ def make_prepare(selected_ranges):
 
         if selected_ranges[-1][1] > len(source_polygons):
             raise ValueError(
-                'range ends at %d, but type9 has only %d polys' %
+                'intervalo termina em %d, mas type9 tem somente %d polys' %
                 (selected_ranges[-1][1], len(source_polygons)))
 
         vertices = []
@@ -100,7 +101,7 @@ def make_prepare(selected_ranges):
             per_range[range_key] += 1
 
             points = [tuple(source_vertices[index]) for index in poly[2]]
-            normal, area = roads.normal_and_area(points)
+            normal, area = roads.normal_e_area(points)
             if normal is None:
                 stats['degenerate_polygons'] += 1
                 continue
@@ -109,7 +110,7 @@ def make_prepare(selected_ranges):
                 continue
             if normal[1] < 0:
                 points.reverse()
-                normal, area = roads.normal_and_area(points)
+                normal, area = roads.normal_e_area(points)
                 stats['reversed_polygons'] += 1
 
             key = polygon_key(points)
@@ -131,9 +132,9 @@ def make_prepare(selected_ranges):
                              'type9:%s' % range_key))
 
         if not polygons:
-            raise ValueError('the ranges provided no horizontal road floor')
+            raise ValueError('os intervalos nao forneceram piso road horizontal')
         if len(vertices) > 0xFFFF or len(polygons) > 0xFFFF:
-            raise ValueError('type10 exceeds u16: %d vertices, %d polygons' %
+            raise ValueError('type10 excede u16: %d vertices, %d poligonos' %
                              (len(vertices), len(polygons)))
 
         neighbors = [[0xFFFF] * len(poly[2]) for poly in polygons]
@@ -176,14 +177,14 @@ def make_prepare(selected_ranges):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', required=True,
-                        help='PCK whose type9 will feed type10')
+                        help='PCK cujo type9 alimentara o type10')
     parser.add_argument('--donor', required=True,
-                        help='PCK whose type9 will be kept')
+                        help='PCK cujo type9 sera preservado')
     parser.add_argument('--tools', required=True)
     parser.add_argument('--out', required=True)
     parser.add_argument('--audit')
     parser.add_argument('--range', dest='ranges', action='append', required=True,
-                        help='type9 range START:END; repeatable')
+                        help='intervalo type9 INICIO:FIM; repetivel')
     parser.add_argument('--depth', type=int, default=8)
     parser.add_argument('--per-leaf', type=int, default=40)
     args = parser.parse_args()

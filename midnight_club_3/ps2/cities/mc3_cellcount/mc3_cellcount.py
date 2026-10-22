@@ -1,99 +1,97 @@
-"""Extend the per-cell arrays of props and peds to fit the city's cell_count.
+"""Estende os arrays por-celula de props e peds para caber no cell_count da cidade.
 
-The city .pck cell_count is a CONTRACT BETWEEN FILES, decompiled by FORK C++
-MODS AND PATCHES. Three resources carry an array of ONE POINTER PER CELL and the
-loop that relocates each one is bounded by mcCity+0x268, read from the city
-ALREADY LOADED:
+O cell_count do .pck de cidade e um CONTRATO ENTRE ARQUIVOS, decompilado pela
+FORK C++ MODS AND PATCHES. Tres resources carregam um array de UM PONTEIRO POR
+CELULA e o laco que reloca cada um e limitado por mcCity+0x268, lido da cidade
+JA CARREGADA:
 
-    a) the city's own CellIndex  - always consistent, same file
-    b) <city>_props.pck   mcPropClass::mcPropClass(datResource&) 0x0038F3F8
-    c) <city>_peds.pck    mcCreatureCullableClass::...           0x004667E8
+    a) o CellIndex da propria cidade  - sempre coerente, mesmo arquivo
+    b) <cidade>_props.pck   mcPropClass::mcPropClass(datResource&) 0x0038F3F8
+    c) <cidade>_peds.pck    mcCreatureCullableClass::...           0x004667E8
 
-The last two have the same body:
+Os dois ultimos tem o mesmo corpo:
 
     if (ptr) ptr += delta;
     for (i = 0; i < cellcount; i++) if (arr[i]) arr[i] += delta;
 
-If the city declares MORE cells than the props/peds was built for, the loop
-walks past the end of the array and ADDS THE RESOURCE DELTA to every non-null
-word it finds after it. It corrupts another object in place, silently, during
-the load - and the game dies on the first frame with nothing pointing at the
-grid.
+Se a cidade declara MAIS celulas do que o props/peds foi construido para, o laco
+anda alem do fim do array e SOMA O DELTA DO RESOURCE em cada palavra nao-nula
+que encontrar depois. Corrompe outro objeto no lugar, em silencio, durante o
+load - e o jogo morre no primeiro quadro sem nada apontar para a grade.
 
-The fix is surgical and moves nothing: append the new array at the END of the
-file, repoint, and add to header[3]. No other pointer changes because nothing
-is reallocated.
+A correcao e cirurgica e nao move nada: acrescenta o array novo no FIM do
+arquivo, reaponta, e soma ao header[3]. Nenhum outro ponteiro muda porque nada
+e realocado.
 
-    python mc3_cellcount.py --cells 7462 <files...>
+    python mc3_cellcount.py --celulas 7462 <arquivos...>
 
-With --preserve the old entries are copied to the start of the new array.
-Without it the array comes out ZEROED, which is what serves for the first
-diagnostic boot: no props and no peds, but it proves the cause in a single run.
-The old entries were indexed with the DONOR city's W, so copying them leaves
-props and peds in the wrong cell of the new grid - safe in memory, wrong on
-screen.
+Com --preservar as entradas antigas sao copiadas para o inicio do array novo.
+Sem ele o array sai ZERADO, que e o que serve para o primeiro boot de
+diagnostico: sem props e sem peds, mas prova a causa numa execucao so. As
+entradas antigas foram indexadas com o W da cidade DOADORA, entao copiar deixa
+props e peds em celula errada na grade nova - seguro em memoria, errado na tela.
 """
 import argparse
 import os
 import struct
 
-# (label, object offset, pointer offset, identity test)
-FORMATS = (
+# (rotulo, offset do objeto, offset do ponteiro, teste de identidade)
+FORMATOS = (
     ('props', 0x9B0, 0x9D8, lambda d: struct.unpack_from('<I', d, 0x9B0)[0] == 102
      and struct.unpack_from('<I', d, 0x9D0)[0] == 4),
     ('peds', 0x280, 0x2A4, lambda d: len(d) > 0x2B0),
 )
 
 
-def current_entries(d, base, ptr, next_):
-    """How many entries the array has today: from its start to the next object."""
-    start_ = struct.unpack_from('<I', d, ptr)[0] - base + 0x80
-    return start_, max(0, (next_ - start_) // 4)
+def entradas_atuais(d, base, ptr, prox):
+    """Quantas entradas o array tem hoje: do inicio dele ate o proximo objeto."""
+    ini = struct.unpack_from('<I', d, ptr)[0] - base + 0x80
+    return ini, max(0, (prox - ini) // 4)
 
 
-def extend(path, cells, preserve, dry_run):
-    d = bytearray(open(path, 'rb').read())
-    base, kind, ver, body = struct.unpack_from('<IIII', d, 0)
-    if body != len(d) - 0x80:
-        return '%s: header[3]=%d does not match the file (%d)' % (
-            os.path.basename(path), body, len(d) - 0x80)
-    for rot, obj, ptr, ok in FORMATS:
+def estende(caminho, celulas, preservar, seco):
+    d = bytearray(open(caminho, 'rb').read())
+    base, tipo, ver, corpo = struct.unpack_from('<IIII', d, 0)
+    if corpo != len(d) - 0x80:
+        return '%s: header[3]=%d nao bate com o arquivo (%d)' % (
+            os.path.basename(caminho), corpo, len(d) - 0x80)
+    for rot, obj, ptr, ok in FORMATOS:
         if len(d) > obj + 0x30 and ok(d):
             break
     else:
-        return '%s: not recognised as props or peds' % os.path.basename(path)
+        return '%s: nao reconheci como props nem peds' % os.path.basename(caminho)
     va = struct.unpack_from('<I', d, ptr)[0]
-    start_ = va - base + 0x80
-    if not (0 < start_ < len(d)):
-        return '%s: array pointer outside the file (0x%08X)' % (
-            os.path.basename(path), va)
-    old = bytes(d[start_:start_ + 4 * cells])          # only what exists
-    new_off = (len(d) + 15) & ~15
-    d += bytes(new_off - len(d))
-    new_body = bytearray(4 * cells)
-    if preserve:
-        new_body[:len(old)] = old
-    d += new_body
-    struct.pack_into('<I', d, ptr, base + new_off - 0x80)
+    ini = va - base + 0x80
+    if not (0 < ini < len(d)):
+        return '%s: ponteiro do array fora do arquivo (0x%08X)' % (
+            os.path.basename(caminho), va)
+    velho = bytes(d[ini:ini + 4 * celulas])          # so o que existir
+    novo_off = (len(d) + 15) & ~15
+    d += bytes(novo_off - len(d))
+    corpo_novo = bytearray(4 * celulas)
+    if preservar:
+        corpo_novo[:len(velho)] = velho
+    d += corpo_novo
+    struct.pack_into('<I', d, ptr, base + novo_off - 0x80)
     struct.pack_into('<I', d, 0x0C, len(d) - 0x80)
-    if not dry_run:
-        open(path, 'wb').write(bytes(d))
-    return '%-44s %-6s array 0x%X -> 0x%X, %d entries, %s (+%d bytes)' % (
-        os.path.basename(path), rot, start_, new_off, cells,
-        'copied' if preserve else 'zeroed', len(d) - body - 0x80)
+    if not seco:
+        open(caminho, 'wb').write(bytes(d))
+    return '%-44s %-6s array 0x%X -> 0x%X, %d entradas, %s (+%d bytes)' % (
+        os.path.basename(caminho), rot, ini, novo_off, celulas,
+        'copiadas' if preservar else 'zeradas', len(d) - corpo - 0x80)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
-    ap.add_argument('--cells', type=int, required=True,
-                    help='the city cell_count (MapRoot+0x268)')
-    ap.add_argument('--preserve', action='store_true',
-                    help='copy the old entries instead of zeroing everything')
-    ap.add_argument('--dry-run', action='store_true', help='do not write')
-    ap.add_argument('files', nargs='+')
+    ap.add_argument('--celulas', type=int, required=True,
+                    help='cell_count da cidade (MapRoot+0x268)')
+    ap.add_argument('--preservar', action='store_true',
+                    help='copia as entradas antigas em vez de zerar tudo')
+    ap.add_argument('--seco', action='store_true', help='nao grava')
+    ap.add_argument('arquivos', nargs='+')
     a = ap.parse_args()
-    for f in a.files:
-        print('  ' + extend(f, a.cells, a.preserve, a.dry_run))
+    for f in a.arquivos:
+        print('  ' + estende(f, a.celulas, a.preservar, a.seco))
 
 
 if __name__ == '__main__':

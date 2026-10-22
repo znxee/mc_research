@@ -5,18 +5,18 @@
   "platform": "ps2",
   "type": "collision",
   "entry": "rebuild_type10_from_type9_road.py",
-  "summary": "Rebuild the type10 road quadtree from every type9 road floor.",
+  "summary": "Reconstroi a quadtree viaria type10 com todos os pisos road do type9.",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

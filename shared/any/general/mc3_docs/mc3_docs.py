@@ -23,7 +23,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import (BaseDocTemplate, Frame, KeepTogether, PageBreak,
                                 PageTemplate, Paragraph, Spacer, Table, TableStyle)
 
-VERSION = "5.1"
+VERSION = "5.8"
 TITLE = "Midnight Club 3 - File Format Documentation"
 SUBTITLE = "PS2 .pck / PSP .psppck / Xbox .xbck, and the executable"
 
@@ -49,7 +49,7 @@ CODEBG = colors.HexColor("#f4f4f4")
 # The hex in this document is not transcribed, it is read out of the clean
 # assets while the PDF is built. If a file moves the example says so instead of
 # quietly going stale.
-ASSETS = os.path.join(os.environ.get('MC3_ASSETS', 'ASSETS'), 'resources')
+ASSETS = os.path.join(os.environ.get('MC3_CLEAN_ASSETS', ''), 'ASSETS/resources')
 
 
 def _bytes(rel, off, n):
@@ -362,6 +362,57 @@ CONTENT = [
        "<font face=Courier>u16 category | u16 num_levels | u16 progression[4] | u16 fields[]"
        "</font>. The category lists are adjacent with no separator, so a parser must stop at "
        "the known sub-mod count or it reads into the next category."),
+ ("h3", "Native wheel camber and the garage"),
+ ("p", "Remix already consumes two custom camber floats. At 0x4AFFB0, "
+       "mcCarConfig::FileIO registers Camber0 at +0x08 (front) and Camber1 at "
+       "+0x0C (rear), in degrees. These belong to a runtime/car-config object, "
+       "not to the vp_*.pck header. The 350Z customdata/vp_350z_04.carcfg "
+       "example stores -2.5 and -1.0 respectively."),
+ ("table", [
+   ["Object / routine", "Offsets", "Meaning"],
+   ["mcCarConfig", "+08 / +0C", "front / rear custom camber, float degrees"],
+   ["mcCarCustom::Update 2C66C8", "+12EC / +12F0", "copies config camber when dirty mask & 5"],
+   ["rmcCarModel::UpdateWheels 2F85D0", "model+304 -> custom", "multiplies by pi/180; RotateLocalZ"],
+   ["vehWheelTune", "+28 CamberLimit", "physical dynamic-camber coefficient; not the custom angle"],
+   ["vehWheel", "+164", "dynamic camber radians, added by the renderer"],
+ ], [52*mm, 40*mm, 56*mm]),
+ ("note", "Rear rendering has a special case: WheelBack/CamberLimit == -1 "
+          "bypasses the custom rear camber and uses only the dynamic angle. "
+          "Side-B drawing reverses the angle sign. Do not blindly negate config "
+          "values or replace physical tuning with degrees."),
+ ("p", "The 350Z visual-shop movie vs_vp_350z_04.swf defines "
+       "WheelUpgradesNames and WheelDimensionNames. Garage InitStringArray "
+       "(324448), GetStateBasedOnString (32BD78) and GetVariablesBasedOnState "
+       "(32BE20) resolve these strings to native states. No Camber entry was "
+       "found in that native table. A new option therefore needs both Flash UI "
+       "and a native bridge for preview, accept and cancel; a new label alone "
+       "does not install an adjustment."),
+ ("p", "The garage_camber pilot now adds Camber to the 350Z Body Shop / Wheels "
+       "movie and owns its input through a native bridge. Cross opens front, "
+       "advances to rear, then Apply; left/right changes 0.5 degrees and Triangle "
+       "restores the original float bits. Preview edits mcCarConfig, setting dirty "
+       "bit 4; physical CamberLimit is unchanged. Its guards require native game 5, "
+       "the current garage/slot, vp_350z_04, Visual Shop type 1 and the movie marker. "
+       "Camber is kept out of the original native part enum."),
+ ("p", "Runtime17, booted through normal menus with no savestate, measured -4/-1 "
+       "in the profile and renderer during preview, -2.5/-1 after cancel, and "
+       "-4/-2 after accepting both axles. The stock Rims submenu remained usable. "
+       "Exit Garage copied the config through the normal assignment path and "
+       "saved to a cloned card. Runtime18 started a new emulator process: the "
+       "350Z reloaded with -4/-2 in config and renderer, with zero bridge commands "
+       "before the observation. This establishes card persistence for this pilot."),
+ ("note", "Allocate the fifth item in all three Flash arrays at initialization: "
+          "native arrays have fixed length. Also edit each exported copy of the "
+          "navigation actions (66/148/371/396, 67/372/397), even if the original "
+          "PCK shared one action list. Editing one SWF copy leaves others unchanged."),
+ ("p", "The generated PCK preserves visual assets, uses only supported opcodes "
+       "and matches the edited SWF; the relocatable module matches a direct build "
+       "byte for byte. Tests restored shared HostFS files and left original cards "
+       "and PCSX2 settings unchanged by hash. No permanent installation was left. "
+       "Only the 350Z movie is covered; vehicle switches during editing and race "
+       "transitions still need testing before expansion. Build/controls: "
+       "modloader/mods/garage_camber/README.md. Evidence: "
+       "Documentation/MC3_GARAGE_CAMBER.md and output/garage_camber/runtime17-18."),
  ("h3", "Vehicle audio in the same PCK"),
  ("p", "Header slot 0xA8 reaches the vehicle-audio root. Its named levels split into raw "
        "auxiliary objects, full TurboBlower/Engine/Exhaust blocks, and five Common profiles. "
@@ -452,7 +503,8 @@ CONTENT = [
  ("p", "The part name then comes from the vehicle's own skeleton at "
        "<font face=Courier>root+0x68</font> (count, tag 0x00010039, node array): <b>the piece "
        "id is a bone id</b>. Id 0 is the body at <font face=Courier>vroot</font>, 4..7 are the "
-       "wheels, and the odd small piece is the shadow - and the sizes agree, the piece landing "
+       "wheels, and the odd small piece is the shadow. ID 0 is not necessarily unique: "
+       "Tokyo's bus has two meshes on that bone. The sizes agree, the piece landing "
        "on \"shadow\" being the 256-byte one while each wheel is 512. Every vehicle in the four "
        "cities resolves; the only pieces left unnamed are the <b>12 belonging to the city "
        "train</b>, which is not in the vehicle list at all."),
@@ -478,11 +530,96 @@ CONTENT = [
        "append-and-repoint method is used, carrying over the piece id and the inline name. "
        "Measured across all four cities: a replacement changes <b>5 bytes</b> of the original "
        "region - the body size and the slot pointer - and every piece still parses."),
- ("note", "<b>A shader index at or above the container's shader count hangs the game.</b> A "
-          "traffic file has 6 or 7 shaders while a vehicle mesh routinely refers to index 14 "
-          "(the 350z hood does), so imported meshes get their index forced. Index <b>2 is "
-          "ambient_body in all four cities</b>; index 1 is ambient_shadow on atlanta/detroit "
-          "but ambient_wheel on sd/tokyo."),
+ ("note", "<b>Shader indices belong to each vehicle's own group at root+0x08, not one "
+          "global traffic table.</b> The counts above describe the earlier sampled groups. "
+          "An out-of-range index can hang the game. Resolve materials by template name: "
+          "ambient_body is index 2 in the earlier sample but index 3 in Atlanta's Civic group. "
+          "VP indices (for example hood material 14) cannot be copied unchanged into a VA group."),
+ ("h3", "Optional opponent MLOD traffic and destructive resource placement"),
+ ("p", "traffic_opponents.mod hooks only the ambient LoadBuild call at 0x21E04C "
+       "(target 0x42E810, type 60), selecting &lt;city&gt;_traffic_vpo.pck, with fallback to "
+       "the original if absent. In [mods], traffic_opponents.mod = shim enables it; = 0 "
+       "disables it. Cold boot is required. These are ambient vehicles, not opponent AI."),
+ ("p", "mc3_traffic_opponents.py maps Civic to vp_350z_04_o, Odessey to vp_escalade_03_o "
+       "and Tacoma to vp_ram_04_o where those slots exist. It merges MLOD with stock parts, "
+       "omits decals. The initial version retained VA wheels and skeleton mounting points; "
+       "the stock-wheel extension below changes only those wheel-related fields. Collision "
+       "bounds, glow pivots, density and ambient AI remain VA. "
+       "Civic atlas swatches provide simplified colors; player carpaint is not imported."),
+ ("note", "<b>Do not alias serialized shaders/textures between ambient owners.</b> The "
+          "initial shared-Civic build loaded but produced repeated invalid texture accesses "
+          "(FC2E... then F703...). Native Place relocates the owned graph destructively. "
+          "Clone an independent ambient body/light graph per non-Civic target, including "
+          "its texture dependencies. Being inside the same PCK is not sufficient for safety."),
+ ("p", "Traffic serializers can interleave mesh groups and skeletons between shader "
+       "resources. A generic interval ending at the next shader can therefore copy unrelated "
+       "geometry. The transplant helper accepts donor_group_off and typed donor_arena_boundaries "
+       "to cap those intervals. Multi-car builds clone from the original traffic pack, not "
+       "intermediates with appended VIF. Pixel payloads remain opaque, never pointer-scanned."),
+ ("table", [
+    ["Before stock-wheel extension", "Native activations", "Result"],
+    ["Atlanta, disabled", "144", "Original body pointers; no detected errors"],
+    ["Atlanta, corrected / enabled", "143", "All slots matched; no detected errors"],
+    ["Tokyo, corrected / enabled", "81", "All slots matched; no detected errors"],
+  ], [51*mm, 32*mm, 65*mm]),
+ ("p", "Private PCSX2 profiles/cards, EE100, Cruise, real GS renderer and read-only PINE "
+       "observed successful native activations; no pad input or savestates were used. "
+       "Atlanta included 61 350Z, 35 Escalade and 26 Ram activations; Tokyo included 47 350Z "
+       "and 29 Ram. All 15 alternatives passed offline checks and were installed without "
+       "overwriting original traffic packs or changing user settings. Growth is 426160..426736 "
+       "bytes for three replacements, or 306304 bytes for Tokyo's two."),
+ ("note", "These short stationary tests do not certify visual appearance, exact wheel or "
+          "collision fit, long-term stability, Release/NextRace, missing-pack fallback, or "
+          "all custom-city renderer combinations. Evidence and installed hashes: "
+          "output/traffic_opponents/HEADLESS.md and verification.json. The private diagnostic "
+          "activation probe (hook 0x21BC38) is not installed as a permanent HostFS mod."),
+ ("h3", "Stock VP wheels and mounting points"),
+ ("p", "mc3_traffic_wheels.py extracts named MLOD drwShaderModel chunks from rim.ppf "
+       "and tire.ppf: they are not geometry in the opponent body's LOD table. In pf05, "
+       "descriptor low 19 bits select a 0x800-byte sector and the upper bits give size "
+       "in 0x400-byte units. Chunks have a 0x20-byte header, total size at +0C and type "
+       "at +14; model type is FFFF0000. Texture chunks are opaque. MLOD is model+14, "
+       "with count at group+2 and mesh-pointer array at group+8."),
+ ("p", "Stock names come from carcfg RimMdlIdx/TireMdlIdx and customwheels.txt; strip "
+       "semicolon comments before indexing and include whld_ Remix entries. Rims for "
+       "350Z/Escalade/Ram resolve to pages 143/45/104 in the current library. Tire pages "
+       "reuse geometry names: black BFG page 0 is selected explicitly when ambiguous. "
+       "Both MLOD submeshes are read; wheel_floating_poly blur cards are omitted."),
+ ("note", "<b>Do not identify every VA wheel by IDs 4..7.</b> Civic and Odessey use "
+          "3..6, with shadow at 7; Tacoma uses 4..7. Resolve four wheel records and "
+          "their own skeleton IDs. VP records at type+3810, count +3814, stride 1C "
+          "select the donor wheel bones. Copy mounting positions, not VP bone IDs, "
+          "parents, links or the entire incompatible hierarchy."),
+ ("table", [
+    ["Ambient translation copy", "Typed address / stride"],
+    ["Source/rest skeleton", "node+0x00 / +0x20; stride 0x44"],
+    ["crSkeleton live bones", "object+680 -> +0x04; stride 0x40, translation+0x24"],
+    ["crSkeleton matrices", "object+680 -> +0x08; stride 0x30, translation+0x24"],
+    ["Wheel records", "object+816 -> stride 0x1C, position+0x10"],
+    ["Interleaved axle positions", "object+876 + ordinal*12 (decimal)"],
+  ], [54*mm, 94*mm]),
+ ("p", "Object offsets 680/816/876 above are decimal; node offsets and strides are "
+       "hexadecimal. Native consumers: aiAmbientType::LoadAndInitialization 21F9D8, "
+       "serialized constructor 222E78 and crSkeleton relocation 58ED60. All six position "
+       "copies must agree before rewriting. Rolling factor object+632, front distance "
+       "+664 and inverse front track +996 (decimal) are synchronized. No float-byte search "
+       "or broad pointer scan is used."),
+ ("p", "Wheel geometry retains a local-zero pivot. Right wheels rotate Y by pi rather "
+       "than reflecting winding. Widths and rim/tire ratios follow the retail lookup "
+       "tables; diameter is fitted to twice the donor's default mounting Y, with the tire "
+       "inner ring fitted to the rim. This is a stock-size approximation, not the full "
+       "player customization pipeline. Chrome/black finishes use neutral ambient atlas "
+       "swatches: player wheel shaders, dynamic blur and detailed tire textures are not "
+       "imported. Default builder includes wheels; --ambient-wheels restores old geometry "
+       "and mounting behavior. The existing INI module switch controls the whole alternative."),
+ ("p", "Stock-wheel cold boots (2026-10-09): Atlanta 130 activations (350Z 52, Escalade "
+       "40, Ram 25); Tokyo 70 (350Z 39, Ram 27); disabled Atlanta control 111. All native "
+       "slots and the four static position copies per wheel matched the serialized expected "
+       "values. No console TLB/heap/GS errors detected; originals and shared INIs unchanged. "
+       "All 15 alternatives installed, five offline tests per HostFS passed. Growth is "
+       "499312..499888 bytes for three cars, 356352 for Tokyo. Evidence: "
+       "output/traffic_opponents_wheels/verification.json. Visual alignment, moving impacts, "
+       "NextRace and combined custom-city renderers remain unverified."),
  ("h3", "Traffic packets have no culling bounds"),
  ("p", "Measured over every block of the four containers and 40 vehicle meshes:"),
  ("table", [
@@ -1816,8 +1953,159 @@ CONTENT = [
        "of mods, and the older patch-file routes keep working unchanged."),
 ]),
 
+("Flash containers (alpha 2004 and Remix)", [
+ ("p", "<font face=Courier>ASSETS/flash/*.pck</font> is the front end. There is no SWF inside: "
+       "it is the memory image of a movie Angel's player (<font face=Courier>c:/soft/age/src/flash</font>) "
+       "has already parsed, pointers relative to the header base (usually <font face=Courier>0x06800000</font>). Every offset "
+       "below comes from the <font face=Courier>X::X(datResource&amp;)</font> constructors and the "
+       "<font face=Courier>Draw/Update</font> methods of the alpha build, named by MC.MAP. Full write-up: "
+       "<font face=Courier>Documentation/MC3_FLASH_PCK.md</font>; converter: "
+       "<font face=Courier>mc3_swf.py</font>. Remix v6 is also covered; its EDITTEXT layout was "
+       "checked against the retail constructor, Draw, GetProperty and SetProperty."),
+ ("note", "Measured over all 305 files of the alpha: 459,292,256 payload bytes, <b>98.41% claimed by "
+          "a known structure, 1.59% 0xCD fill, 0 bytes unexplained</b>. 72,380 action lists (95 MB of "
+          "AVM1) use 32 opcodes, every one implemented by swfACTIONLIST::Execute."),
+ ("h3", "Root, timeline, commands"),
+ ("code",
+  "+0x80 swfFILE  +08 u16 frames  +0C frames  +10 object table  +14 u8 SWF version (6)\n"
+  "               +18 f32 xmin xmax ymin ymax (px)  +28 u16 rate 8.8  +2A u16 objects+1\n"
+  "swfFRAME 8 b   +00 u32 background RGBA (root) / 0 (sprites)  +04 first command\n"
+  "cmd 0 Place    +01 flags (1 scale, 2 rotate)  +0C u16 depth  +0E u16 char (FFFF=move)\n"
+  "               +10 s16 [sx sy][r0 r1] tx ty (8.8, twips)  +14 cxform\n"
+  "cmd 1 +clip    +18 u32 event union  +1C n  +20 CLIPEVENT[12 b]  +24 instance name\n"
+  "cmd 2 Remove   +02 u16 depth          cmd 3/4 DoAction/DoInitAction  +0C actions\n"
+  "actions        u16 refcount, then the AVM1 stream unchanged"),
+ ("h3", "Objects"),
+ ("table", [
+    ["type", "layout and meaning"],
+    ["1 SHAPE", "+08 fills (40 b: type, colour, 6 floats px->S,T, bitmap, gradient), +0C lines (8 b), +10 u16 display list: 1 polyline, 2 TRIANGLE FAN, 4/5 select style. No edges: fills were tessellated when baked."],
+    ["2 SPRITE", "0x10 bytes: +08 u16 frames, +0C frames (the 'frames again' at +10 is the new[] cookie of the frame array, as +30 of swfFILE)"],
+    ["3 BUTTON", "+09 records (40 b: states, depth, matrix, cxform, object pointer), +0A conditions (8 b: SWF CondActionData word, actions)"],
+    ["4 BITMAP", "+08 gfxTexture; +0C texture w/h; +10/+14 1/original w, h - bitmaps were resampled to the nearest power of two per side (at most 512); 4 bit when 512 wide or tall"],
+    ["5 FONT", "+10 codes, +14 advances, +18 ASCII map, +98 sheets, +9A ascent/descent/leading; no outlines - one bitmap SHEET per point size (rects: u8 u v w h, s16 x0 y0 x1 y1 in 1/1024 em)"],
+    ["6 TEXT", "+08 matrix, +20 u16 stream: 1 font height, 2 colour, 3 y, 4 x, 5 n x (glyph, advance) = SWF TEXTRECORD"],
+    ["7 EDITTEXT", "+08 text (when +10 = strlen+1), +0C variable, +12 s16 leading, +14 colour, +18 font, +1A height; four bounds in 1/1024 em: v5 s16 at +1C/+1E/+20/+22, align +24; v6 s32 at +1C/+20/+24/+28, align +2C"],
+    ["8 SOUND", "empty: sounds are played by name (Sound.attachSound -> mcAudioManager)"],
+  ], [24*mm, 114*mm]),
+ ("h3", "Values"),
+ ("p", "Colours are u32 RGBA with R in the low byte. Matrices are a b c d tx ty in the row-vector "
+       "convention of SWF. A cxform is 8 signed bytes, multipliers in 1/64 and adds in units of 4 "
+       "(swfCXFORMWITHALPHA::Transform). Textures: gfxMipChain +28 format (5 = 8 bit, 6 = 4 bit), "
+       "+30 = 1 when swizzled; the swizzle is a PSMT8/PSMT4 write read back as a PSMCT32 rectangle "
+       "(w/2 x h/2; 4 bit h/2 x h/4 square, w/4 x h/2 for 2:1), and 256-colour palettes are in CSM1 order."),
+ ("note", "Corrections to earlier readings: swfFILE starts at +0x80 with its type byte (the +0x84 of "
+          "mc3_flash.py counts from the vtable); the action lists have no 'C5' framing; the All In "
+          "toolkit's TEXT 'line-break marker' is opcodes 3/4/5 read as glyphs."),
+ ("h3", "Back to SWF"),
+ ("p", "<font face=Courier>mc3_swf.py swf</font> writes one SWF 6 per .pck with character ids equal to "
+       "the object indices. Fans are split into triangles wound inside-right; shared edges cancel "
+       "or merge, the rest is chained into outlines; a fan that would overlap the current layer opens "
+       "a new style layer, which is how stacked translucent glows keep their alpha. Fonts are traced "
+       "from the largest sheet (marching squares at 50%) into DefineFont2 outlines, and the sheets are "
+       "kept as named bitmaps. Bitmaps go out as colour-mapped DefineBitsLossless2 at texture "
+       "resolution; the fill matrices restore the original size. All 305 files convert. "
+       "<font face=Courier>mc3_swf.py verify</font> has JPEXS FFDec decode every delivered SWF with its "
+       "own parser and compares each field with the .pck: <b>17,686,499 field checks, 0 mismatches</b> "
+       "(the run caught one real bug: two fonts in garage_x.pck have no advance table - the player "
+       "uses 800). FFDec also decompiles the bytecode back into readable ActionScript."),
+ ("p", "The runtime an author can rely on: properties _x _y _xscale _yscale _alpha _rotation text "
+       "textColor (no _visible - the movies use _alpha 0), methods gotoAndPlay/Stop, play, stop, "
+       "next/prevFrame, and globals Math.sin, Array, Sound (attachSound/start/stop), Color.setRGB. "
+       "No masks and no morphs: PlaceObject2 has neither clip depth nor ratio."),
+ ("h3", "Back to .pck"),
+ ("p", "<font face=Courier>mc3_swf2pck.py</font> writes the .pck from a model of the movie and builds "
+       "that model from a SWF. The baker was a PS2 program running the same flash library: its stale "
+       "words are EE addresses (0x00238F60 behind every first gfxMipChain +04, 0x0020CB26 in every "
+       "EDITTEXT without text) and its floats carry the EE FPU's rounding toward zero - every TEXT and "
+       "button translation is trunc32(twips / 20), 138,122 of 138,122 (round-to-nearest misses 32,425). "
+       "It allocated in SWF tag order in a heap at 0x06800000 filled with 0xCD; gfxTexture is 160 bytes "
+       "64-aligned, its GS packets (TEX0, TEX1, CLAMP, MIPTBP, 0xCAFEBABE) all reproduced from "
+       "gfxTexture::InitDma/UpdateRegs and AdjustSize/CanSwizzle; action lists are interned by content "
+       "(72,380 of 72,380 refcounts = pointers)."),
+ ("note", "Proof: rebuilt from the model at the original offsets, <b>305 of 305 files come out byte for "
+          "byte</b>; .pck -> .swf -> .pck gives the same movie field by field for 305 of 305. In the "
+          "alpha (mc3boot_alpha, garage), all 305 compiled files look like the originals within the "
+          "emulator's run-to-run variance, and an edit made in JPEXS FFDec (two texts, a shape replaced "
+          "by an SVG with curves and a gradient) shows up as made."),
+ ("p", "A SWF written by mc3_swf.py carries an <font face=Courier>mc3_pck_meta</font> block "
+       "(DefineBinaryData): the CLUTs as stored (SWF colours are premultiplied), the fans and float "
+       "matrices of the shapes, the font sheets. Each record holds a hash of its tag; an edited tag is "
+       "compiled from the SWF instead: shapes cut into trapezoids by an even-odd sweep per fill, bitmaps "
+       "scaled to the nearest power of two and quantized, font sheets drawn for every size a text uses."),
+ ("h3", "Alpha x Remix"),
+ ("table", [
+    ["Structure", "Comparison"],
+    ["Header", "PCK v5 versus v6; use the stored base. Remix has 13 files at 0x0024B400; the rest use 0x06800000."],
+    ["EDITTEXT", "v5: 0x28 bytes, four s16 bounds at +1C/+1E/+20/+22, align +24. v6: 0x30 bytes, the SAME four bounds widened to s32 at +1C/+20/+24/+28, align +2C. Leading stays s16 at +12. No new margins."],
+    ["FILE", "Same 0x30-byte structure and root timeline; serialized vtable differs."],
+    ["SPRITE / FRAME", "Same 0x10 / 8 bytes, frame words and allocation cookies."],
+    ["SHAPE / styles", "Same 0x18-byte SHAPE, 40-byte fill, 8-byte line and 0x24-byte gradient. Some fill type upper bytes are opaque; SWF stores only the low byte."],
+    ["BUTTON / actions", "Same 0x14-byte BUTTON, 40-byte record and 8-byte condition. A few Remix translations differ by one float ULP from the alpha reconstruction."],
+    ["BITMAP", "Same 0x18 bytes: dimensions, reciprocals and texture pointer."],
+    ["FONT / sheets", "Same 0xA0 bytes plus sheet pointers; 0x14-byte SHEET and 12-byte glyph rectangle. Same codes, advances, ASCII map and metrics."],
+    ["TEXT", "Same 0x24-byte structure and u16 positioning/glyph opcode stream."],
+    ["Commands / events", "Same Place0 / Place1 / Remove / Action sizes (0x18 / 0x28 / 0x0C / 0x10), 12-byte clip events and action sharing. Different baker vtables."],
+    ["Texture / mip / CLUT", "Same GS serialization, swizzle, texels and palette bytes. Original-layout reconstruction reproduces every word."],
+    ["SOUND / DoInitAction", "No samples in the Remix corpus. Serialized table slots 0x211C30 / 0x211D50 are inferred from neighbors, not measured samples."],
+    ["Baker words", "First gfxMipChain link: 0x238F60 / 0x245040. Empty EditText pointer: 0x20CB26 / 0x214116. Objects and commands select vtables by PCK version."],
+    ["SWF precision", "Opaque upper bytes of fill types and unused clip key words use tag-hashed meta records; some Remix button translations need exact float matrices in meta."],
+ ], [30*mm, 108*mm]),
+ ("p", "EDITTEXT widths are checked against constructor 0x211540, Draw 0x210DD0, GetProperty "
+       "0x2111E0 and SetProperty 0x211290. Draw uses a word width and a byte alignment at +2C; "
+       "SetProperty still converts to s16 before writing a word. The four widened bounds go "
+       "into DefineEditText's rectangle, not guessed LeftMargin/RightMargin/Indent fields. "
+       "The alpha's bounds overflow rule and both versions' s16 leading remain unchanged."),
+ ("p", "The controlled pair <font face=Courier>loadmovie01.pck</font> comes from the same source movie, "
+       "as confirmed by the user: both have 95 objects and every semantic field agrees when only "
+       "the PCK version is ignored. The complete comparison covers 288 common names: only "
+       "loadmovie01 and controller have the same movie; 286 have changed script bytes or reference "
+       "counts. There are 468 Remix-only and 17 alpha-only files. Per-movie object counts, timelines "
+       "and scripts: output/flash_swf/remix_research/alpha_remix.json and alpha_remix_movies.md."),
+ ("note", "Final proof: Remix <b>756/756 byte for byte</b> at original offsets; packed and delivered "
+          "SWF/PCK models <b>756/756 same movie</b>, with source versions and bases retained. "
+          "FFDec independently parses all 756 delivered SWFs: <b>22,545,243 field checks, zero "
+          "mismatches</b>. Alpha remains <b>305/305 source, packed and via SWF</b>. Logs and manifests "
+          "are in output/flash_swf/remix_research."),
+ ("p", "Without meta, <b>54,313/54,313 shapes</b> retain coverage and strokes. Strict movie equality "
+       "is 444/756: the other 312 files have 318 fonts whose absent advance tables become explicit "
+       "800-advance tables. Alpha stays 304/305 without meta, with all 44,452 shapes matching and only garage_x's two missing advance tables differing. Thirteen unused null-bitmap matrices in three shapes lose integral-twip "
+       "precision; neither display list draws these fills, and this loss is reported separately. "
+       "Drawn styles remain checked. Strokes compare exactly; per-fill area tolerance is max(1%, "
+       "400 twips squared); matrix tolerance is 1e-5 times max(1, abs(source)). Meta retains all "
+       "original matrices, fans, fonts and CLUTs exactly."),
+ ("h3", "Remix runtime proof"),
+ ("p", "The ingame command now selects --game alpha or remix (alpha remains the default). Remix "
+       "uses mc3boot.elf and reads menu conditions: title, the existing havefun profile, main menu, "
+       "Go to Garage, Yes, then native game state 5. The published menu-shell state stays at 6 "
+       "after confirmation; it cannot prove garage arrival. game:N reads *(*(0x6199F0)+4), without "
+       "writing game memory. No savestate slot is used."),
+ ("table", [
+    ["Capture", "Original A vs B", "Compiled vs A", "Compiled vs B"],
+    ["Title", "15.908%", "16.161%", "7.779%"],
+    ["Garage", "1.789%", "2.157%", "0.514%"],
+ ], [40*mm, 33*mm, 33*mm, 32*mm]),
+ ("p", "All 756 reference movies were installed for two boots; all 756 compiled movies for the "
+       "third. Same profile, route and three-second wait after arrival; comparison masks PCSX2 OSD "
+       "and counts pixels with a channel difference above 24. Animation is not frame-synchronized. "
+       "Compiled versus original B is below the measured original-to-original variation in both "
+       "scenes; the larger comparison versus A is also recorded. This proves title and garage with "
+       "the full set installed, not individual playback of every movie."),
+ ("p", "An actual FFDec -replace of garage shape #49 with an SVG magenta 9-pixel frame is visible "
+       "in ingame_remix/ffdec_frame/garage.png. Only that shape invalidates its tag-hashed meta; "
+       "the other 44 shapes, four fonts and bitmap records retain their exact data. A first #535 "
+       "probe was hidden in the default menu and is not counted as visual proof. Every run restores "
+       "the selected shared HostFS PCKs and mc3boot.ini, verified by before/after SHA256 hashes. "
+       "The 75 city-added loading movies were not replaced. See MC3_FLASH_PCK.md for commands, "
+       "full measurements and restoration logs."),
+ ("p", "MC3 All In v1.2.3 was tested read-only against all 756 Remix files: its object graph agrees "
+       "in 756/756. Its TEXT reader disagrees with the native opcode stream in <b>12,340/12,340 "
+       "glyph-record sequences</b>; it guesses the font by the longest parse (correct source font "
+       "1,975/12,340) and interprets opcodes 3/4/5 as glyphs. Only 6 flattened visible strings match. "
+       "Do not use its three-glyph line-break marker as a format specification."),
+]),
+
 ("Toolkit", [
- ("p", "Everything lives in <font face=Courier>tools/</font>, plain Python 3 "
+ ("p", "Everything lives in <font face=Courier>C:\\MC3test\\mc3 dev tools\\</font>, plain Python 3 "
        "with no required dependency (Pillow only accelerates palette work). Start with "
        "<font face=Courier>mc3_hub.py</font>, which lists the tools and launches them."),
  ("table", [
@@ -1828,6 +2116,8 @@ CONTENT = [
     ["mc3_pck_embed.py", "container format, embed/remove, skeleton, vehicle structs"],
     ["mc3_mesh_convert.py", "converter: pck / psppck / xbck / .mesh / obj"],
     ["mc3_tex.py", "textures: .tex, flash images, vehicle atlases, swizzle, PNG"],
+    ["mc3_swf.py", "flash .pck read completely (byte coverage) and written back as .swf"],
+    ["mc3_swf2pck.py", "the way back: .swf compiled into flash .pck for alpha v5 or Remix v6; roundtrip, comparison and runtime proof"],
     ["mc3_pointers.py", "PointerGraph: reverse lookup, walk to root, size a block"],
     ["mc3_perf.py", "physics and performance values"],
     ["mc3_ida.py", "drives IDA Pro headless against the ELF: decompile, disasm, xrefs"],
@@ -2020,6 +2310,9 @@ CONTENT = [
     ["Writing .xbck", "single meshes only, and NEVER TESTED IN GAME. It is structurally valid and passes an independent parser, but nobody has loaded one on hardware."],
     ["Traffic extract", "the material table can live in the container's shared area, outside the footprint, so an extracted piece may come back as a single group."],
     ["MC2 placement", "the mesh format is shared, the placement is not. .lvl/.hood instances have no MC3 equivalent yet, and mcPropBase::Init wants a registered pdef resource the game ships none of."],
+    ["Flash, retail", "Dub Edition Remix v6 is supported: all 756 untouched files reconstruct byte for byte and via SWF. Alpha v5 remains 305/305. Other retail corpora have not been validated here."],
+    ["Flash, fonts", "the files carry no glyph outlines; the SWF fonts are traced from the bitmap sheets, so small sizes are coarse."],
+    ["Flash, in game", "Alpha compiled/edited movies have runtime proof. Remix now has two original boots, all 756 compiled movies installed, title/garage captures and a visible FFDec edit. Individual playback of every movie is not covered."],
   ], [38*mm, 100*mm]),
 ]),
 ]

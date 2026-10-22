@@ -16,7 +16,7 @@ import sys
 
 import mc2_rsc as R
 
-MC2 = os.environ.get('MC2_PS2_ASSETS', 'mc2_ps2/assets')
+MC2 = os.environ.get('MC2_ASSETS', os.path.join(os.environ.get('MC2_PS2_RESEARCH', ''), 'assets'))
 
 
 def load(city, tod):

@@ -33,16 +33,16 @@ class Pine:
         out=bytearray()
         while len(out)<n:
             chunk=self.sock.recv(n-len(out))
-            if not chunk: raise ConnectionError('PCSX2 closed PINE')
+            if not chunk: raise ConnectionError('PCSX2 fechou o PINE')
             out.extend(chunk)
         return bytes(out)
     def request(self,body,expected):
         self.sock.sendall(struct.pack('<I',len(body)+4)+body)
         size=struct.unpack('<I',self.exact(4))[0]
-        if not 5<=size<=1024*1024: raise PineError('invalid PINE size')
+        if not 5<=size<=1024*1024: raise PineError('Tamanho PINE invalido')
         reply=self.exact(size-4)
-        if reply[0]: raise PineError('PINE IPC_FAIL: game not available yet')
-        if len(reply)!=expected+1: raise PineError('unexpected PINE reply')
+        if reply[0]: raise PineError('PINE IPC_FAIL: jogo ainda indisponivel')
+        if len(reply)!=expected+1: raise PineError('Resposta PINE inesperada')
         return reply[1:]
     def read(self,addresses):
         body=b''.join(b'\x02'+struct.pack('<I',a) for a in addresses)
@@ -62,18 +62,18 @@ class Freecam:
     def discover(self):
         ins=self.pine.read([SITE])[0]
         if ins==0x0C1455E4 or ins>>26!=3:
-            raise PineError('freecam.mod not installed: start mc3boot with freecam.mod = defer')
+            raise PineError('freecam.mod nao instalado: inicie mc3boot com freecam.mod = defer')
         gate=(ins&0x3FFFFFF)<<2
-        if not valid_ptr(gate,24): raise PineError('invalid camera target')
+        if not valid_ptr(gate,24): raise PineError('Destino de camera invalido')
         magic,addr,version,size=self.pine.read([gate+i for i in (8,12,16,20)])
         if magic!=MAGIC or version!=1 or size!=64 or not valid_ptr(addr,216):
-            raise PineError('the camera hook does not belong to freecam.mod v1')
+            raise PineError('Hook de camera nao pertence a freecam.mod v1')
         hdr=self.pine.read([addr+i for i in (0,4,8,12)])
-        if hdr!=(MAGIC,1,216,1): raise PineError('incompatible freecam state: '+str(hdr))
+        if hdr!=(MAGIC,1,216,1): raise PineError('Estado do freecam incompativel: '+str(hdr))
         return addr,gate
     def validate(self):
         if self.discover()!=(self.address,self.gate):
-            raise PineError('game/module reloaded; restart the helper')
+            raise PineError('Jogo/modulo recarregado; reinicie o auxiliar')
     def status(self):
         v=self.pine.read([self.address+i for i in (12,16,20,24,28,204,208)])
         return dict(address=hex(self.address),status=v[0],active=bool(v[1]),
@@ -92,7 +92,7 @@ class Freecam:
 
 class WindowsInput:
     def __init__(self,pid=None):
-        if os.name!='nt': raise RuntimeError('this mouse helper requires Windows')
+        if os.name!='nt': raise RuntimeError('Este auxiliar de mouse requer Windows')
         self.u=C.WinDLL('user32',use_last_error=True)
         self.k=C.WinDLL('kernel32',use_last_error=True)
         self.u.GetForegroundWindow.restype=W.HWND
@@ -147,39 +147,39 @@ class WindowsInput:
         return keys,dx,dy,True,stop
 
 def main():
-    ap=argparse.ArgumentParser(description='mouse and keyboard for freecam.mod through local PINE')
+    ap=argparse.ArgumentParser(description='Mouse e teclado para freecam.mod via PINE local')
     ap.add_argument('--port',type=int,default=28011)
-    ap.add_argument('--pid',type=int,help='PCSX2 PID, if the executable was renamed')
-    ap.add_argument('--status',action='store_true',help='only check whether the module is loaded')
-    args=ap.parse_args(); pine=None; pck_path=None
+    ap.add_argument('--pid',type=int,help='PID do PCSX2, se o executavel foi renomeado')
+    ap.add_argument('--status',action='store_true',help='Somente conferir se o modulo esta carregado')
+    args=ap.parse_args(); pine=None; cam=None
     try:
         pine=Pine(args.port)
-        pck_path=Freecam(pine)
+        cam=Freecam(pine)
         if args.status:
-            print(json.dumps(pck_path.status(),indent=2)); return 0
+            print(json.dumps(cam.status(),indent=2)); return 0
         inputs=WindowsInput(args.pid)
-        print('Freecam connected. Focus PCSX2. P: on/off | L: release mouse | End: quit.',flush=True)
+        print('Freecam conectado. Foque o PCSX2. P: ligar/desligar | L: soltar mouse | End: sair.',flush=True)
         validate_at=time.monotonic()+1
         while True:
             start=time.monotonic()
             if start>=validate_at:
-                pck_path.validate(); validate_at=start+1
-            status=pck_path.status()
+                cam.validate(); validate_at=start+1
+            status=cam.status()
             keys,dx,dy,focus,stop=inputs.sample(status['active'])
             if stop: break
-            pck_path.send(keys,dx,dy,focus)
+            cam.send(keys,dx,dy,focus)
             time.sleep(max(0,1/120-(time.monotonic()-start)))
         return 0
     except KeyboardInterrupt:
         return 0
     except (OSError,RuntimeError) as exc:
         print('Freecam: '+str(exc),flush=True)
-        print('PINE must be enabled and free. Old PINE/ReShade readers can take the only connection; stop the competing reader and try again.',flush=True)
+        print('PINE deve estar ativo e livre. Leitores PINE/ReShade antigos podem ocupar a unica conexao; pare o leitor concorrente e tente de novo.',flush=True)
         return 1
     finally:
-        if pck_path is not None and not args.status:
+        if cam is not None and not args.status:
             try:
-                pck_path.validate(); pck_path.send(focused=False)
+                cam.validate(); cam.send(focused=False)
             except (OSError,RuntimeError): pass
         if pine is not None: pine.close()
 

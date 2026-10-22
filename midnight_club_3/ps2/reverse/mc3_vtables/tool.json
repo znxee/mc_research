@@ -5,18 +5,18 @@
   "platform": "ps2",
   "type": "reverse",
   "entry": "mc3_vtables.py",
-  "summary": "mc3_vtables.py - NAME the .pck structures without opening IDA",
+  "summary": "mc3_vtables.py - dar NOME as estruturas do .pck, sem abrir a IDA",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

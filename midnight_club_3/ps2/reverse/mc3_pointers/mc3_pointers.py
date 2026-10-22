@@ -7,7 +7,7 @@ and only fixes up the pointers using the base from the header. Since EVERYTHING
 that matters is reachable from the root through pointers, from any address you
 can walk up the chain to the root by asking "who points here".
 
-Method (the user's own, from their pointer-rollback / reverse-search notes): search for
+Method (the user's, in "rollback de ponteiros(busca reversa).txt"): search for
 the address as a u32; if nobody points exactly at it, step back 0x4 (the real
 target usually starts after some padding) and repeat; when MORE THAN ONE place
 points at the same target, those are the several owners (e.g. several materials

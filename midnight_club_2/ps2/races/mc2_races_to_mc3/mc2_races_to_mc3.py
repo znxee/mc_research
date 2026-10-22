@@ -397,17 +397,17 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
     ap.add_argument('--rsc', default=None,
                     help="MC2 city's .rsc (default: HostFS mc2/<mc2-city>/<mc2-city>.rsc); '' keeps MC2's y")
-    ap.add_argument('--mc2', default=os.path.join(os.environ.get('MC2_PS2_ASSETS', 'mc2_ps2/assets'), 'tune/race'),
+    ap.add_argument('--mc2', default=os.path.join(os.environ.get('MC2_PS2_RESEARCH', ''), 'assets/tune/race'),
                     help="MC2's assets/tune/race")
-    ap.add_argument('--mc3', default=os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'ASSETS/tune/race'),
+    ap.add_argument('--mc3', default=os.path.join(os.environ.get('MC3_HOSTFS', ''), 'ASSETS/tune/race'),
                     help="MC3's ASSETS/tune/race")
     ap.add_argument('--mc2-city', default='losangeles',
                     help='source MC2 city name (losangeles or paris)')
     ap.add_argument('--city', default=None,
                     help='destination MC3 city name (default: losangeles for Los Angeles, otherwise source name)')
-    ap.add_argument('--fonts', default=os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'ASSETS/fonts'),
+    ap.add_argument('--fonts', default=os.path.join(os.environ.get('MC3_HOSTFS', ''), 'ASSETS/fonts'),
                     help="MC3's ASSETS/fonts (string tables); '' to skip")
-    ap.add_argument('--strtbl', default=os.environ.get('MC3_STRTBL', 'strtbl.py'),
+    ap.add_argument('--strtbl', default=os.path.join(os.environ.get('MC_WORK_DIR', ''), 'strtbl.py'),
                     help='Edness strtbl.py (dec/enc)')
     ap.add_argument('--label', default=None, help='city name shown in menus')
     ap.add_argument('--add-types', default=None,
@@ -424,7 +424,7 @@ def main():
     if a.label is None:
         a.label = 'Los Angeles' if a.mc2_city == 'losangeles' else a.mc2_city.title()
     if a.rsc is None:
-        a.rsc = os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'mc2/{0}/{0}.rsc').format(a.mc2_city)
+        a.rsc = os.path.join(os.environ.get('MC3_HOSTFS', ''), 'mc2/{0}/{0}.rsc').format(a.mc2_city)
 
     races = read_loc(os.path.join(a.mc2, a.mc2_city + '.loc'))
     ground = Ground(a.rsc) if a.rsc and os.path.exists(a.rsc) else None

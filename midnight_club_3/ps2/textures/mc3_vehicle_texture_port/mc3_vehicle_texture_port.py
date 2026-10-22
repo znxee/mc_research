@@ -21,9 +21,9 @@ Usage:
     python mc3_vehicle_texture_port.py inject CAR.psppck TARGET.pck OUT.pck
 """
 
+import os
 from __future__ import annotations
 
-import os
 import argparse
 import importlib.util
 import math
@@ -38,7 +38,7 @@ def _load_sibling(name: str):
     here = pathlib.Path(__file__).resolve().parent
     candidates = (
         here / f"{name}.py",
-        pathlib.Path(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools')) / f"{name}.py",
+        pathlib.Path(os.environ.get('MC_RESEARCH_ROOT', '')) / f"{name}.py",
     )
     path = next((p for p in candidates if p.is_file()), None)
     if path is None:

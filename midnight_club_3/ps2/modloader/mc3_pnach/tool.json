@@ -1,0 +1,22 @@
+{
+  "name": "mc3_pnach",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "modloader",
+  "entry": "mc3_pnach.py",
+  "summary": "mc3_pnach.py - audit the pnach files PCSX2 will load for one game",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

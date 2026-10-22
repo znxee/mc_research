@@ -3,7 +3,7 @@
 (city_mc2_rsc_draw_test, [boot] mc2s): position, the point the AI steers at,
 its speed and the speed it asks for, and the aiStuck state.
 
-    python mc3_ai_trace.py out/ia_ian1/paris_ian_checkpoint_one/pcsx2.log
+    python mc3_ai_trace.py Y:/temp/ia_ian1/paris_ian_checkpoint_one/pcsx2.log
     python mc3_ai_trace.py LOG --car 3 --from 60 --to 100     # one car, a time window
     python mc3_ai_trace.py LOG --stalls                       # only where a car stood still
 

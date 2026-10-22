@@ -31,8 +31,8 @@ camera, not the one on screen - with occluders loaded the watched car vanishes
 whenever it is outside the player camera's frustum. Use mc2s = <N>c (chase,
 mc3_race_tour.py --chase), where the game's own camera draws.
 
-    python mc2_occluders.py --city losangeles --out out/occ/losangeles.occlude --png out/occ/la.png
-    python mc2_occluders.py --city paris --out $MC3_HOSTFS/ASSETS/city/paris/paris.occlude
+    python mc2_occluders.py --city losangeles --out Y:/temp/occ/losangeles.occlude --png Y:/temp/occ/la.png
+    python mc2_occluders.py --city paris --out Y:/MC3HostFS/ASSETS/city/paris/paris.occlude
 """
 import argparse
 import collections
@@ -45,7 +45,7 @@ import numpy as np
 
 import mc2_rsc as R
 
-MC2 = os.environ.get('MC2_PS2_ASSETS', 'mc2_ps2/assets')
+MC2 = os.environ.get('MC2_ASSETS', os.path.join(os.environ.get('MC2_PS2_RESEARCH', ''), 'assets'))
 CELL = 2.0
 MIN_HEIGHT = 6.0      # a box must rise this much above the street around it
 MIN_AREA = 64.0       # m^2

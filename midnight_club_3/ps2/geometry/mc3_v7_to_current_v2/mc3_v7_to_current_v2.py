@@ -1,8 +1,8 @@
-"""Conservative transplant of v7/forge VIF into the modern PCK.
+"""Transplante conservador de VIF v7/forge para o PCK moderno.
 
-Picks the target from the world centre and the exact shape of the packets.
-When two components share one centre, the payload of the v7 reference only
-breaks the tie. Modern meshes that are split differently are kept.
+Seleciona o destino a partir do centro mundial e da forma exata dos pacotes.
+Quando dois componentes ocupam o mesmo centro, o payload da referencia v7
+serve apenas como desempate. Malhas modernas com outra divisao sao preservadas.
 """
 
 import argparse
@@ -52,7 +52,7 @@ def main():
     ap.add_argument("--forged", required=True)
     ap.add_argument("--reference", required=True)
     ap.add_argument("--report", required=True)
-    ap.add_argument("--tools", default=os.path.dirname(os.path.abspath(__file__)))
+    ap.add_argument("--tools", default=os.environ.get('MC_RESEARCH_ROOT', ''))
     ap.add_argument("--output")
     ap.add_argument("--json")
     ap.add_argument("--tolerance", type=float, default=.002)
@@ -66,7 +66,7 @@ def main():
     active = []
     for hood_index, hood in enumerate(hf.hoods(pck)):
         for unique_index, (_label, meshes, _component, cd) in enumerate(
-                hf.hood_uniques(pck, hood_index)):
+                hf.uniques_do_hood(pck, hood_index)):
             centre = struct.unpack_from("<3f", pck.data, cd + 0x2C)
             for mesh in meshes:
                 groups = common.packet_entries_city(pck, mesh)
@@ -133,7 +133,7 @@ def main():
             for (offset, qw, nv), (payload, rq, rn) in zip(
                     current_group, replacement_group):
                 if (qw, nv) != (rq, rn):
-                    raise AssertionError("inconsistent shape in " + filename)
+                    raise AssertionError("shape inconsistente em " + filename)
                 old = bytes(pck.data[offset:offset + 16 * qw])
                 if old != payload:
                     component_changed = True
@@ -144,13 +144,13 @@ def main():
             unchanged_components += 1
 
     if len(pck.data) != len(original):
-        raise AssertionError("the PCK size changed")
+        raise AssertionError("tamanho do PCK mudou")
     allowed = bytearray(len(original))
     for start, end, _name in changed_ranges:
         allowed[start:end] = b"\x01" * (end - start)
     for offset, (before, after) in enumerate(zip(original, pck.data)):
         if before != after and not allowed[offset]:
-            raise AssertionError("structural byte changed at 0x%X" % offset)
+            raise AssertionError("byte estrutural alterado em 0x%X" % offset)
 
     reasons = {}
     for item in skipped:
@@ -168,15 +168,15 @@ def main():
         "size_before": len(original),
         "size_after": len(pck.data),
     }
-    print("selected:", len(chosen), "of", len(items))
-    print("already identical:", unchanged_components)
-    print("packets changed:", len(changed_ranges), "differing bytes:", changed_bytes)
-    print("kept:", len(skipped), reasons)
-    print("size:", len(original), "->", len(pck.data), "; structural bytes changed: 0")
+    print("selecionados:", len(chosen), "de", len(items))
+    print("ja identicos:", unchanged_components)
+    print("pacotes alterados:", len(changed_ranges), "bytes diferentes:", changed_bytes)
+    print("preservados:", len(skipped), reasons)
+    print("tamanho:", len(original), "->", len(pck.data), "; bytes estruturais alterados: 0")
     if args.output:
         with open(args.output, "wb") as stream:
             stream.write(pck.data)
-        print("written:", os.path.abspath(args.output))
+        print("gravado:", os.path.abspath(args.output))
     if args.json:
         with open(args.json, "w", encoding="utf-8") as stream:
             json.dump(result, stream, ensure_ascii=False, indent=2)

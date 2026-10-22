@@ -48,7 +48,7 @@ def build_genh(codec: str, channels: int, sample_rate: int, interleave: int,
                big_endian_pcm: bool = False) -> bytes:
     gtype = codec_to_genh_type(codec, big_endian_pcm)
     if gtype is None:
-        raise GenhError(f"codec {codec} has no equivalent GENH type")
+        raise GenhError(f"codec {codec} nao tem tipo GENH equivalente")
 
     h = bytearray(HEADER_SIZE)
     h[0:4] = MAGIC
@@ -72,7 +72,7 @@ def build_genh(codec: str, channels: int, sample_rate: int, interleave: int,
 def read_genh(data: bytes) -> dict:
     """Mirrors parse_genh() in genh.c. Returns a dict with the fields we care about."""
     if data[0:4] != MAGIC:
-        raise GenhError("not a GENH file (signature missing)")
+        raise GenhError("nao e um arquivo GENH (assinatura ausente)")
 
     def u32(off):
         return struct.unpack_from("<I", data, off)[0]
@@ -94,9 +94,9 @@ def read_genh(data: bytes) -> dict:
         header_size = 0x800
 
     if header_size > start_offset:
-        raise GenhError("header_size larger than start_offset (invalid GENH)")
+        raise GenhError("header_size maior que start_offset (GENH invalido)")
     if header_size < 0x24:
-        raise GenhError("header_size below the minimum (0x24)")
+        raise GenhError("header_size menor que o minimo (0x24)")
 
     num_samples = 0
     data_size = 0

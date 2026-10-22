@@ -5,18 +5,18 @@
   "platform": "ps2",
   "type": "cities",
   "entry": "mc3_cellcount.py",
-  "summary": "Extend the per-cell arrays of props and peds to fit the city's cell_count.",
+  "summary": "Estende os arrays por-celula de props e peds para caber no cell_count da cidade.",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

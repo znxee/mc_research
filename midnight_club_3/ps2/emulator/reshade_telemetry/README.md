@@ -12,7 +12,7 @@ The PC side contains two readers of the same ABI:
 
 ReShade 6.8.0 with full add-on support is installed for DXGI/D3D12 at:
 
-`$HOME\OneDrive\PCSX2 v1.7 dev`
+`C:\Users\rodri\OneDrive\PCSX2 v1.7 dev`
 
 The installed files are:
 
@@ -20,7 +20,7 @@ The installed files are:
 - `mc3_telemetry.addon64`
 - `reshade-shaders\Shaders\MC3Telemetry.fx`
 
-PINE is enabled in `$MC3_PCSX2_DATA\inis\PCSX2.ini`. The test effect is
+PINE is enabled in `X:\Documents\PCSX2\inis\PCSX2.ini`. The test effect is
 enabled in `ReShadePreset.ini`. Start MC3 and the thin bar at the top should be
 green when telemetry is connected; its length follows speed and its color
 shifts toward red as RPM rises. Press `Home` to open the ReShade overlay.

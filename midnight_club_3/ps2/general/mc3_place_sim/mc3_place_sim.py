@@ -40,8 +40,8 @@ WHAT THIS CHECKS, and why each one is a bug that actually happened here:
   * a null slot                          -> not skipped; the code reads `*(0+4)`
   * a pointer outside the body           -> reads whatever is next in RAM
 
-    python mc3_place_sim.py CITY.pck
-    python mc3_place_sim.py CITY.pck --detail
+    python mc3_place_sim.py CIDADE.pck
+    python mc3_place_sim.py CIDADE.pck --detalhe
 
 ALWAYS run it on an untouched retail city first. A checker that fails the
 shipped file is measuring itself, not the file - that already happened once here
@@ -55,28 +55,28 @@ import os
 import struct
 import sys
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-_SV = importlib.util.spec_from_file_location('mc3_view', os.path.join(_HERE, 'mc3_view.py'))
+_AQUI = os.path.dirname(os.path.abspath(__file__))
+_SV = importlib.util.spec_from_file_location('mc3_view', os.path.join(_AQUI, 'mc3_view.py'))
 _view = importlib.util.module_from_spec(_SV)
 sys.modules['mc3_view'] = _view
 _SV.loader.exec_module(_view)
 
-OK_KINDS = (0, 1, 2)          # 0x2AF9E8: everything else falls into the infinite loop
-OK_SUBKINDS = (0, 1, 2, 3)   # 0x2BA718: likewise
+TIPOS_OK = (0, 1, 2)          # 0x2AF9E8: tudo o mais cai no laco infinito
+SUB_TIPOS_OK = (0, 1, 2, 3)   # 0x2BA718: idem
 
 
-class Body:
-    """The .pck body, addressed by VA as the game does."""
+class Corpo:
+    """O corpo do .pck, endereçado por VA como o jogo faz."""
 
     def __init__(self, path):
         self.d = open(path, 'rb').read()
-        self.base_va, self.kind, self.version, self.body = struct.unpack_from('<4I', self.d, 0)
+        self.base_va, self.tipo, self.versao, self.corpo = struct.unpack_from('<4I', self.d, 0)
         self.base = self.base_va - 0x80
 
     def off(self, va):
         return va - self.base
 
-    def inside(self, va):
+    def dentro(self, va):
         o = self.off(va)
         return 0x80 <= o <= len(self.d) - 4
 
@@ -90,459 +90,458 @@ class Body:
         return self.d[self.off(va)]
 
 
-def check_block(c, entry):
-    """None if the block is consistent, or a description of what does not add up.
+def checa_bloco(c, entrada):
+    """None se o bloco esta coerente, ou a descricao do que nao fecha.
 
-    The block entry is `[u32 address][u16 qwc][u16 nv]` and `gfxGeometry::Draw`
-    (0x1ED930) builds a DMAtag from it: `qwc | 0x30000000 | (address << 32)`.
-    The `qwc` is NOT a hint: it is the transfer counter. If it does not match the
-    packet's real size, the VIF gets a piece too many (reads garbage as a command)
-    or too few (the packet loses the tail that closes it).
+    A entrada de bloco e `[u32 endereco][u16 qwc][u16 nv]` e `gfxGeometry::Draw`
+    (0x1ED930) monta com ela uma DMAtag `qwc | 0x30000000 | (endereco << 32)`.
+    O `qwc` NAO e uma dica: e o contador da transferencia. Se ele nao bate com o
+    tamanho real do packet, o VIF recebe pedaco a mais (le lixo como comando) ou
+    a menos (o pacote fica sem a cauda que o fecha).
 
-    And `nv` has to match how many vertices the POSITION stream unpacks,
-    otherwise the mesh draws a different number of triangles than it declared.
+    E `nv` tem que bater com quantos vertices o stream de POSICAO desempacota,
+    senao o mesh desenha um numero de triangulos diferente do que declarou.
     """
-    va, qwc, nv = struct.unpack_from('<IHH', c.d, c.off(entry))
+    va, qwc, nv = struct.unpack_from('<IHH', c.d, c.off(entrada))
     if not va:
         return None
-    if not c.inside(va):
-        return 'packet outside the body (%08X)' % va
+    if not c.dentro(va):
+        return 'packet fora do corpo (%08X)' % va
     if not qwc:
         return 'qwc zero'
-    end = va + 16 * qwc
-    if not c.inside(end - 4):
-        return 'a %d-qw packet runs past the end of the body' % qwc
-    # DO NOT limit nv to 256: that was a heuristic filter of the AABB reader, and
-    # atlanta itself has blocks of 308, 404 and up to 525 vertices. Retail rules.
+    fim = va + 16 * qwc
+    if not c.dentro(fim - 4):
+        return 'packet de %d qw passa do fim do corpo' % qwc
+    # NAO limitar nv a 256: isso era um filtro heuristico do leitor de AABB, e o
+    # proprio atlanta tem blocos de 308, 404 e ate 525 vertices. O gabarito manda.
     if nv < 3:
-        return 'nv = %d (less than one triangle)' % nv
-    batches_ = _view._vif_walk(c.d, c.off(va), 16 * qwc)
-    if not batches_:
-        return 'the VIF stream loses sync within the %d declared qw' % qwc
-    found_it = 0
-    for batch in batches_:
-        for _rel, cmd, _off, num in batch:
-            if (cmd & 0x0F) == 0x04 and (cmd & 0x60) == 0x60:   # V3-16/V3-32 = position
-                found_it += num
-    if found_it and found_it != nv:
-        return 'nv declares %d but the position stream carries %d' % (nv, found_it)
+        return 'nv = %d (menos de um triangulo)' % nv
+    lotes = _view._vif_walk(c.d, c.off(va), 16 * qwc)
+    if not lotes:
+        return 'o stream VIF dessincroniza dentro dos %d qw declarados' % qwc
+    achou = 0
+    for lote in lotes:
+        for _rel, cmd, _off, num in lote:
+            if (cmd & 0x0F) == 0x04 and (cmd & 0x60) == 0x60:   # V3-16/V3-32 = posicao
+                achou += num
+    if achou and achou != nv:
+        return 'nv declara %d mas o stream de posicao traz %d' % (nv, achou)
     return None
 
 
-# Every MapRoot field `mcCity::mcCity` (0x259160) touches, in code order.
-# `modelled` says whether THIS simulator walks the structure or only checks that
-# the pointer is valid. What is not modelled is not being verified - knowing
-# that matters more than the list of passes.
-MAPROOT_FIELDS = [
-    (0x1D4, 'object via vtable[9]',       'sub_?  (a1+468)',        False),
-    (0x1D8, '20 pointers via vtable[9]',  'loop of 20 (a1+472..)',  False),
-    (0x0C,  'shader descriptors',         'sub_2B3600 x n',         True),
-    (0x10,  'one more shader array',      'sub_2B3600',             True),
-    (0x18,  'hood table',                 'sub_25D4F0 x n',         True),
-    (0x1C,  'flat city index',            'sub_25B9D8',             False),
-    (0x2C,  'palette A',                  'relocated only',         True),
-    (0x30,  'palette B',                  'relocated only',         True),
-    (0x190, 'structure at 0x190',         'sub_25C998',             False),
-    (0x194, 'structure at 0x194',         'sub_24C528',             False),
-    (0x198, 'structure at 0x198',         'sub_2571B0',             False),
-    (0x19C, 'pointer at 0x19C',           'relocated only',         False),
-    (0x1CC, 'pointer at 0x1CC',           'relocated only',         False),
-    (0x228, 'structure at 0x228',         'sub_2BA6B0',             False),
+# Todo campo do MapRoot que `mcCity::mcCity` (0x259160) toca, na ordem do codigo.
+# `modelado` diz se ESTE simulador percorre a estrutura ou apenas confere se o
+# ponteiro e valido. O que nao e modelado nao esta sendo verificado - saber disso
+# importa mais do que a lista de aprovacoes.
+CAMPOS_MAPROOT = [
+    (0x1D4, 'objeto via vtable[9]',      'sub_?  (a1+468)',        False),
+    (0x1D8, '20 ponteiros via vtable[9]', 'laco de 20 (a1+472..)', False),
+    (0x0C,  'descritores de shader',      'sub_2B3600 x n',        True),
+    (0x10,  'mais um array de shader',    'sub_2B3600',            True),
+    (0x18,  'tabela de hood',             'sub_25D4F0 x n',        True),
+    (0x1C,  'indice plano da cidade',     'sub_25B9D8',            False),
+    (0x2C,  'paleta A',                   'so relocado',           True),
+    (0x30,  'paleta B',                   'so relocado',           True),
+    (0x190, 'estrutura de 0x190',         'sub_25C998',            False),
+    (0x194, 'estrutura de 0x194',         'sub_24C528',            False),
+    (0x198, 'estrutura de 0x198',         'sub_2571B0',            False),
+    (0x19C, 'ponteiro de 0x19C',          'so relocado',           False),
+    (0x1CC, 'ponteiro de 0x1CC',          'so relocado',           False),
+    (0x228, 'estrutura de 0x228',         'sub_2BA6B0',            False),
 ]
 
 
-def coverage(path, reference):
-    """What the file has, what the reference has, and what this simulator covers.
+def cobertura(path, referencia):
+    """O que o arquivo tem, o que a referencia tem, e o que este simulador cobre.
 
-    Answers the question that matters before booting: **which parts of the city
-    did I leave empty**. A null field does not hang `Place` - all of them are
-    guarded by `if (ptr)` - but nothing guarantees that whoever consumes the city
-    afterwards tolerates the absence. This table is the list of suspects, in order.
+    Responde a pergunta que importa antes de bootar: **quais partes da cidade eu
+    deixei vazias**. Um campo nulo nao trava o `Place` - todos sao guardados por
+    `if (ptr)` - mas nada garante que quem consome a cidade depois tolere a
+    ausencia. Esta tabela e a lista de suspeitos, em ordem.
     """
-    c, r = Body(path), Body(reference)
-    print('%s   x   %s (reference)' % (os.path.basename(path), os.path.basename(reference)))
+    c, r = Corpo(path), Corpo(referencia)
+    print('%s   x   %s (referencia)' % (os.path.basename(path), os.path.basename(referencia)))
     print()
     print('  %-6s %-28s %-24s %-9s %-9s %s'
-          % ('field', 'what it is', 'who walks it', 'ref', 'this', 'simulated'))
-    missing_n = []
-    for off, what, who, mod in MAPROOT_FIELDS:
+          % ('campo', 'o que e', 'quem percorre', 'ref', 'este', 'simulado'))
+    faltando = []
+    for off, oque, quem, mod in CAMPOS_MAPROOT:
         vr = r.u32(r.base_va + off)
         vc = c.u32(c.base_va + off)
-        status = 'has' if vc else 'EMPTY'
+        est = 'tem' if vc else 'VAZIO'
         if vr and not vc:
-            missing_n.append((off, what, who, mod))
+            faltando.append((off, oque, quem, mod))
         print('  +%-5X %-28s %-24s %-9s %-9s %s'
-              % (off, what[:28], who[:24], 'has' if vr else '-', status,
-                 'yes' if mod else 'NO'))
+              % (off, oque[:28], quem[:24], 'tem' if vr else '-', est,
+                 'sim' if mod else 'NAO'))
     print()
-    n_mod = sum(1 for _o, _q, _w, m in MAPROOT_FIELDS if m)
-    print('  this simulator walks %d of %d MapRoot structures' % (n_mod, len(MAPROOT_FIELDS)))
-    if missing_n:
-        print('  %d field(s) the reference has and this file does NOT:' % len(missing_n))
-        for off, what, who, mod in missing_n:
-            print('     +0x%-4X %-28s (%s)%s' % (off, what, who,
-                  '' if mod else '   <- and it is not even checked here'))
+    n_mod = sum(1 for _o, _q, _w, m in CAMPOS_MAPROOT if m)
+    print('  este simulador percorre %d de %d estruturas do MapRoot' % (n_mod, len(CAMPOS_MAPROOT)))
+    if faltando:
+        print('  %d campo(s) que a referencia tem e este arquivo NAO:' % len(faltando))
+        for off, oque, quem, mod in faltando:
+            print('     +0x%-4X %-28s (%s)%s' % (off, oque, quem,
+                  '' if mod else '   <- e nem e verificado aqui'))
     else:
-        print('  no field present in the reference is empty here')
-    return missing_n
+        print('  nenhum campo presente na referencia esta vazio aqui')
+    return faltando
 
 
-def simulate(path, detail=False):
-    c = Body(path)
-    root = c.base_va                      # the MapRoot sits at file 0x80 = base VA
-    problems = []
-    def error(cat, msg):
-        problems.append((cat, msg))
+def simula(path, detalhe=False):
+    c = Corpo(path)
+    raiz = c.base_va                      # o MapRoot fica em file 0x80 = base VA
+    prob = []
+    def erro(cat, msg):
+        prob.append((cat, msg))
 
     print('%s' % os.path.basename(path))
-    print('  header: base %08X, kind %d, version %d, body %d (file %d)'
-          % (c.base_va, c.kind, c.version, c.body, len(c.d)))
-    if c.kind != 67:
-        error('header', 'kind %d, not 67 - the loader bails out silently' % c.kind)
-    if c.body != len(c.d) - 0x80:
-        error('header', 'declared body %d, file has %d' % (c.body, len(c.d) - 0x80))
+    print('  cabecalho: base %08X, tipo %d, versao %d, corpo %d (arquivo %d)'
+          % (c.base_va, c.tipo, c.versao, c.corpo, len(c.d)))
+    if c.tipo != 67:
+        erro('cabecalho', 'tipo %d, nao 67 - o carregador sai calado' % c.tipo)
+    if c.corpo != len(c.d) - 0x80:
+        erro('cabecalho', 'corpo declarado %d, arquivo tem %d' % (c.corpo, len(c.d) - 0x80))
 
-    n_groups = c.u32(root + 0x08)
-    p_groups = c.u32(root + 0x0C)
-    p_field10 = c.u32(root + 0x10)
-    n_hoods = c.u32(root + 0x14)
-    p_hoods = c.u32(root + 0x18)
-    print('  MapRoot: %d shader group(s), %d hood(s)' % (n_groups, n_hoods))
+    n_grupos = c.u32(raiz + 0x08)
+    p_grupos = c.u32(raiz + 0x0C)
+    p_campo10 = c.u32(raiz + 0x10)
+    n_hoods = c.u32(raiz + 0x14)
+    p_hoods = c.u32(raiz + 0x18)
+    print('  MapRoot: %d grupo(s) de shader, %d hood(s)' % (n_grupos, n_hoods))
 
-    # mcCity::mcCity walks the group descriptors and then +0x10 through the
-    # SAME function - +0x10 is another shader array, not a separate structure
-    descriptors = []
-    if p_groups:
-        if not c.inside(p_groups):
-            error('maproot', '+0x0C points outside the body (%08X)' % p_groups)
+    # mcCity::mcCity percorre os descritores de grupo e, depois, o +0x10 pela
+    # MESMA funcao - +0x10 e outro array de shader, nao uma estrutura a parte
+    descritores = []
+    if p_grupos:
+        if not c.dentro(p_grupos):
+            erro('maproot', '+0x0C aponta fora do corpo (%08X)' % p_grupos)
         else:
-            descriptors += [p_groups + 16 * i for i in range(n_groups)]
-    elif n_groups:
-        error('maproot', '+0x0C NULL with count %d' % n_groups)
-    if p_field10:
-        if c.inside(p_field10):
-            descriptors.append(p_field10)
+            descritores += [p_grupos + 16 * i for i in range(n_grupos)]
+    elif n_grupos:
+        erro('maproot', '+0x0C NULO com contagem %d' % n_grupos)
+    if p_campo10:
+        if c.dentro(p_campo10):
+            descritores.append(p_campo10)
         else:
-            error('maproot', '+0x10 points outside the body (%08X)' % p_field10)
+            erro('maproot', '+0x10 aponta fora do corpo (%08X)' % p_campo10)
     else:
-        error('maproot', '+0x10 NULL - the PS2 reads address 0 instead of faulting, and '
-                        'Place wanders off into garbage')
-    for name, field in (('+0x18 hoods', p_hoods), ('+0x2C paletteA', c.u32(root + 0x2C)),
-                        ('+0x30 paletteB', c.u32(root + 0x30)),
-                        ('+0x1C', c.u32(root + 0x1C))):
-        if not field:
-            error('maproot', '%s NULL' % name)
-        elif not c.inside(field):
-            error('maproot', '%s outside the body (%08X)' % (name, field))
+        erro('maproot', '+0x10 NULO - o PS2 le o endereco 0 em vez de falhar, e '
+                        'o Place sai andando em lixo')
+    for nome, campo in (('+0x18 hoods', p_hoods), ('+0x2C paletaA', c.u32(raiz + 0x2C)),
+                        ('+0x30 paletaB', c.u32(raiz + 0x30)),
+                        ('+0x1C', c.u32(raiz + 0x1C))):
+        if not campo:
+            erro('maproot', '%s NULO' % nome)
+        elif not c.dentro(campo):
+            erro('maproot', '%s fora do corpo (%08X)' % (nome, campo))
 
-    # ---- the 0x2AF9E8 loop, once per descriptor
-    owners = collections.defaultdict(list)     # object -> [(group, slot)]
+    # ---- o laco de 0x2AF9E8, uma vez por descritor
+    donos = collections.defaultdict(list)     # objeto -> [(grupo, slot)]
     tags = collections.Counter()
-    nulls = 0
-    for gi, desc in enumerate(descriptors):
-        if not c.inside(desc):
+    nulos = 0
+    for gi, desc in enumerate(descritores):
+        if not c.dentro(desc):
             continue
-        data = c.u32(desc + 4)
-        n = c.u16(desc + 8)                    # `lhu a3, 4(a3)` with a3 = desc+4
+        dados = c.u32(desc + 4)
+        n = c.u16(desc + 8)                    # `lhu a3, 4(a3)` com a3 = desc+4
         if not n:
             continue
-        if not c.inside(data):
-            error('group %d' % gi, 'data pointer outside the body (%08X)' % data)
+        if not c.dentro(dados):
+            erro('grupo %d' % gi, 'ponteiro de dados fora do corpo (%08X)' % dados)
             continue
         for k in range(n):
-            va = data + 4 * k
-            if not c.inside(va):
-                error('group %d' % gi, 'array runs past the end of the body at slot %d' % k)
+            va = dados + 4 * k
+            if not c.dentro(va):
+                erro('grupo %d' % gi, 'array passa do fim do corpo no slot %d' % k)
                 break
             obj = c.u32(va)
             if not obj:
-                nulls += 1
+                nulos += 1
                 continue
-            if not c.inside(obj):
-                error('group %d' % gi, 'slot %d points outside the body (%08X)' % (k, obj))
+            if not c.dentro(obj):
+                erro('grupo %d' % gi, 'slot %d aponta fora do corpo (%08X)' % (k, obj))
                 continue
-            owners[obj].append((gi, k))
+            donos[obj].append((gi, k))
             tags[c.u32(obj + 4) & 0x7F] += 1
 
-    largest_array = max([c.u16(dd + 8) for dd in descriptors if c.inside(dd)] or [0])
+    maior_array = max([c.u16(dd + 8) for dd in descritores if c.dentro(dd)] or [0])
 
-    # ---- the three tests that came from the code
-    bad_tags = sorted(t for t in tags if t not in OK_KINDS)
-    if bad_tags:
-        # not a verdict: an object placed BEFORE by its owner has its +0x04
-        # rewritten, and then the kind read here is not what the game will see
-        print('  kinds seen: %s' % ', '.join('%d(%d)' % (t, tags[t]) for t in sorted(tags)))
-        print('    outside {0,1,2}: %s  -- they only hang if NOT placed earlier by their owner'
-              % ', '.join(str(t) for t in bad_tags))
+    # ---- os tres testes que vieram do codigo
+    ruins = sorted(t for t in tags if t not in TIPOS_OK)
+    if ruins:
+        # nao e veredito: um objeto colocado ANTES pelo dono dele tem o +0x04
+        # reescrito, e ai o tipo lido aqui nao e o que o jogo vai ver
+        print('  tipos vistos: %s' % ', '.join('%d(%d)' % (t, tags[t]) for t in sorted(tags)))
+        print('    fora de {0,1,2}: %s  -- so travam se NAO forem colocados antes pelo dono'
+              % ', '.join(str(t) for t in ruins))
     else:
-        print('  kinds seen: %s (all handled)'
+        print('  tipos vistos: %s (todos tratados)'
               % ', '.join('%d(%d)' % (t, tags[t]) for t in sorted(tags)))
 
-    repeated = {o: v for o, v in owners.items() if len(v) > 1}
-    if repeated:
-        worst_ = max(repeated.values(), key=len)
-        error('repetition',
-             '%d object(s) appear in more than one slot; the worst appears %d times. '
-             'The loop has NO "already placed" guard: the handler runs once per '
-             'slot and re-adds the delta to the internal pointers on every pass'
-             % (len(repeated), len(worst_)))
-        if detail:
-            for o, v in sorted(repeated.items(), key=lambda x: -len(x[1]))[:5]:
-                print('     %08X appears %d times: %s%s'
+    repetidos = {o: v for o, v in donos.items() if len(v) > 1}
+    if repetidos:
+        pior = max(repetidos.values(), key=len)
+        erro('repeticao',
+             '%d objeto(s) aparecem em mais de um slot; o pior aparece %d vezes. '
+             'O laco NAO tem guarda de "ja colocado": o handler roda uma vez por '
+             'slot e re-soma o delta nos ponteiros internos a cada passada'
+             % (len(repetidos), len(pior)))
+        if detalhe:
+            for o, v in sorted(repetidos.items(), key=lambda x: -len(x[1]))[:5]:
+                print('     %08X aparece %d vezes: %s%s'
                       % (o, len(v), v[:4], ' ...' if len(v) > 4 else ''))
 
-    print('  %d distinct objects in %d filled slot(s), %d null(s)'
-          % (len(owners), sum(len(v) for v in owners.values()), nulls))
-    if nulls:
-        print('    (a null slot is NOT skipped: the code reads *(0+4). It works by '
-              'accident on the PS2, but it is a reason to fill them all)')
+    print('  %d objetos distintos em %d slot(s) preenchido(s), %d nulo(s)'
+          % (len(donos), sum(len(v) for v in donos.values()), nulos))
+    if nulos:
+        print('    (slot nulo NAO e pulado: o codigo le *(0+4). Funciona por '
+              'acidente no PS2, mas e motivo pra preencher todos)')
 
-    # ---- the MapRoot goes up to +0x228, not up to +0x80
+    # ---- o MapRoot vai ate +0x228, nao ate +0x80
     #
-    # `mcCity::mcCity` touches +0x190, +0x194, +0x198, +0x19C, +0x1CC and +0x228,
-    # and a loop of 20 pointers from +0x1D8. A 0x80-byte MapRoot leaves all of
-    # that landing on whatever comes next in the file - that is what the
-    # from-scratch builder did, and the loader read geometry as pointers.
-    MAPROOT_END = 0x22C
-    if len(c.d) - c.off(root) < MAPROOT_END:
-        error('maproot', 'the MapRoot has only %d bytes to the end of the body; mcCity uses '
-                        'up to +0x228 (%d)' % (len(c.d) - c.off(root), MAPROOT_END))
+    # `mcCity::mcCity` mexe em +0x190, +0x194, +0x198, +0x19C, +0x1CC e +0x228,
+    # e num laco de 20 ponteiros a partir de +0x1D8. Um MapRoot de 0x80 bytes
+    # deixa tudo isso caindo em cima do que vier depois no arquivo - foi o que
+    # o construtor do zero fazia, e o carregador lia geometria como ponteiro.
+    FIM_MAPROOT = 0x22C
+    if len(c.d) - c.off(raiz) < FIM_MAPROOT:
+        erro('maproot', 'o MapRoot tem so %d bytes ate o fim do corpo; mcCity usa '
+                        'ate +0x228 (%d)' % (len(c.d) - c.off(raiz), FIM_MAPROOT))
     else:
-        for off, who in ((0x190, 'sub_25C998'), (0x194, 'sub_24C528'),
+        for off, quem in ((0x190, 'sub_25C998'), (0x194, 'sub_24C528'),
                           (0x198, 'sub_2571B0'), (0x228, 'sub_2BA6B0')):
-            v = c.u32(root + off)
-            if v and not c.inside(v):
-                error('maproot', '+0x%X outside the body (%08X) and non-null, so %s '
-                                'will walk it' % (off, v, who))
+            v = c.u32(raiz + off)
+            if v and not c.dentro(v):
+                erro('maproot', '+0x%X fora do corpo (%08X) e nao-nulo, entao %s '
+                                'vai percorre-lo' % (off, v, quem))
 
-    # ---- the hoods: sub_25D4F0 (stride 20), sub_24C598 (28), sub_257220 (96)
+    # ---- os hoods: sub_25D4F0 (passo 20), sub_24C598 (28), sub_257220 (96)
     #
-    # The hood Place is SHALLOW: `+0x00` (the record) is only relocated, never
-    # walked, and the ComponentData at `+0x0C` likewise. Everything is guarded
-    # by `if`, so a null pointer with a zero count is legitimate here.
+    # O Place do hood e RASO: `+0x00` (o registro) e so relocado, nunca
+    # percorrido, e o ComponentData de `+0x0C` idem. Tudo guardado por `if`,
+    # entao ponteiro nulo com contagem zero e legitimo aqui.
     comps = []
-    if p_hoods and c.inside(p_hoods):
+    if p_hoods and c.dentro(p_hoods):
         for h in range(n_hoods):
             e = p_hoods + 20 * h
-            if not c.inside(e + 16):
-                error('hood %d' % h, 'entry runs past the end of the body')
+            if not c.dentro(e + 16):
+                erro('hood %d' % h, 'entrada passa do fim do corpo')
                 break
             rec, nu, au, ni, ai = struct.unpack_from('<5I', c.d, c.off(e))
-            for name, va in (('record', rec), ('unique array', au), ('instance array', ai)):
-                if va and not c.inside(va):
-                    error('hood %d' % h, '%s outside the body (%08X)' % (name, va))
-            if au and c.inside(au):
+            for nome, va in (('registro', rec), ('array unique', au), ('array instance', ai)):
+                if va and not c.dentro(va):
+                    erro('hood %d' % h, '%s fora do corpo (%08X)' % (nome, va))
+            if au and c.dentro(au):
                 for k in range(nu):
                     comp = au + 28 * k
-                    if not c.inside(comp + 24):
-                        error('hood %d' % h, 'unique array runs past the end at item %d' % k)
+                    if not c.dentro(comp + 24):
+                        erro('hood %d' % h, 'array unique passa do fim no item %d' % k)
                         break
                     comps.append(comp)
             elif nu:
-                error('hood %d' % h, '%d uniques but the array is NULL' % nu)
-            if ai and c.inside(ai):
-                if not c.inside(ai + 96 * ni - 4) and ni:
-                    error('hood %d' % h, 'instance array runs past the end of the body')
+                erro('hood %d' % h, '%d uniques mas o array e NULO' % nu)
+            if ai and c.dentro(ai):
+                if not c.dentro(ai + 96 * ni - 4) and ni:
+                    erro('hood %d' % h, 'array instance passa do fim do corpo')
             elif ni:
-                error('hood %d' % h, '%d instances but the array is NULL' % ni)
+                erro('hood %d' % h, '%d instances mas o array e NULO' % ni)
 
-    # ---- a dangling pointer in a COPIED blob
+    # ---- ponteiro pendurado em blob COPIADO
     #
-    # A value in the VA range pointing PAST the end of the body. On its own that
-    # proves nothing - atlanta itself has thousands, because a vertex coordinate
-    # sometimes looks like an address. What gives it away is EXACT REPETITION: a
-    # blob copied from the donor and replicated N times carries the same dangling
-    # pointer N times, and coordinates do not do that. That is how the second
-    # pointer of the shader block (`+0x0C`) showed up, repeated 64 times.
-    body_end = c.base_va + c.body
-    where = collections.defaultdict(list)
+    # Um valor na faixa de VA que aponta ALEM do fim do corpo. Sozinho isso nao
+    # acusa nada - o proprio atlanta tem milhares, porque coordenada de vertice
+    # as vezes parece endereco. O que acusa e a REPETICAO EXATA: um blob copiado
+    # do doador e replicado N vezes carrega o mesmo ponteiro pendurado N vezes,
+    # e coordenada nao faz isso. Foi assim que apareceu o segundo ponteiro do
+    # bloco de shader (`+0x0C`), repetido 64 vezes.
+    fim_corpo = c.base_va + c.corpo
+    onde = collections.defaultdict(list)
     for o in range(0x80, len(c.d) - 4, 4):
         v = struct.unpack_from('<I', c.d, o)[0]
-        if c.base_va <= v < c.base_va + 0x1000000 and v >= body_end:
-            where[v].append(o)
-    # the discriminant is the CONSTANT STRIDE: a replicated blob always puts the
-    # same pointer at the same inner offset, so the occurrences are equidistant.
-    # A vertex coordinate that happens to look like a VA does not do that - it
-    # is what failed atlanta in the first version of this test (65 values, one of
-    # them 434 times), and a checker that fails the factory file is measuring
-    # itself.
-    suspects = []
-    for v, offs in where.items():
+        if c.base_va <= v < c.base_va + 0x1000000 and v >= fim_corpo:
+            onde[v].append(o)
+    # o discriminante e o PASSO CONSTANTE: um blob replicado poe o mesmo ponteiro
+    # sempre no mesmo offset interno, entao as ocorrencias ficam equidistantes.
+    # Coordenada de vertice que por acaso parece VA nao faz isso - foi o que
+    # reprovou o atlanta na primeira versao deste teste (65 valores, um deles
+    # 434 vezes), e um checador que reprova o arquivo de fabrica esta medindo a
+    # si mesmo.
+    suspeitos = []
+    for v, offs in onde.items():
         if len(offs) < 8:
             continue
-        steps = {offs[i + 1] - offs[i] for i in range(len(offs) - 1)}
-        if len(steps) == 1 and 8 <= steps.pop() <= 0x400:
-            suspects.append((v, len(offs), offs[1] - offs[0]))
-    # A WARNING, not a failure: not even the constant stride can safely tell a
-    # pointer from data - atlanta has a value repeated 14 times every 0xC bytes
-    # that is a legitimate array. Raising the threshold until retail passes would
-    # be tuning the test to the answer. The real guarantee lives in the builder,
-    # in `limpa()`, which zeroes every pointer of a copied blob by construction;
-    # this only draws attention to what DESERVES a look.
-    if suspects:
-        v, n, step = max(suspects, key=lambda x: x[1])
-        print('  warning: %d pointer(s) outside the body repeated with a CONSTANT '
-              'STRIDE; the worst (%08X) appears %d times every 0x%X bytes'
-              % (len(suspects), v, n, step))
-        print('         (atlanta has 2 like this, so this alone does not fail; '
-              'look when the stride is the size of a blob you copy)')
-        if detail:
-            for v, n, step in sorted(suspects, key=lambda x: -x[1])[:6]:
-                print('     %08X x%d stride 0x%X' % (v, n, step))
+        passos = {offs[i + 1] - offs[i] for i in range(len(offs) - 1)}
+        if len(passos) == 1 and 8 <= passos.pop() <= 0x400:
+            suspeitos.append((v, len(offs), offs[1] - offs[0]))
+    # AVISO, nao reprovacao: nem com o passo constante da pra separar ponteiro de
+    # dado com seguranca — o atlanta tem um valor repetido 14 vezes a cada 0xC
+    # bytes que e array legitimo. Subir o limiar ate o retail passar seria
+    # ajustar o teste ao gabarito. A garantia de verdade fica no construtor, em
+    # `limpa()`, que zera todo ponteiro de blob copiado por construcao; isto aqui
+    # so chama atencao pro que MERECE olhada.
+    if suspeitos:
+        v, n, passo = max(suspeitos, key=lambda x: x[1])
+        print('  aviso: %d ponteiro(s) fora do corpo repetidos com PASSO '
+              'CONSTANTE; o pior (%08X) aparece %d vezes a cada 0x%X bytes'
+              % (len(suspeitos), v, n, passo))
+        print('         (o atlanta tem 2 assim, entao isto sozinho nao reprova; '
+              'olhar quando o passo for o tamanho de um blob que voce copia)')
+        if detalhe:
+            for v, n, passo in sorted(suspeitos, key=lambda x: -x[1])[:6]:
+                print('     %08X x%d passo 0x%X' % (v, n, passo))
 
-    # ---- MapRoot+0x1C: the flat city index
+    # ---- MapRoot+0x1C: o indice plano da cidade
     #
-    # Measured on atlanta: array1 is the 651 unique components (651 of 651 match)
-    # and array2 the 3608 instances (3608 of 3608). `sub_25B9D8` relocates every
-    # pointer of both, and the two scratch arrays at +0x10/+0x14 are sized by
-    # `mcCity+0x268` - which sits INSIDE the MapRoot, so the MapRoot needs at
-    # least 0x26C bytes.
-    p1c = c.u32(root + 0x1C)
-    if p1c and c.inside(p1c + 0x18):
+    # Medido no atlanta: array1 sao os 651 componentes unique (651 de 651 batem)
+    # e array2 as 3608 instances (3608 de 3608). `sub_25B9D8` reloca cada
+    # ponteiro dos dois, e os dois arrays de scratch em +0x10/+0x14 sao
+    # dimensionados por `mcCity+0x268` - que fica DENTRO do MapRoot, logo o
+    # MapRoot precisa ter pelo menos 0x26C bytes.
+    p1c = c.u32(raiz + 0x1C)
+    if p1c and c.dentro(p1c + 0x18):
         n1, n2 = c.u32(p1c), c.u32(p1c + 4)
         a1, a2v = c.u32(p1c + 8), c.u32(p1c + 12)
         if n1 != len(comps):
-            error('+0x1C', 'declares %d components but the hoods have %d' % (n1, len(comps)))
-        elif n1 and c.inside(a1 + 4 * n1):
-            in_index = {c.u32(a1 + 4 * k) for k in range(n1)}
-            missing_n = {c.base_va + (x - c.base) for x in ()}   # placeholder
-            missing = len(set(comps) - in_index)
-            if missing:
-                error('+0x1C', '%d hood component(s) missing from the index' % missing)
-        for name, va, n in (('array1', a1, n1), ('array2', a2v, n2)):
-            if n and (not va or not c.inside(va + 4 * n - 4)):
-                error('+0x1C', '%s invalid for %d entries' % (name, n))
-        scale = c.u32(root + 0x268) if len(c.d) - c.off(root) >= 0x26C else None
-        if scale is None:
-            error('+0x1C', 'MapRoot smaller than 0x26C: mcCity+0x268 (the size of the '
-                          '+0x10/+0x14 scratch arrays) falls outside it')
+            erro('+0x1C', 'declara %d componentes mas os hoods tem %d' % (n1, len(comps)))
+        elif n1 and c.dentro(a1 + 4 * n1):
+            no_indice = {c.u32(a1 + 4 * k) for k in range(n1)}
+            faltam = {c.base_va + (x - c.base) for x in ()}   # placeholder
+            falta = len(set(comps) - no_indice)
+            if falta:
+                erro('+0x1C', '%d componente(s) dos hoods fora do indice' % falta)
+        for nome, va, n in (('array1', a1, n1), ('array2', a2v, n2)):
+            if n and (not va or not c.dentro(va + 4 * n - 4)):
+                erro('+0x1C', '%s invalido pra %d entradas' % (nome, n))
+        escala = c.u32(raiz + 0x268) if len(c.d) - c.off(raiz) >= 0x26C else None
+        if escala is None:
+            erro('+0x1C', 'MapRoot menor que 0x26C: mcCity+0x268 (o tamanho dos '
+                          'scratch de +0x10/+0x14) cai fora dele')
         else:
-            for off, width in ((0x10, 12), (0x14, 4)):
+            for off, larg in ((0x10, 12), (0x14, 4)):
                 va = c.u32(p1c + off)
-                if scale and (not va or not c.inside(va + width * scale - 4)):
-                    error('+0x1C', 'the +0x%X scratch does not fit %d records of %d bytes'
-                                  % (off, scale, width))
+                if escala and (not va or not c.dentro(va + larg * escala - 4)):
+                    erro('+0x1C', 'scratch de +0x%X nao cabe %d registros de %d bytes'
+                                  % (off, escala, larg))
 
-    # ---- after Place: whoever consumes the hood reads the geometry
-    n_mesh = n_bad_slot = n_bad_block = n_bad_cd = 0
+    # ---- depois do Place: o que consome o hood le a geometria
+    n_mesh = n_slot_ruim = n_bloco_ruim = n_cd_ruim = 0
     for comp in comps:
         cd = c.u32(comp + 0x0C)
         if not cd:
             continue
-        if not c.inside(cd + 0x60):
-            error('component', 'ComponentData outside the body (%08X)' % cd)
+        if not c.dentro(cd + 0x60):
+            erro('componente', 'ComponentData fora do corpo (%08X)' % cd)
             continue
-        # ComponentData: two fields are CONSTANT across atlanta's 651, and zeroing
-        # the one at +0x28 (a vtable token) produced `Jump to unaligned address`
-        # when the camera got close to the model - a virtual call through a
-        # pointer read from garbage.
+        # ComponentData: dois campos sao CONSTANTES nos 651 do atlanta, e zerar
+        # o de +0x28 (um token de vtable) produziu `Jump to unaligned address`
+        # quando a camera chegou perto do modelo - chamada virtual por ponteiro
+        # lido de lixo.
         if c.u32(cd + 0x00) != 1:
-            n_bad_cd += 1
-        # +0x28 is a vtable. Retail writes the TOKEN 0x0079FF88 and the game
-        # translates it to 0x00625098 at load; a generated object is not in the
-        # translator's list, so for it the right thing is to write the translated
-        # address already. Both are accepted.
+            n_cd_ruim += 1
+        # +0x28 e vtable. O retail grava o TOKEN 0x0079FF88 e o jogo traduz pra
+        # 0x00625098 na carga; um objeto gerado nao entra na lista do tradutor,
+        # entao pra ele o certo e ja gravar o endereco traduzido. Os dois valem.
         if c.u32(cd + 0x28) not in (0x0079FF88, 0x00625098):
-            n_bad_cd += 1
-            if detail and n_bad_cd <= 4:
-                print('     ComponentData %08X: +0x28 = %08X, expected 0079FF88 '
-                      '(token) or 00625098 (translated)' % (cd, c.u32(cd + 0x28)))
+            n_cd_ruim += 1
+            if detalhe and n_cd_ruim <= 4:
+                print('     ComponentData %08X: +0x28 = %08X, esperado 0079FF88 '
+                      '(token) ou 00625098 (traduzido)' % (cd, c.u32(cd + 0x28)))
         for slot in range(10):
             mp = c.u32(cd + 0x3C + 4 * slot)
             if not mp:
                 continue
-            if not c.inside(mp + 0x14):
-                error('component', 'mesh of slot %d outside the body (%08X)' % (slot, mp))
+            if not c.dentro(mp + 0x14):
+                erro('componente', 'mesh do slot %d fora do corpo (%08X)' % (slot, mp))
                 continue
             n_mesh += 1
-            # same story as the ComponentData: retail writes the token 0x007A1E18
-            # and the game translates it to 0x00626D98; a generated object is not
-            # in the translator's list, so for it the translated value is right
+            # mesma historia do ComponentData: o retail grava o token 0x007A1E18
+            # e o jogo traduz pra 0x00626D98; objeto gerado nao entra na lista do
+            # tradutor, entao pra ele o certo e ja gravar o traduzido
             if c.u32(mp) not in (0x007A1E18, 0x00626D98):
-                n_bad_cd += 1
-                if detail:
-                    print('     mesh %08X: vtable %08X, expected 007A1E18 or 00626D98'
+                n_cd_ruim += 1
+                if detalhe:
+                    print('     mesh %08X: vtable %08X, esperado 007A1E18 ou 00626D98'
                           % (mp, c.u32(mp)))
             ngrp = c.u16(mp + 8)
             mt, gt = c.u32(mp + 0x0C), c.u32(mp + 0x10)
-            if ngrp and (not mt or not c.inside(mt + 2 * ngrp)):
-                error('mesh', '%08X: invalid material table with %d group(s)' % (mp, ngrp))
+            if ngrp and (not mt or not c.dentro(mt + 2 * ngrp)):
+                erro('mesh', '%08X: tabela de material invalida com %d grupo(s)' % (mp, ngrp))
                 continue
-            if ngrp and (not gt or not c.inside(gt + 8 * ngrp)):
-                error('mesh', '%08X: invalid group table with %d group(s)' % (mp, ngrp))
+            if ngrp and (not gt or not c.dentro(gt + 8 * ngrp)):
+                erro('mesh', '%08X: tabela de grupos invalida com %d grupo(s)' % (mp, ngrp))
                 continue
             for g in range(ngrp):
                 idx = c.u16(mt + 2 * g)
-                if idx >= largest_array:
-                    n_bad_slot += 1
-                    if detail and n_bad_slot <= 5:
-                        print('     mesh %08X group %d: material %d >= %d slots'
-                              % (mp, g, idx, largest_array))
+                if idx >= maior_array:
+                    n_slot_ruim += 1
+                    if detalhe and n_slot_ruim <= 5:
+                        print('     mesh %08X grupo %d: material %d >= %d slots'
+                              % (mp, g, idx, maior_array))
                 lp, cnt, _z = struct.unpack_from('<IHH', c.d, c.off(gt + 8 * g))
-                if not lp or not c.inside(lp + 8 * cnt):
-                    error('mesh', '%08X group %d: invalid block list' % (mp, g))
+                if not lp or not c.dentro(lp + 8 * cnt):
+                    erro('mesh', '%08X grupo %d: lista de blocos invalida' % (mp, g))
                     continue
                 for b_ in range(cnt):
-                    status = check_block(c, lp + 8 * b_)
-                    if status:
-                        n_bad_block += 1
-                        if detail and n_bad_block <= 6:
-                            print('     mesh %08X group %d block %d: %s' % (mp, g, b_, status))
-    if n_bad_cd:
-        error('componentdata', '%d wrong constant field(s) in ComponentData '
-                              '(+0x00 must be 1, +0x28 must be 0079FF88)' % n_bad_cd)
-    if n_bad_block:
-        error('block', '%d block(s) whose qwc does not match the packet, or whose nv does '
-                      'not match the position stream' % n_bad_block)
-    if n_bad_slot:
-        error('material', '%d group(s) with a material index past the end of the '
-                         'shader array (%d slots)' % (n_bad_slot, largest_array))
-    print('  %d unique component(s), %d reachable mesh(es)' % (len(comps), n_mesh))
+                    est = checa_bloco(c, lp + 8 * b_)
+                    if est:
+                        n_bloco_ruim += 1
+                        if detalhe and n_bloco_ruim <= 6:
+                            print('     mesh %08X grupo %d bloco %d: %s' % (mp, g, b_, est))
+    if n_cd_ruim:
+        erro('componentdata', '%d campo(s) constante(s) errado(s) em ComponentData '
+                              '(+0x00 deve ser 1, +0x28 deve ser 0079FF88)' % n_cd_ruim)
+    if n_bloco_ruim:
+        erro('bloco', '%d bloco(s) com qwc que nao bate com o packet, ou nv que nao '
+                      'bate com o stream de posicao' % n_bloco_ruim)
+    if n_slot_ruim:
+        erro('material', '%d grupo(s) com indice de material alem do fim do array '
+                         'de shader (%d slots)' % (n_slot_ruim, maior_array))
+    print('  %d componente(s) unique, %d mesh(es) alcancavel(is)' % (len(comps), n_mesh))
 
-    # ---- the +0x08 sub-object of kind-0 objects (0x2BA718)
-    bad_sub = 0
-    for obj, refs in owners.items():
+    # ---- o sub-objeto de +0x08 dos objetos de tipo 0 (0x2BA718)
+    maus_sub = 0
+    for obj, refs in donos.items():
         if (c.u32(obj + 4) & 0x7F) != 0:
             continue
         sub = c.u32(obj + 8)
-        if not sub or not c.inside(sub):
-            error('kind 0', 'object %08X has an invalid +0x08 (%08X)' % (obj, sub))
+        if not sub or not c.dentro(sub):
+            erro('tipo 0', 'objeto %08X tem +0x08 invalido (%08X)' % (obj, sub))
             continue
         b = c.u8(sub + 4)
-        if b not in OK_SUBKINDS:
-            bad_sub += 1
-            if detail and bad_sub <= 5:
-                print('     sub-object of %08X: byte +0x04 = %d (outside 0..3)' % (obj, b))
-    if bad_sub:
-        error('kind 0', '%d sub-object(s) with byte +0x04 outside 0..3 -> loc_2BA7E0' % bad_sub)
+        if b not in SUB_TIPOS_OK:
+            maus_sub += 1
+            if detalhe and maus_sub <= 5:
+                print('     sub-objeto de %08X: byte +0x04 = %d (fora de 0..3)' % (obj, b))
+    if maus_sub:
+        erro('tipo 0', '%d sub-objeto(s) com byte +0x04 fora de 0..3 -> loc_2BA7E0' % maus_sub)
 
     print()
-    if problems:
-        print('  %d PROBLEM(S):' % len(problems))
-        for cat, m in problems:
+    if prob:
+        print('  %d PROBLEMA(S):' % len(prob))
+        for cat, m in prob:
             print('    [%s] %s' % (cat, m))
     else:
-        print('  nothing the code that was read would fail')
-    return not problems
+        print('  nada que o codigo lido reprove')
+    return not prob
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[1],
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('pck', nargs='+')
-    ap.add_argument('--detail', action='store_true')
-    ap.add_argument('--coverage', metavar='REFERENCE',
-                    help='compare field by field with a .pck that works and say '
-                         'what this simulator does NOT check')
+    ap.add_argument('--detalhe', action='store_true')
+    ap.add_argument('--cobertura', metavar='REFERENCIA',
+                    help='compara campo a campo com um .pck que funciona e diz o '
+                         'que este simulador NAO verifica')
     a = ap.parse_args()
-    if a.coverage:
+    if a.cobertura:
         for p in a.pck:
-            coverage(p, a.coverage)
+            cobertura(p, a.cobertura)
             print()
         raise SystemExit(0)
     ok = True
     for p in a.pck:
-        ok = simulate(p, a.detail) and ok
+        ok = simula(p, a.detalhe) and ok
         print()
     raise SystemExit(0 if ok else 1)
 

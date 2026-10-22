@@ -21,10 +21,10 @@ Steps, all of them here so a run is reproducible from one command:
      restore it afterwards no matter how the run ends;
   3. boot PCSX2 headless and wait for the module's ENDB line;
   4. rebuild the heap image with mc3_heap_dump.py and cut one .pck per root
-     with mc3_heap_to_pck.py --batch.
+     with mc3_heap_to_pck.py --lote.
 
 WHAT IT DOES NOT DO: check the geometry. Compare against the source with
-mc3_view.py or mc3_coverage.py before installing anything.
+mc3_view.py or mc3_cobertura.py before installing anything.
 """
 import argparse
 import glob
@@ -35,11 +35,10 @@ import subprocess
 import sys
 import time
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-PCSX2 = os.environ.get('MC3_PCSX2', 'pcsx2-qt.exe')
-LOG = os.path.join(os.environ.get('MC3_PCSX2_DATA', os.path.expanduser('~/Documents/PCSX2')),
-                   'logs', 'cli_test.txt')
-HOSTFS = os.environ.get('MC3_HOSTFS', 'MC3HostFS')
+AQUI = os.path.dirname(os.path.abspath(__file__))
+PCSX2 = os.path.join(os.environ.get('MC3_PCSX2_DIR', ''), 'pcsx2-qt.exe')
+LOG = os.path.join(os.environ.get('MC3_PCSX2_DATA', ''), 'logs/cli_teste.txt')
+HOSTFS = os.environ.get('MC3_HOSTFS', '')
 CITIES = os.path.join(HOSTFS, 'ASSETS', 'resources', 'city')
 
 INI = """; written by mc3_pck_forge.py - the original was moved to mc3boot.ini.forge_bak
@@ -81,8 +80,8 @@ def stage_palette(city, hostfs, palette=None):
         return None
     src = city if os.path.exists(city) else os.path.join(CITIES, city + '.pck')
     if not os.path.exists(src):
-        raise SystemExit('city not found: %s' % src)
-    sys.path.insert(0, HERE)
+        raise SystemExit('cidade nao encontrada: %s' % src)
+    sys.path.insert(0, AQUI)
     import mc3_cpv_palette
     with open(dst, 'wb') as f:
         f.write(mc3_cpv_palette.read_palette(src))
@@ -117,7 +116,7 @@ def run_game(seconds):
 
 def blobs_from_log(path):
     """Yields (base, bytes) for each BLOB..ENDB section in the log."""
-    text_line = re.compile(r'^([0-9A-F]{8}):([0-9A-F]+)$')
+    linha = re.compile(r'^([0-9A-F]{8}):([0-9A-F]+)$')
     base = None
     buf = None
     for raw in open(path, encoding='utf-8', errors='replace'):
@@ -133,7 +132,7 @@ def blobs_from_log(path):
                 yield base, bytes(buf)
             buf = None
         elif buf is not None:
-            m = text_line.match(t)
+            m = linha.match(t)
             if m:
                 off = int(m.group(1), 16)
                 b = bytes.fromhex(m.group(2))
@@ -176,66 +175,66 @@ def main():
     meshes = [m for pat in a.mesh for m in sorted(glob.glob(pat))] or a.mesh
     for m in meshes:
         if not os.path.exists(m):
-            raise SystemExit('does not exist: %s' % m)
+            raise SystemExit('nao existe: %s' % m)
     os.makedirs(a.out, exist_ok=True)
 
     city = stage_palette(a.city, a.hostfs, a.palette)
-    size = a.chunk if a.chunk > 0 else len(meshes)
-    batches_ = [meshes[i:i + size] for i in range(0, len(meshes), size)]
-    print('  %d mesh(es) in %d batch(es) of up to %d, palette: %s' % (
-        len(meshes), len(batches_), size,
-        os.path.basename(city) if city else 'none (CPV off)'))
+    tamanho = a.chunk if a.chunk > 0 else len(meshes)
+    lotes = [meshes[i:i + tamanho] for i in range(0, len(meshes), tamanho)]
+    print('  %d malha(s) em %d lote(s) de ate %d, paleta: %s' % (
+        len(meshes), len(lotes), tamanho,
+        os.path.basename(city) if city else 'nenhuma (CPV off)'))
 
     ini = os.path.join(a.hostfs, 'mc3boot.ini')
     bak = ini + '.forge_bak'
     shutil.copyfile(ini, bak)
-    made_n, empties, written = 0, [], set()
+    feitos, vazios, escritos = 0, [], set()
     try:
-        for n, batch in enumerate(batches_):
-            stage(batch, a.hostfs)
+        for n, lote in enumerate(lotes):
+            stage(lote, a.hostfs)
             with open(ini, 'w', encoding='utf-8') as f:
-                f.write(INI % (len(batch), a.spacer))
+                f.write(INI % (len(lote), a.spacer))
             took = run_game(a.seconds)
             if took is None:
-                raise SystemExit('batch %d: the game did not reach the end of the dump' % n)
+                raise SystemExit('lote %d: o jogo nao chegou ao fim do despejo' % n)
 
             blobs = list(blobs_from_log(LOG))
             roots = roots_from_log(LOG)
             if not blobs or not roots:
-                raise SystemExit('batch %d: log without BLOB or ROOT' % n)
+                raise SystemExit('lote %d: log sem BLOB ou sem ROOT' % n)
             base, blob = blobs[-1]
             dump = os.path.join(a.out, 'heap_%03d.bin' % n)
             with open(dump, 'wb') as f:
                 f.write(blob)
-            tsv = os.path.join(a.out, 'batch_%03d.tsv' % n)
-            target = 0
+            tsv = os.path.join(a.out, 'lote_%03d.tsv' % n)
+            alvo = 0
             with open(tsv, 'w', encoding='utf-8') as f:
                 for idx, root in roots:
-                    if idx >= len(batch):
+                    if idx >= len(lote):
                         continue
-                    name = os.path.splitext(os.path.basename(batch[idx]))[0]
-                    out_path = os.path.join(a.out, name + '.mesh.pck')
-                    if out_path in written:      # two inputs can share a basename
-                        out_path = os.path.join(a.out, '%s_%03d.mesh.pck' % (name, idx))
-                    written.add(out_path)
+                    name = os.path.splitext(os.path.basename(lote[idx]))[0]
+                    saida = os.path.join(a.out, name + '.mesh.pck')
+                    if saida in escritos:      # two inputs can share a basename
+                        saida = os.path.join(a.out, '%s_%03d.mesh.pck' % (name, idx))
+                    escritos.add(saida)
                     if not root:
-                        empties.append(name)
+                        vazios.append(name)
                         continue
-                    f.write('%08X' % root + chr(9) + out_path + chr(10))
-                    target += 1
-            if target:
-                subprocess.run([sys.executable, os.path.join(HERE, 'mc3_heap_to_pck.py'),
-                                dump, '--base', '%08X' % base, '--batch', tsv],
+                    f.write('%08X' % root + chr(9) + saida + chr(10))
+                    alvo += 1
+            if alvo:
+                subprocess.run([sys.executable, os.path.join(AQUI, 'mc3_heap_to_pck.py'),
+                                dump, '--base', '%08X' % base, '--lote', tsv],
                                check=True, capture_output=True)
-            made_n += target
+            feitos += alvo
             os.remove(dump)
-            print('  batch %3d/%d: %2d model(s), heap %08X, %.0f s'
-                  % (n + 1, len(batches_), target, base, took))
+            print('  lote %3d/%d: %2d modelo(s), heap %08X, %.0f s'
+                  % (n + 1, len(lotes), alvo, base, took))
     finally:
         shutil.move(bak, ini)       # the .ini is shared with other forks
 
-    print('  %d .pck generated%s' % (made_n,
-          (', %d without geometry (%s)' % (len(empties), ', '.join(empties[:3]))) if empties else ''))
+    print('  %d .pck gerado(s)%s' % (feitos,
+          (', %d sem geometria (%s)' % (len(vazios), ', '.join(vazios[:3]))) if vazios else ''))
 
 
 if __name__ == '__main__':

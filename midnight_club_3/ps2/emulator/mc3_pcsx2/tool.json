@@ -5,18 +5,18 @@
   "platform": "ps2",
   "type": "emulator",
   "entry": "mc3_pcsx2.py",
-  "summary": "Run PCSX2 from the command line and return what the EE/IOP console said.",
+  "summary": "Roda o PCSX2 pela linha de comando e devolve o que o console do EE/IOP disse.",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

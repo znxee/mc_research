@@ -134,7 +134,7 @@ def swizzle8(src: bytes, width: int, height: int) -> bytearray:
 
 
 def unpack_4bpp(src: bytes, pixels: int) -> bytearray:
-    """low nibble first"""
+    """nibble baixo primeiro"""
     dst = bytearray(pixels)
     for i in range(0, pixels, 2):
         b = src[i >> 1]
@@ -153,7 +153,7 @@ def pack_4bpp(src: bytes, pixels: int) -> bytearray:
 
 
 # --------------------------------------------------------------------------
-# alpha: 0..128 on the PS2, 0..255 in PNG
+# alfa: no PS2 e 0..128, no PNG e 0..255
 # --------------------------------------------------------------------------
 def alpha_to_pc(pal: bytearray) -> bytearray:
     out = bytearray(pal)
@@ -182,7 +182,7 @@ class Image:
     width: int
     height: int
     indexes: bytearray            # 1 byte por pixel
-    palette: bytearray            # RGBA, already unswizzled, alpha still 0..128
+    palette: bytearray            # RGBA, ja des-swizzlada, alfa ainda 0..128
     texture_type: int = -1
     name: str = ""
     addr: int = 0                 # virtual address of the owner struct
@@ -204,12 +204,12 @@ class Image:
         write_png(path, self.width, self.height, self.to_rgba(fix_alpha))
 
     def __repr__(self):
-        t = TEXTYPE_NAME.get(self.texture_type, f"type {self.texture_type}")
+        t = TEXTYPE_NAME.get(self.texture_type, f"tipo {self.texture_type}")
         return f"<Image {self.name or '?'} {self.width}x{self.height} {self.colors}c {t}>"
 
 
 # --------------------------------------------------------------------------
-# minimal PNG (no external dependency)
+# PNG minimo (sem dependencia externa)
 # --------------------------------------------------------------------------
 def write_png(path: str, width: int, height: int, rgba: bytes):
     import zlib
@@ -264,7 +264,7 @@ def read_png(path: str):
             break
         o += 12 + ln
     if bit != 8:
-        raise ValueError("only 8-bit/channel PNG is read here (install Pillow for the rest)")
+        raise ValueError("so leio PNG de 8 bits/canal aqui (instale Pillow p/ o resto)")
     chans = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}[ctype]
     raw = zlib.decompress(bytes(idat))
     stride = w * chans
@@ -342,7 +342,7 @@ def read_tex(path: str) -> TexFile:
     d = open(path, "rb").read()
     w, h, fmt, mips, f8, f10, f12 = struct.unpack_from("<7H", d, 0)
     if fmt not in TEX_FMT_BPP:
-        raise ValueError(f"unknown .tex format: {fmt}")
+        raise ValueError(f"formato .tex desconhecido: {fmt}")
     bpp = TEX_FMT_BPP[fmt]
     ncol = 16 if bpp == 4 else 256
     o = 14
@@ -391,7 +391,7 @@ def png_to_tex(png_path: str, fmt: int = 14) -> TexFile:
     src = PILImage.open(png_path).convert("RGBA")
     w, h = src.size
     if w & (w - 1) or h & (h - 1):
-        raise ValueError("the PS2 wants a power of two; this is %dx%d" % (w, h))
+        raise ValueError("PS2 quer potencia de dois; esta e %dx%d" % (w, h))
 
     bpp = TEX_FMT_BPP[fmt]
     ncol = 16 if bpp == 4 else 256
@@ -399,38 +399,38 @@ def png_to_tex(png_path: str, fmt: int = 14) -> TexFile:
     px = list(src.getdata())
     snapped = [(r, g, b, a & 0xFC) for (r, g, b, a) in px]
     from collections import Counter
-    common = [c for c, _ in Counter(snapped).most_common(ncol)]
-    if not common:
-        common = [(0, 0, 0, 0)]
+    comuns = [c for c, _ in Counter(snapped).most_common(ncol)]
+    if not comuns:
+        comuns = [(0, 0, 0, 0)]
     # A fully transparent entry has to exist, and at index 0, or every pixel the
     # art left empty picks up whatever colour happens to be nearest.
-    if (0, 0, 0, 0) in common:
-        common.remove((0, 0, 0, 0))
-    common = [(0, 0, 0, 0)] + common[:ncol - 1]
+    if (0, 0, 0, 0) in comuns:
+        comuns.remove((0, 0, 0, 0))
+    comuns = [(0, 0, 0, 0)] + comuns[:ncol - 1]
 
-    def near_check(c):
+    def perto(c):
         r, g, b, a = c
-        best_, di = 0, None
-        for i, (pr, pg, pb, pa) in enumerate(common):
+        melhor, di = 0, None
+        for i, (pr, pg, pb, pa) in enumerate(comuns):
             # Alpha is weighted heavily: a wrong alpha shows as a hard edge,
             # a wrong colour inside an opaque area does not.
             d = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2 + 4 * (a - pa) ** 2
             if di is None or d < di:
-                best_, di = i, d
-        return best_
+                melhor, di = i, d
+        return melhor
 
     cache = {}
     idx = bytearray(w * h)
     for i, c in enumerate(snapped):
         j = cache.get(c)
         if j is None:
-            j = cache[c] = near_check(c)
+            j = cache[c] = perto(c)
         idx[i] = j
 
     pal = bytearray()
-    for (r, g, b, a) in common:
+    for (r, g, b, a) in comuns:
         pal += bytes((r, g, b, a))
-    pal += bytes(4 * (ncol - len(common)))
+    pal += bytes(4 * (ncol - len(comuns)))
     # NOT alpha_to_ps2 here. Measured on a shipped file: arial12_00.tex has
     # palette alpha running to 255, so the .tex SOURCE keeps the PC range and
     # the 0..128 conversion happens further down, on the way into the .pck.
@@ -477,7 +477,7 @@ class Pck:
 
 
 def read_ps2_texture(p: Pck, tex_va: int, clut_va: int, width=None, height=None) -> Image:
-    """Decode a ps2Texture + ps2IndexedColors pair."""
+    """Decodifica um par ps2Texture + ps2IndexedColors."""
     t = p.off(tex_va)
     ptr_tex = p.u32(t + 0x08)
     tw, th = p.u16(t + 0x2C), p.u16(t + 0x2E)
@@ -539,7 +539,7 @@ def write_ps2_texture(p: Pck, tex_va: int, clut_va: int, img: Image):
     p.data[c + 0x10:c + 0x10 + ncol * 4] = pal
 
 
-# ---- the flash path (swfBITMAP -> bmpInfo1 -> ps2Texture) ------------------
+# ---- caminho do flash (swfBITMAP -> bmpInfo1 -> ps2Texture) ----------------
 def flash_images(p: Pck) -> list:
     """Walk the swfFILE object list and return the images."""
     root = 0x80
@@ -570,7 +570,7 @@ def flash_images(p: Pck) -> list:
     return out
 
 
-# ---- generic scan (vehicles, city, etc.) ----------------------------------
+# ---- varredura generica (veiculos, cidade, etc.) --------------------------
 def scan_textures(p: Pck) -> list:
     """Find ps2Texture structs by signature, without relying on the object
     graph. Useful for the .pck files that are not flash."""
@@ -1016,11 +1016,11 @@ def pf_image(data: bytes, px: int, dim) -> "Image":
 def pf_list(data: bytes) -> list:
     """[(page_index, pixels_offset, (w, h), descriptor)] with the page each
     texture belongs to, so a name can be built even though pf05 stores none."""
-    pages = pf_pages(data)
+    paginas = pf_pages(data)
     out = []
     for _nm, px, dim, desc in pf_textures(data):
         pg = None
-        for i, off, sz in pages:
+        for i, off, sz in paginas:
             if off <= px < off + sz:
                 pg = i
                 break
@@ -1029,7 +1029,7 @@ def pf_list(data: bytes) -> list:
 
 
 def textures(data: bytes, base: int = 0x06800000, use_pointers: bool = True) -> list:
-    """Full list: [(name, pixel_offset, (w,h) or None, desc_offset)].
+    """Lista completa: [(nome, offset_pixels, (w,h) ou None, offset_desc)].
 
     When the descriptor code does not give the size, the region is measured
     through the pointer graph (the `next_target` method) and only falls back to
@@ -1059,7 +1059,7 @@ def textures(data: bytes, base: int = 0x06800000, use_pointers: bool = True) -> 
 
 def _coherence(data: bytes, off: int, w: int, h: int, pal: bytes,
                step: int = 4):
-    """(mean difference between neighbouring pixels, number of distinct indices).
+    """(diferenca media entre pixels vizinhos, nº de indices distintos).
 
     A real texture has similar neighbours -- but so does a flat region, which is
     why that alone is not a criterion: something with a single color scores 0 and
@@ -1175,7 +1175,7 @@ def block_size(width: int = 256, height: int = 256, levels: int = 4,
 
 
 # --------------------------------------------------------------------------
-# quantisation / remapping
+# quantizacao / remapeamento
 # --------------------------------------------------------------------------
 def quantize(rgba: bytes, width: int, height: int, colors: int = 256,
              alpha_max: int = 128):
@@ -1209,7 +1209,7 @@ def quantize(rgba: bytes, width: int, height: int, colors: int = 256,
     except ImportError:
         pass
 
-    # fallback: median-cut over RGBA
+    # fallback: median-cut sobre RGBA
     px = [(rgba[i], rgba[i + 1], rgba[i + 2], rgba[i + 3])
           for i in range(0, len(rgba), 4)]
     boxes = [list(range(len(px)))]
@@ -1308,11 +1308,11 @@ def _main(argv):
         t = png_to_tex(ns.png, ns.fmt)
         out = ns.out or os.path.splitext(ns.png)[0] + ".tex"
         write_tex(out, t)
-        used_set = sum(1 for i in range(0, len(t.palette), 4)
+        usados = sum(1 for i in range(0, len(t.palette), 4)
                      if t.palette[i:i + 4] != bytes(4))
-        print("%s  %dx%d  fmt %d (%s)  %d colour(s) used  %d bytes"
+        print("%s  %dx%d  fmt %d (%s)  %d cor(es) usada(s)  %d bytes"
               % (out, t.width, t.height, t.fmt, TEX_FMT_NAME.get(t.fmt, "?"),
-                 used_set, os.path.getsize(out)))
+                 usados, os.path.getsize(out)))
         return 0
 
     f = ns.file if ns.cmd != "replace" else ns.pck
@@ -1341,28 +1341,28 @@ def _main(argv):
     with open(f, "rb") as fh:
         if fh.read(4) == PF_MAGIC:
             data = open(f, "rb").read()
-            entries_ = pf_list(data)
+            itens = pf_list(data)
             if ns.cmd == "replace":
-                ap.error("'replace' does not work for pf05 yet")
-            print("%s  pf05  %d page(s), %d texture(s)"
-                  % (os.path.basename(f), len(pf_pages(data)), len(entries_)))
+                ap.error("'replace' ainda nao vale pra pf05")
+            print("%s  pf05  %d pagina(s), %d textura(s)"
+                  % (os.path.basename(f), len(pf_pages(data)), len(itens)))
             if ns.cmd == "list":
-                for pg, px, dim, desc in entries_[:200]:
-                    print("    page %-4s @0x%-8X %s"
-                          % (pg, px, ("%dx%d" % dim) if dim else "size ?"))
-                if len(entries_) > 200:
-                    print("    ... and %d more" % (len(entries_) - 200))
+                for pg, px, dim, desc in itens[:200]:
+                    print("    pagina %-4s @0x%-8X %s"
+                          % (pg, px, ("%dx%d" % dim) if dim else "tamanho ?"))
+                if len(itens) > 200:
+                    print("    ... e mais %d" % (len(itens) - 200))
             else:
                 os.makedirs(ns.outdir, exist_ok=True)
                 n = 0
-                for pg, px, dim, desc in entries_:
+                for pg, px, dim, desc in itens:
                     if not dim:
                         continue
                     img = pf_image(data, px, dim)
                     if img is None:
                         continue
-                    item_name = "p%03d_%08X_%dx%d" % (pg or 0, px, dim[0], dim[1])
-                    img.save_png(os.path.join(ns.outdir, item_name + ".png"))
+                    nome = "p%03d_%08X_%dx%d" % (pg or 0, px, dim[0], dim[1])
+                    img.save_png(os.path.join(ns.outdir, nome + ".png"))
                     n += 1
                 print("  %d PNG(s) em %s" % (n, ns.outdir))
             return 0

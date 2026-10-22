@@ -42,11 +42,6 @@ USAGE
 
 `drive` needs PINE enabled in PCSX2 (EnablePINE=true, PINESlot=28011 - both are
 already set in this install) and mesh_dump.mod=1 in the HostFS mc3boot.ini.
-
-Paths come from the environment: MC3_PCSX2 (pcsx2-qt.exe), MC3_PCSX2_DATA (the
-PCSX2 data folder holding sstates/), MC3_HOSTFS (the folder with mc3boot.elf and
-the stripped ISO). `mc3_inject.py` comes from the mc3boot repository (point
-MC3BOOT at its checkout, or clone it next to this repository).
 """
 import argparse
 import os
@@ -57,20 +52,19 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.environ.get('MC3BOOT', os.path.join(os.path.dirname(HERE), 'mc3boot')))
+sys.path.insert(0, os.path.join(HERE, 'modloader'))
 import mc3_inject
-import mc3_output
+import mc3_saida
 
-PCSX2 = os.environ.get('MC3_PCSX2', 'pcsx2-qt.exe')
-PCSX2_DATA = os.environ.get('MC3_PCSX2_DATA', os.path.expanduser('~/Documents/PCSX2'))
-HOSTFS = os.environ.get('MC3_HOSTFS', 'MC3HostFS')
+PCSX2 = os.path.join(os.environ.get('MC3_PCSX2_DIR', ''), 'pcsx2-qt.exe')
+PCSX2_DATA = os.environ.get('MC3_PCSX2_DATA', '')
 # mc3boot.elf, not the game ELF. It is the modloader's own booter: it reboots
 # the PS2, reads mc3boot.ini and loads the .mod files itself, which is why its
 # profile (CRC B3FD5361) has EnableCheats = false - the pnach route is not used.
 # Booting slus_213.55.ELF directly instead loops forever on netcnf/eznetcnf/dev9
 # ("unknown dev9 hardware") and never reaches the frontend.
-ELF = os.path.join(HOSTFS, 'mc3boot.elf')
-ISO = os.path.join(HOSTFS, 'MC3Stripped.iso')
+ELF = os.path.join(os.environ.get('MC3_HOSTFS', ''), 'mc3boot.elf')
+ISO = os.path.join(os.environ.get('MC3_HOSTFS', ''), 'MC3Stripped.iso')
 PINE_HOST, PINE_PORT = '127.0.0.1', 28011
 
 # mesh_dump.mod's report. Keep in sync with mods/mesh_dump/mesh_dump.cpp.
@@ -81,7 +75,7 @@ DUMP_ADDR = 0x0061CF00
 # other's table would abort mid-conversion, so read_report normalises to a name.
 DUMP_MAGIC = 0x4D433348          # 'MC3H', mesh_dump.mod
 TOOL_MAGIC = 0x4D433354          # 'MC3T', pck_tool.mod
-STATES = {
+ESTADOS = {
     DUMP_MAGIC: {0: 'wait', 1: 'ready', 2: 'no_heap', 3: 'dumping',
                  4: 'done', 5: 'parked'},
     TOOL_MAGIC: {0: 'wait', 1: 'ready', 2: 'converting', 3: 'done',
@@ -173,15 +167,15 @@ class Pine(object):
 
 def read_report(dw):
     """The report of whichever module owns the window, by u32 reader."""
-    magic_ = dw(DUMP_ADDR)
-    if magic_ not in STATES:
+    magia = dw(DUMP_ADDR)
+    if magia not in ESTADOS:
         return None
     r = {
-        'magic': magic_,
-        'who': 'pck_tool' if magic_ == TOOL_MAGIC else 'mesh_dump',
+        'magic': magia,
+        'quem': 'pck_tool' if magia == TOOL_MAGIC else 'mesh_dump',
         'ticks': dw(DUMP_ADDR + 4),
         'state': dw(DUMP_ADDR + 8),
-        'phase': STATES[magic_].get(dw(DUMP_ADDR + 8), '?'),
+        'fase': ESTADOS[magia].get(dw(DUMP_ADDR + 8), '?'),
         'free_before': dw(DUMP_ADDR + 12),
         'free_after': dw(DUMP_ADDR + 16),
         'heap': dw(DUMP_ADDR + 20),
@@ -275,76 +269,76 @@ def write_pck(ee, base_va, end_va, path, kind=PCK_TYPE_MESH):
 def build_from_ram(ee, out, kind=PCK_TYPE_MESH):
     r = read_report(dw_from_ram(ee))
     if r is None:
-        print('no MC3H/MC3T report in this state - the module did not run, or '
-              'another module took the window (run with city_slot6 and mc2_probe '
-              'at 0 and read the log ring)')
+        print('nao ha relatorio MC3H/MC3T nesse estado - o modulo nao rodou, ou '
+              'outro modulo ficou com a janela (rode com city_slot6 e mc2_probe '
+              'em 0 e leia o anel de log)')
         return 1
     show_report(r, ee)
-    if r['phase'] != 'done' or not r['count']:
-        print('  nothing to build: the module did not reach the end')
+    if r['fase'] != 'done' or not r['count']:
+        print('  nada para construir: o modulo nao chegou ao fim')
         return 1
 
     if not os.path.isdir(out):
         os.makedirs(out)
     hw = heap_high_water(ee, r['heap_base'], r['heap_len'])
     print()
-    print('  heap %08X + %d, the last live block ends at %08X (%d bytes used)'
+    print('  heap %08X + %d, ultimo bloco vivo termina em %08X (%d bytes usados)'
           % (r['heap_base'], r['heap_len'], hw | 0x00000000, hw - (r['heap_base'] & 0x01FFFFFF)))
 
     # Each model's graph starts at its own object and runs to the high water:
     # Load allocates the material table, the geometry array and the packets
     # AFTER the rmcModelGeom, so nothing it points at lies below it.
-    made_n = 0
+    feitos = 0
     for i, m in enumerate(r['models']):
         if not m['obj']:
-            print('  [%d] %s -> DID NOT LOAD' % (i, cstr(ee, m['name']) or '?'))
+            print('  [%d] %s -> NAO CARREGOU' % (i, cstr(ee, m['name']) or '?'))
             continue
-        name = cstr(ee, m['name']) or ('model%d' % i)
-        fname = os.path.basename(name).replace('.mod', '').replace('.mesh', '')
-        fname = ''.join(c if c.isalnum() or c in '._-#' else '_' for c in fname)
-        p = os.path.join(out, fname + '.mesh.pck')
+        nome = cstr(ee, m['name']) or ('model%d' % i)
+        arq = os.path.basename(nome).replace('.mod', '').replace('.mesh', '')
+        arq = ''.join(c if c.isalnum() or c in '._-#' else '_' for c in arq)
+        p = os.path.join(out, arq + '.mesh.pck')
         n = write_pck(ee, m['obj'], hw | (r['heap_base'] & ~0x01FFFFFF), p, kind)
-        print('  [%d] %-34s -> %s  (%d bytes, %d groups)'
-              % (i, name, os.path.basename(p), n, m['groups']))
-        made_n += 1
-    if made_n > 1:
+        print('  [%d] %-34s -> %s  (%d bytes, %d grupos)'
+              % (i, nome, os.path.basename(p), n, m['groups']))
+        feitos += 1
+    if feitos > 1:
         print()
-        print('  WARNING: %d models in a single heap. Each .pck starts at its own object'
-              ' and runs to the end of the heap, so the first ones carry the tail of'
-              ' the following ones as dead weight. For a clean file, one model per'
-              ' run.' % made_n)
+        print('  AVISO: %d modelos num heap so. Cada .pck comeca no proprio objeto'
+              ' e vai ate o fim do heap, entao os primeiros carregam a cauda dos'
+              ' seguintes como peso morto. Para arquivo limpo, um modelo por'
+              ' execucao.' % feitos)
     return 0
 
 
 def show_report(r, ee=None):
-    READABLE = {'wait': 'warming up', 'ready': 'ready',
-               'converting': 'converting', 'dumping': 'building',
-               'done': 'done', 'no_heap': 'NO HEAP',
-               'parked': 'parked'}
-    print('report %s:' % r['who'])
-    print('  state             = %s   (%d frames)'
-          % (READABLE.get(r['phase'], '?%d' % r['state']), r['ticks']))
-    if r['who'] == 'pck_tool':
+    LEGIVEL = {'wait': 'aquecendo', 'ready': 'pronto',
+               'converting': 'convertendo', 'dumping': 'construindo',
+               'done': 'pronto/fim', 'no_heap': 'SEM HEAP',
+               'parked': 'estacionado'}
+    print('relatorio %s:' % r['quem'])
+    print('  estado            = %s   (%d quadros)'
+          % (LEGIVEL.get(r['fase'], '?%d' % r['state']), r['ticks']))
+    if r['quem'] == 'pck_tool':
         # keeps the frontend on purpose, so free_after is never written
-        print('  main heap         = %d free before asking' % r['free_before'])
-        print('  frames drawn      = %d   %s'
+        print('  heap principal    = %d livre antes de pedir' % r['free_before'])
+        print('  quadros desenhados= %d   %s'
               % (r['free_after'],
-                 'the vtable redirect took' if r['free_after']
-                 else 'DID NOT DRAW - DoRendering was not called'))
+                 'o redirect de vtable pegou' if r['free_after']
+                 else 'NAO DESENHOU - o DoRendering nao foi chamado'))
     else:
-        print('  main heap         = %d free before, %d after'
+        print('  heap principal    = %d livre antes, %d depois'
               % (r['free_before'], r['free_after']))
         if r['free_after'] > r['free_before']:
-            print('                      the frontend gave back %d bytes (%.2f MB)'
+            print('                      o frontend devolveu %d bytes (%.2f MB)'
                   % (r['free_after'] - r['free_before'],
                      (r['free_after'] - r['free_before']) / 1048576.0))
         elif r['state'] >= 1:
-            print('                      NO CHANGE - the frontend was not what held it')
-    if r['phase'] == 'no_heap':
-        print('  -> CreateMemTopHeap refused. Ask for less than the free amount above in '
-              'HEAP_BYTES, or unload more than layer 8.')
+            print('                      SEM MUDANCA - o frontend nao era quem segurava')
+    if r['fase'] == 'no_heap':
+        print('  -> CreateMemTopHeap recusou. Peca menos que o livre acima em '
+              'HEAP_BYTES, ou descarregue mais que a camada 8.')
     if r['running']:
-        print('  -> HUNG while building model %d' % r['running'])
+        print('  -> TRAVOU construindo o modelo %d' % r['running'])
 
 
 # ---------------------------------------------------------------------------
@@ -355,21 +349,21 @@ def newest_state(slot):
     d = os.path.join(PCSX2_DATA, 'sstates')
     if not os.path.isdir(d):
         return None
-    stop = '.%02d.p2s' % slot
-    cand = [os.path.join(d, x) for x in os.listdir(d) if x.endswith(stop)]
+    fim = '.%02d.p2s' % slot
+    cand = [os.path.join(d, x) for x in os.listdir(d) if x.endswith(fim)]
     return max(cand, key=os.path.getmtime) if cand else None
 
 
 def drive(a):
     if not os.path.isfile(PCSX2):
-        print('PCSX2 is not at %s' % PCSX2)
+        print('PCSX2 nao esta em %s' % PCSX2)
         return 1
-    target = a.elf or ELF
-    before = newest_state(a.slot)
-    t_before = os.path.getmtime(before) if before else 0
+    alvo = a.elf or ELF
+    antes = newest_state(a.slot)
+    antes_t = os.path.getmtime(antes) if antes else 0
 
-    cmd = [PCSX2, '-elf', target, '-fastboot']
-    if not a.window:
+    cmd = [PCSX2, '-elf', alvo, '-fastboot']
+    if not a.janela:
         cmd.append('-nogui')
     if a.turbo:
         cmd.append('-unlimited')
@@ -380,18 +374,18 @@ def drive(a):
     print('$ %s' % ' '.join('"%s"' % c if ' ' in c else c for c in cmd))
     proc = subprocess.Popen(cmd)
 
-    pine, r, failures = None, None, 0
-    max_n = time.time() + a.timeout
+    pine, r, falhas = None, None, 0
+    limite = time.time() + a.timeout
     try:
-        while time.time() < max_n:
+        while time.time() < limite:
             time.sleep(2.0)
             if proc.poll() is not None:
-                print('the emulator exited early (code %s)' % proc.returncode)
+                print('o emulador saiu antes da hora (codigo %s)' % proc.returncode)
                 return 1
             if pine is None:
                 try:
                     pine = Pine()
-                    print('PINE connected')
+                    print('PINE conectado')
                 except OSError:
                     continue
             try:
@@ -401,9 +395,9 @@ def drive(a):
                 r = None
                 continue
             except (IOError, OSError) as e:
-                failures += 1
-                if failures in (1, 5, 20):
-                    print('PINE: %s - attempt %d' % (e, failures))
+                falhas += 1
+                if falhas in (1, 5, 20):
+                    print('PINE: %s - tentativa %d' % (e, falhas))
                 try:
                     pine.close()
                 except Exception:
@@ -412,16 +406,16 @@ def drive(a):
                 continue
             if r is None:
                 continue
-            if r['phase'] == 'done':
-                print('the module finished; saving state to slot %d' % a.slot)
+            if r['fase'] == 'done':
+                print('o modulo terminou; salvando estado no slot %d' % a.slot)
                 pine.savestate(a.slot)
                 time.sleep(3.0)
                 break
-            if r['phase'] == 'no_heap':
+            if r['fase'] == 'no_heap':
                 show_report(r)
                 return 1
         else:
-            print('timed out (%ds) without the module finishing' % a.timeout)
+            print('estourou o tempo (%ds) sem o modulo terminar' % a.timeout)
             if r:
                 show_report(r)
             return 1
@@ -431,16 +425,16 @@ def drive(a):
         if proc.poll() is None:
             proc.terminate()
 
-    new = newest_state(a.slot)
-    if not new or os.path.getmtime(new) <= t_before:
-        print('the savestate did not show up in %s/sstates' % PCSX2_DATA)
+    novo = newest_state(a.slot)
+    if not novo or os.path.getmtime(novo) <= antes_t:
+        print('o savestate nao apareceu em %s/sstates' % PCSX2_DATA)
         return 1
-    print('state: %s' % new)
-    return build_from_ram(mc3_inject.ee_from_savestate(new), out_path(a), a.kind)
+    print('estado: %s' % novo)
+    return build_from_ram(mc3_inject.ee_from_savestate(novo), saida(a), a.tipo)
 
 
-def out_path(a):
-    return a.out or os.path.join(mc3_output.folder(), 'game_pck')
+def saida(a):
+    return a.out or os.path.join(mc3_saida.pasta(), 'pck_do_jogo')
 
 
 def main():
@@ -448,33 +442,33 @@ def main():
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest='cmd')
 
-    d = sub.add_parser('drive', help='run the emulator and build')
-    d.add_argument('--elf', help='ELF to boot (default: the HostFS one)')
+    d = sub.add_parser('drive', help='roda o emulador e constroi')
+    d.add_argument('--elf', help='ELF a bootar (padrao: o do HostFS)')
     d.add_argument('--slot', type=int, default=9)
     d.add_argument('--timeout', type=int, default=300)
-    d.add_argument('--window', action='store_true', help='do not use -nogui')
+    d.add_argument('--janela', action='store_true', help='nao usar -nogui')
     d.add_argument('--turbo', action='store_true', default=True)
-    d.add_argument('--kind', type=lambda x: int(x, 0), default=PCK_TYPE_MESH)
+    d.add_argument('--tipo', type=lambda x: int(x, 0), default=PCK_TYPE_MESH)
     d.add_argument('--out')
 
-    b = sub.add_parser('build', help='build from a savestate')
-    b.add_argument('state')
-    b.add_argument('--kind', type=lambda x: int(x, 0), default=PCK_TYPE_MESH)
+    b = sub.add_parser('build', help='constroi a partir de um savestate')
+    b.add_argument('estado')
+    b.add_argument('--tipo', type=lambda x: int(x, 0), default=PCK_TYPE_MESH)
     b.add_argument('--out')
 
-    s = sub.add_parser('report', help='only show the savestate report')
-    s.add_argument('state')
+    s = sub.add_parser('report', help='so mostra o relatorio do savestate')
+    s.add_argument('estado')
 
     a = ap.parse_args()
     if a.cmd == 'drive':
         return drive(a)
     if a.cmd == 'build':
-        return build_from_ram(mc3_inject.ee_from_savestate(a.state), out_path(a), a.kind)
+        return build_from_ram(mc3_inject.ee_from_savestate(a.estado), saida(a), a.tipo)
     if a.cmd == 'report':
-        ee = mc3_inject.ee_from_savestate(a.state)
+        ee = mc3_inject.ee_from_savestate(a.estado)
         r = read_report(dw_from_ram(ee))
         if r is None:
-            print('no MC3H report in this state')
+            print('sem relatorio MC3H nesse estado')
             return 1
         show_report(r, ee)
         for i, m in enumerate(r['models']):

@@ -1,8 +1,9 @@
-"""Port new VIF packets into a modern city without rebuilding its structure.
+"""Porta pacotes VIF novos para uma cidade moderna sem reconstruir sua estrutura.
 
-The current file keeps the PPF, textures, proxies, props, CellIndex and the
-fixes made after v7. Only the VIF payloads of LA components are overwritten,
-and only when centre, group count, packet count, QW and NV match exactly.
+O arquivo atual conserva PPF, texturas, proxies, props, CellIndex e correcoes
+posteriores a v7. Somente os payloads VIF de componentes LA sao sobrescritos,
+e apenas quando centro, quantidade de grupos, quantidade de pacotes, QW e NV
+casam exatamente.
 """
 
 import argparse
@@ -14,7 +15,7 @@ import sys
 from collections import defaultdict
 
 
-DEFAULT_TOOLS = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_TOOLS = os.environ.get('MC_RESEARCH_ROOT', '')
 
 
 def load_module(name, path):
@@ -41,7 +42,7 @@ def packet_entries_city(pck, mesh):
                 "<IHH", pck.data, packet_table + 8 * packet_index)
             payload = pck.F(payload_va)
             if not pck.inside(payload) or payload + 16 * qw > len(pck.data):
-                raise ValueError("city payload outside the file")
+                raise ValueError("payload da cidade fora do arquivo")
             group.append((payload, qw, nv))
         groups.append(group)
     return groups
@@ -65,7 +66,7 @@ def packet_entries_mesh(path):
             payload = file_offset(payload_va)
             end = payload + 16 * qw
             if payload < 0x80 or end > len(data):
-                raise ValueError("forged payload outside the file: %s" % path)
+                raise ValueError("payload forjado fora do arquivo: %s" % path)
             group.append((data[payload:end], qw, nv))
         groups.append(group)
     return groups
@@ -107,7 +108,7 @@ def transplant(args):
 
     for hood_index, hood in enumerate(hf.hoods(pck)):
         for unique_index, (_label, meshes, _component, cd) in enumerate(
-                hf.hood_uniques(pck, hood_index)):
+                hf.uniques_do_hood(pck, hood_index)):
             centre = centre_key(struct.unpack_from("<3f", pck.data, cd + 0x2C))
             names = by_centre.get(centre, [])
             if len(names) != 1:
@@ -163,7 +164,7 @@ def transplant(args):
             for (offset, qw, nv), (payload, replacement_qw, replacement_nv) in zip(
                     current_group, replacement_group):
                 if (qw, nv) != (replacement_qw, replacement_nv):
-                    raise AssertionError("shape changed after validation")
+                    raise AssertionError("shape mudou depois da validacao")
                 old = bytes(pck.data[offset:offset + 16 * qw])
                 if old != payload:
                     changed_bytes += sum(a != b for a, b in zip(old, payload))
@@ -183,29 +184,29 @@ def transplant(args):
         "duplicate_selected_names": duplicate_names,
         "ignored_components": ignored,
     }
-    print("components selected: %d (%d names)" %
+    print("componentes selecionados: %d (%d nomes)" %
           (len(candidates), len(selected)))
-    print("payloads changed: %d; differing bytes: %d" %
+    print("payloads alterados: %d; bytes diferentes: %d" %
           (len(changed_ranges), changed_bytes))
-    print("forged components without a safe target: %d" % len(missing))
+    print("componentes forjados sem destino seguro: %d" % len(missing))
     if missing:
         for name in missing[:30]:
             print("  -", name)
     if duplicate_names:
-        print("ERROR: name selected more than once")
+        print("ERRO: nome selecionado mais de uma vez")
         for name in duplicate_names:
             print("  -", name)
 
-    # Guarantees: the file does not change size and no structural byte is touched.
+    # Garantias: o arquivo nao muda de tamanho e nenhum byte estrutural e tocado.
     if len(pck.data) != len(original):
-        raise AssertionError("the transplant changed the PCK size")
+        raise AssertionError("o transplante mudou o tamanho do PCK")
     allowed = bytearray(len(original))
     for start, end in changed_ranges:
         allowed[start:end] = b"\x01" * (end - start)
     illegal = [i for i, (a, b) in enumerate(zip(original, pck.data))
                if a != b and not allowed[i]]
     if illegal:
-        raise AssertionError("a byte outside the payloads was changed: 0x%X" % illegal[0])
+        raise AssertionError("byte fora de payload foi alterado: 0x%X" % illegal[0])
     if duplicate_names:
         raise SystemExit(2)
 
@@ -215,12 +216,12 @@ def transplant(args):
             stream.write("\n")
     if args.output:
         if missing and not args.allow_partial:
-            raise SystemExit("refused: use --allow-partial to write a partial batch")
+            raise SystemExit("recusado: use --allow-partial para gravar um lote parcial")
         with open(args.output, "wb") as stream:
             stream.write(pck.data)
-        print("written:", os.path.abspath(args.output))
+        print("gravado:", os.path.abspath(args.output))
     else:
-        print("analysis only; pass --output to write")
+        print("analise apenas; informe --output para gravar")
     return 0
 
 

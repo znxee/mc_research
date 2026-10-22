@@ -5,18 +5,18 @@
   "platform": "ps2",
   "type": "general",
   "entry": "mc2_ps2_place.py",
-  "summary": "Bridge: MC2 PS2 city -> the place.tsv and .mod files mc3_city_build reads.",
+  "summary": "Ponte: cidade do MC2 de PS2 -> o place.tsv e os .mod que o mc3_city_build le.",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

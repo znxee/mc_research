@@ -83,7 +83,7 @@ class VehiclePerf:
     def summary(self) -> str:
         e, t = self.engine, self.trans
         return (f"[{self.variant}] Idle {e.idle_rpm:.0f} | Max {e.max_rpm:.0f} RPM | "
-                f"{t.forward_gears} gears | Low/High {t.low:.0f}/{t.high:.0f} | "
+                f"{t.forward_gears} marchas | Low/High {t.low:.0f}/{t.high:.0f} | "
                 f"shift {t.gear_change_time:.2f}s")
 
 
@@ -108,7 +108,7 @@ def parse_vehicle_perf(pck_path_or_bytes, variant: str = "base") -> VehiclePerf:
             buf = f.read()
 
     if len(buf) < 0x100:
-        raise VehsimError("file too small to be a vehicle pck")
+        raise VehsimError("arquivo pequeno demais para ser um pck de veiculo")
 
     ptr_va = _u32(buf, 0x00)
     base_va = ptr_va - 0x80
@@ -120,13 +120,13 @@ def parse_vehicle_perf(pck_path_or_bytes, variant: str = "base") -> VehiclePerf:
     header_rel = 0xB4 if variant == "base" else 0xB8
     vehsim_off = va2off(_u32(buf, header_rel), 0x94)
     if vehsim_off is None:
-        raise VehsimError(f"invalid vehsim pointer ({variant}) - does this pck have a performance section?")
+        raise VehsimError(f"ponteiro vehsim ({variant}) invalido - este pck tem secao de performance?")
 
     ptrs_off = vehsim_off + 0x54
     engine_off = va2off(_u32(buf, ptrs_off + 0x08), 10 * 4)
     trans_off = va2off(_u32(buf, ptrs_off + 0x0C), 10 * 4)
     if engine_off is None or trans_off is None:
-        raise VehsimError("invalid engine/trans pointers in the vehsim")
+        raise VehsimError("ponteiros de engine/trans invalidos no vehsim")
 
     engine = EnginePerf(
         ang_inertia=_f32(buf, engine_off + 0x00),
@@ -155,9 +155,9 @@ def parse_vehicle_perf(pck_path_or_bytes, variant: str = "base") -> VehiclePerf:
 
     # sanity: RPMs plausible?
     if not (100 <= engine.idle_rpm <= 20000 and 1000 <= engine.max_rpm <= 30000):
-        raise VehsimError(f"implausible RPM values (idle={engine.idle_rpm}, max={engine.max_rpm}); "
-                          "pck without performance data or a different format (psppck?)")
+        raise VehsimError(f"valores de RPM implausiveis (idle={engine.idle_rpm}, max={engine.max_rpm}); "
+                          "pck sem performance ou formato diferente (psppck?)")
     if not (1 <= trans.num_gears <= 12):
-        raise VehsimError(f"implausible number of gears: {trans.num_gears}")
+        raise VehsimError(f"numero de marchas implausivel: {trans.num_gears}")
 
     return VehiclePerf(engine=engine, trans=trans, variant=variant)

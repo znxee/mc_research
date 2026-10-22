@@ -1,0 +1,22 @@
+{
+  "name": "mc3_compacta",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "geometry",
+  "entry": "mc3_compacta.py",
+  "summary": "mc3_compacta.py - reclaim the dead geometry a hood fill leaves behind",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

@@ -1,49 +1,47 @@
-"""mc3_vtables.py - NAME the .pck structures without opening IDA
+"""mc3_vtables.py - dar NOME as estruturas do .pck, sem abrir a IDA
 
-The `.pck` keeps no vtable. It keeps a TOKEN: a number like 0x0079FF88 that the
-loader swaps for the real vtable at load time (which is why tokyo uses the same
-tokens shifted by +0x488 - it is a per-build table, not a pointer). Reading the
-token in the file says nothing; reading the SAME field in a savestate with the
-city loaded says everything.
+O `.pck` nao guarda vtable. Guarda um TOKEN: um numero como 0x0079FF88 que o
+carregador troca pela vtable de verdade ao carregar (por isso o tokyo usa os
+mesmos tokens deslocados de +0x488 - e uma tabela por build, nao um ponteiro).
+Ler o token no arquivo nao diz nada; ler o MESMO campo numa savestate com a
+cidade carregada diz tudo.
 
-    file:     ComponentData+0x28 = 0079FF88     <- token
-    RAM:      ComponentData+0x28 = 00625098     <- the real vtable
-    ELF:      vtable+0x08 = 0024C1D0            <- first method
-    symbols:  0024C1D0 = mcCityModelType__dtor  <- the class
+    arquivo:  ComponentData+0x28 = 0079FF88     <- token
+    RAM:      ComponentData+0x28 = 00625098     <- vtable de verdade
+    ELF:      vtable+0x08 = 0024C1D0            <- primeiro metodo
+    simbolos: 0024C1D0 = mcCityModelType__dtor  <- a classe
 
-And with 10946 addresses named in `symbols/` (coming from the October 2004 alpha
-build's MC.MAP through mc3_symbols.py), the last step is a table lookup.
+E com 10946 enderecos nomeados em `simbolos/` (vindos do MC.MAP da build alpha
+de outubro/2004 via mc3_symbols.py), o ultimo passo e uma consulta em tabela.
 
-    python mc3_vtables.py --ram state/eeMemory.bin
+    python mc3_vtables.py --ram estado/eeMemory.bin
     python mc3_vtables.py --vt 0x625098
-    python mc3_vtables.py --vt 0x625098 --all
+    python mc3_vtables.py --vt 0x625098 --tudo
 
-WHAT THIS ALREADY SOLVED, just by running it the first time:
+O QUE ISSO JA RESOLVEU, so de rodar a primeira vez:
 
-    MapRoot          parFileIO (+ thunk of mcSkyHatClass::FileIO)
+    MapRoot          parFileIO (+ thunk de mcSkyHatClass::FileIO)
     ComponentData    mcCityModelType
     UniqueComponent  mcCityModel
     Instance         mcInstCityModel
     Mesh             rmcModelGeom
-    HoodDesc         rmcTexturePS2   <- the "hood descriptor" is a TEXTURE
+    HoodDesc         rmcTexturePS2   <- o "descritor de hood" e uma TEXTURA
 
-The last one knocks down an assumption of mine: I had read the 0xB0 block
-pointed to by `hood+0x00` as a "neighbourhood descriptor with undecoded GS
-state". It is an `rmcTexturePS2` with the neighbourhood's name. So each hood
-carries its own atlas.
+O ultimo derruba uma suposicao minha: eu tinha lido o bloco de 0xB0 apontado por
+`hood+0x00` como "descritor de bairro com estado de GS nao decodificado". E um
+`rmcTexturePS2` com o nome do bairro. Ou seja cada hood carrega o proprio atlas.
 """
 import argparse
 import io
 import os
 import struct
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
-ELF = os.environ.get('MC3_ELF', 'SLUS_213.55')
+RAIZ = os.path.dirname(os.path.abspath(__file__))
+ELF = os.environ.get('MC3_ELF_DIR', '')
 BASE, OFF = 0x1A0000, 0x80
 
-# Where the tokens live. (label, how to get there) - the walk is the same in the
-# file and in RAM, and it is the pairing by POSITION that translates one into
-# the other.
+# Onde ficam os tokens. (rotulo, como chegar la) - a travessia e a mesma no
+# arquivo e na RAM, e e o pareamento por POSICAO que traduz um no outro.
 SLOTS = [
     ('MapRoot',          lambda M, U: [M]),
     ('HoodDesc',         lambda M, U: [U(h) for h in _hoods(M, U)]),
@@ -57,25 +55,25 @@ def _hoods(M, U):
     return [hb + 20 * i for i in range(U(M + 0x14))]
 
 
-def _arr(M, U, off_n, off_a, step, limit=6):
-    outside = []
+def _arr(M, U, off_n, off_a, passo, limite=6):
+    fora = []
     for h in _hoods(M, U):
         n, a = U(h + off_n), U(h + off_a)
-        for k in range(min(n, limit)):
-            outside.append(a + step * k)
-    return outside
+        for k in range(min(n, limite)):
+            fora.append(a + passo * k)
+    return fora
 
 
-def load_names():
-    """{address: (name, where it came from)} - the first file to name it wins."""
-    names = {}
-    order = ('names_manual.tsv', 'names.tsv', 'names_token.tsv',
-             'names_graph.tsv', 'names_neighbours.tsv')
-    for fname in order:
-        pck_path = os.path.join(ROOT, 'symbols', fname)
-        if not os.path.isfile(pck_path):
+def carrega_nomes():
+    """{endereco: (nome, de onde veio)} - o primeiro arquivo a nomear ganha."""
+    nomes = {}
+    ordem = ('nomes_manuais.tsv', 'nomes.tsv', 'nomes_token.tsv',
+             'nomes_grafo.tsv', 'nomes_vizinhos.tsv')
+    for arq in ordem:
+        cam = os.path.join(RAIZ, 'simbolos', arq)
+        if not os.path.isfile(cam):
             continue
-        for ln in io.open(pck_path, encoding='utf-8', errors='replace'):
+        for ln in io.open(cam, encoding='utf-8', errors='replace'):
             if ln.startswith('#') or not ln.strip():
                 continue
             c = ln.rstrip('\n').split('\t')
@@ -85,13 +83,13 @@ def load_names():
                 a = int(c[0], 16)
             except ValueError:
                 continue
-            names.setdefault(a, (c[1], fname[6:-4]))
-    return names
+            nomes.setdefault(a, (c[1], arq[6:-4]))
+    return nomes
 
 
 class Elf:
-    def __init__(self, path=ELF):
-        self.d = open(path, 'rb').read()
+    def __init__(self, caminho=ELF):
+        self.d = open(caminho, 'rb').read()
 
     def u32(self, va):
         o = va - BASE + OFF
@@ -100,42 +98,42 @@ class Elf:
         return struct.unpack_from('<I', self.d, o)[0]
 
 
-def methods(elf, vt, names, how_many=14):
-    """[(offset, address, name)] of a vtable."""
-    outside = []
-    for k in range(how_many):
+def metodos(elf, vt, nomes, quantos=14):
+    """[(offset, endereco, nome)] de uma vtable."""
+    fora = []
+    for k in range(quantos):
         v = elf.u32(vt + 4 * k)
         if v is None:
             break
-        name = ''
+        nome = ''
         if 0x1A0000 <= v < 0x680000:
-            got = names.get(v)
-            name = '%s [%s]' % got if got else ''
-        outside.append((4 * k, v, name))
-    return outside
+            got = nomes.get(v)
+            nome = '%s [%s]' % got if got else ''
+        fora.append((4 * k, v, nome))
+    return fora
 
 
-def klass(elf, vt, names):
-    """A class name guess: the common prefix of the named methods."""
-    seen = []
-    for _o, _v, n in methods(elf, vt, names):
+def classe(elf, vt, nomes):
+    """Um palpite de nome de classe: o prefixo comum dos metodos nomeados."""
+    vistos = []
+    for _o, _v, n in metodos(elf, vt, nomes):
         if not n:
             continue
         base = n.split(' [')[0]
         if '__' in base:
-            seen.append(base.split('__')[0])
-    if not seen:
+            vistos.append(base.split('__')[0])
+    if not vistos:
         return ''
-    # the most frequent one that is not a thunk
+    # o mais frequente que nao seja um thunk
     from collections import Counter
-    c = Counter(v for v in seen if not v.startswith('virtual_function_thunk'))
-    return c.most_common(1)[0][0] if c else seen[0]
+    c = Counter(v for v in vistos if not v.startswith('virtual_function_thunk'))
+    return c.most_common(1)[0][0] if c else vistos[0]
 
 
-def scan(pck, ram, names, elf):
-    """Pair token (file) with vtable (RAM) by walking both the same way."""
+def varre(pck, ram, nomes, elf):
+    """Pareia token (arquivo) com vtable (RAM) percorrendo os dois igual."""
     import sys
-    sys.path.insert(0, os.path.join(ROOT, 'experimental'))
+    sys.path.insert(0, os.path.join(RAIZ, 'experimental'))
     from mc2_to_mc3 import Pck
     p = Pck(pck)
     d = open(ram, 'rb').read()
@@ -157,70 +155,70 @@ def scan(pck, ram, names, elf):
     M_ram = struct.unpack_from('<I', d, 0x615B40)[0]
     M_pck = p.V(0x80)
     if not (0x100000 <= M_ram < 0x2000000):
-        raise SystemExit('the savestate has no city loaded')
+        raise SystemExit('a savestate nao tem cidade carregada')
 
-    # fields that carry a token, per structure
-    fields = {'MapRoot': (0x00,), 'HoodDesc': (0x04,),
+    # campos que carregam token, por estrutura
+    campos = {'MapRoot': (0x00,), 'HoodDesc': (0x04,),
               'UniqueComponent': (0x10,), 'Instance': (0x10,),
               'ComponentData': (0x28,), 'Mesh': (0x00,)}
-    outside = []
-    for rot, find in SLOTS:
-        a_ram = find(M_ram, Uram)
-        a_pck = find(M_pck, Upck)
+    fora = []
+    for rot, achar in SLOTS:
+        a_ram = achar(M_ram, Uram)
+        a_pck = achar(M_pck, Upck)
         for ar, ap in list(zip(a_ram, a_pck))[:8]:
             if not (0x100000 <= ar < 0x2000000):
                 continue
-            for c in fields[rot]:
+            for c in campos[rot]:
                 tok, vt = Upck(ap + c), Uram2(ar + c)
                 if tok and vt:
-                    outside.append((rot, tok, vt))
+                    fora.append((rot, tok, vt))
             if rot in ('UniqueComponent', 'Instance'):
                 cdr, cdp = Uram2(ar + 0x0C), Upck(ap + 0x0C)
                 t, v = Upck(cdp + 0x28), Uram2(cdr + 0x28)
                 if t and v:
-                    outside.append(('ComponentData', t, v))
+                    fora.append(('ComponentData', t, v))
                 mr, mp = Uram2(cdr + 0x3C), Upck(cdp + 0x3C)
                 t, v = (Upck(mp), Uram2(mr)) if (mr and mp) else (0, 0)
                 if t and v:
-                    outside.append(('Mesh', t, v))
-    # unique per (label, token)
-    seen_one, out_path = set(), []
-    for rot, tok, vt in outside:
+                    fora.append(('Mesh', t, v))
+    # unico por (rotulo, token)
+    visto, saida = set(), []
+    for rot, tok, vt in fora:
         k = (rot, tok)
-        if k in seen_one:
+        if k in visto:
             continue
-        seen_one.add(k)
-        out_path.append((rot, tok, vt, klass(elf, vt, names)))
-    return out_path
+        visto.add(k)
+        saida.append((rot, tok, vt, classe(elf, vt, nomes)))
+    return saida
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--ram', help='eeMemory.bin of a savestate WITH the city loaded')
+    ap.add_argument('--ram', help='eeMemory.bin de uma savestate COM a cidade carregada')
     ap.add_argument('--pck', default='output/atlanta_backup/atlanta_midnight_clear.pck')
-    ap.add_argument('--vt', help='only show the methods of this vtable (hex)')
-    ap.add_argument('--all', dest='all_', action='store_true', help='show unnamed methods too')
+    ap.add_argument('--vt', help='so mostrar os metodos desta vtable (hex)')
+    ap.add_argument('--tudo', action='store_true', help='mostrar metodos sem nome tambem')
     ap.add_argument('--elf', default=ELF)
     a = ap.parse_args()
 
-    names = load_names()
+    nomes = carrega_nomes()
     elf = Elf(a.elf)
-    print('%d named addresses in symbols/' % len(names))
+    print('%d enderecos nomeados em simbolos/' % len(nomes))
 
     if a.vt:
         vt = int(a.vt, 16)
-        print('vtable %08X   class: %s' % (vt, klass(elf, vt, names) or '?'))
-        for o, v, n in methods(elf, vt, names, 20):
-            if n or a.all_:
+        print('vtable %08X   classe: %s' % (vt, classe(elf, vt, nomes) or '?'))
+        for o, v, n in metodos(elf, vt, nomes, 20):
+            if n or a.tudo:
                 print('   +%02X %08X  %s' % (o, v, n))
         return
 
     if not a.ram:
-        ap.error('--ram is required (or use --vt)')
-    for rot, tok, vt, cls in scan(a.pck, a.ram, names, elf):
+        ap.error('--ram e obrigatorio (ou use --vt)')
+    for rot, tok, vt, cls in varre(a.pck, a.ram, nomes, elf):
         print('%-16s token %08X -> vtable %08X   %s' % (rot, tok, vt, cls or '?'))
-        for o, v, n in methods(elf, vt, names):
+        for o, v, n in metodos(elf, vt, nomes):
             if n:
                 print('      +%02X %s' % (o, n))
 

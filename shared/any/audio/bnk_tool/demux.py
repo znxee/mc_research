@@ -104,7 +104,7 @@ def demux(bnk_path: str, out_dir: str, use_genh: bool = True, td_path: str = Non
                 ext = ".genh"
                 container = "genh"
             except GenhError as e:
-                s.warnings.append(f"could not generate GENH ({e}); extracted as raw")
+                s.warnings.append(f"nao foi possivel gerar GENH ({e}); extraido como raw")
         elif s.codec in ("RIFF_ATRAC9", "XVAG_ATRAC9"):
             container = "self-contained"
 

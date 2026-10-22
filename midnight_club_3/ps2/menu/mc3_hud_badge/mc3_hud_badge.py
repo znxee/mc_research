@@ -103,8 +103,8 @@ def main(argv=None):
     out = a.out
     if not out:
         try:
-            import mc3_output
-            base = mc3_output.folder()
+            import mc3_saida
+            base = mc3_saida.pasta()
         except Exception:
             base = os.path.join(HERE, 'output')
         if not os.path.isdir(base):
@@ -116,14 +116,14 @@ def main(argv=None):
     w, h = img.size
     gear_right, px0, px1, itop, ibot = guides
     print(out)
-    print('  texture       %dx%d  (power of two, RGBA)' % (w, h))
-    print('  the plate     y %d..%d  -> UV v from %.4f to %.4f'
+    print('  textura       %dx%d  (potencia de dois, RGBA)' % (w, h))
+    print('  a plaqueta    y %d..%d  -> UV v de %.4f a %.4f'
           % (box[1], box[3], box[1] / float(h), (box[3] + 1) / float(h)))
-    print('  gear pill     x %d..%d' % (0, gear_right))
-    print('  right pills   x %d..%d' % (px0, px1))
-    print('  in the 512x448 HUD space, drawn at %.0fx%.0f:'
+    print('  pilula gear   x %d..%d' % (0, gear_right))
+    print('  pilulas dir.  x %d..%d' % (px0, px1))
+    print('  no espaco 512x448 do HUD, desenhando a %.0fx%.0f:'
           % (117.0, 117.0 / ASPECT))
-    print('    centre of the pills, in screen coordinates, goes into --place of the mod')
+    print('    centro das pilulas, em coordenada de tela, sai no --place do mod')
     return 0
 
 

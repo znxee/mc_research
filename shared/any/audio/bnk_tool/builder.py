@@ -99,15 +99,15 @@ def build_bnk_v3(sounds: List[SoundSpec]):
     """Returns (bnk_bytes, manifest_dict, td_text). manifest_dict has the same shape
     demux() produces, so mux.py can later patch this file just like a template."""
     if not sounds:
-        raise BuildError("no sound given")
+        raise BuildError("nenhum sound fornecido")
 
     grains = []          # flattened (sound_idx, grain) list, in final table2/table3 order
     for si, snd in enumerate(sounds):
         if not snd.grains:
-            raise BuildError(f"sound '{snd.name}' has no grain/audio")
+            raise BuildError(f"sound '{snd.name}' nao tem nenhum grain/audio")
         for g in snd.grains:
             if g.codec not in ("PSX", "PCM16"):
-                raise BuildError(f"sound '{snd.name}': codec '{g.codec}' not supported by the v3 builder "
+                raise BuildError(f"sound '{snd.name}': codec '{g.codec}' nao suportado no builder v3 "
                                   f"(use PSX ou PCM16 - mono)")
             grains.append((si, g))
 
@@ -280,10 +280,10 @@ def grain_from_genh(path: str) -> GrainSpec:
     with open(path, "rb") as f:
         data = f.read()
     if not is_genh_file(data):
-        raise BuildError(f"{path}: not a .genh")
+        raise BuildError(f"{path}: nao e um .genh")
     gh = read_genh(data)
     if gh["codec"] not in ("PSX", "PCM16"):
-        raise BuildError(f"{path}: GENH codec {gh['genh_codec_raw']} not supported by the v3 builder")
+        raise BuildError(f"{path}: codec GENH {gh['genh_codec_raw']} nao suportado no builder v3")
     payload = data[gh["start_offset"]:gh["start_offset"] + gh["data_size"]]
     return GrainSpec(codec=gh["codec"], sample_rate=gh["sample_rate"], payload=payload,
                       loop_flag=gh["loop_flag"])
@@ -322,7 +322,7 @@ def sounds_from_genh_folder(folder: str) -> List[SoundSpec]:
     name so the generated .td matches automatically - no need to type names by hand."""
     paths = [os.path.join(folder, f) for f in os.listdir(folder) if f.lower().endswith(".genh")]
     if not paths:
-        raise BuildError(f"no .genh file found in: {folder}")
+        raise BuildError(f"nenhum arquivo .genh encontrado em: {folder}")
 
     sounds = []
     for name, group_paths in group_genh_files(paths):

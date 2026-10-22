@@ -306,7 +306,8 @@ def body_piece(tp, vehicle):
 
 
 def insert(traffic_path, vp_path, vehicle, out_path, lod="MLOD", material=None,
-           stock=False, shader_profile="traffic-stock", uv_profile="preserve"):
+           stock=False, shader_profile="traffic-stock", uv_profile="preserve",
+           body_atlas=None, body_atlas_source=None):
     shader_profile = shader_profile.casefold()
     uv_profile = uv_profile.casefold()
     if shader_profile not in ("traffic-stock", "full"):
@@ -316,7 +317,11 @@ def insert(traffic_path, vp_path, vehicle, out_path, lod="MLOD", material=None,
     lean = material is None and shader_profile == "traffic-stock"
     if uv_profile != "preserve" and not lean:
         raise ValueError("UV presets require the traffic-stock shader profile")
-    if uv_profile == "civic-share" and vehicle.casefold() != "va_civic_sh":
+    if body_atlas and (not lean or uv_profile != "civic-share"
+                       or body_atlas.casefold() != "va_civic_sh"):
+        raise ValueError("body_atlas requires traffic-stock, civic-share and va_civic_sh")
+    if (uv_profile == "civic-share" and vehicle.casefold() != "va_civic_sh"
+            and not body_atlas):
         raise ValueError("civic-share is only valid for target va_civic_sh")
     merged, donor = build_lod(
         vp_path, lod=lod, material=material, stock=stock,
@@ -329,6 +334,7 @@ def insert(traffic_path, vp_path, vehicle, out_path, lod="MLOD", material=None,
     target_group_off = None
     target_shader_count = None
     uv_report = []
+    atlas_bindings = {}
 
     if material is None:
         used = sorted({group["material"] for group in merged.groups})
@@ -354,6 +360,42 @@ def insert(traffic_path, vp_path, vehicle, out_path, lod="MLOD", material=None,
                 raise ValueError(
                     "traffic-stock requires ambient_body and "
                     "ambient_emissive_brakelight in the target group")
+
+            if body_atlas and vehicle.casefold() != body_atlas.casefold():
+                # Native Place is destructive, not alias-safe: sharing the
+                # same serialized shader object relocates its pointers twice.
+                # Clone the Civic ambient graph; never import VP carpaint.
+                atlas_roots = [root for name, root in tp.roots()
+                               if name.casefold() == body_atlas.casefold()]
+                if len(atlas_roots) != 1:
+                    raise ValueError("body atlas vehicle is absent/ambiguous")
+                atlas_off = target_view.pointer(atlas_roots[0] + 0x08)
+                if atlas_off is None:
+                    raise ValueError("body atlas vehicle has no shader group")
+                atlas_group = shader_transplant.read_shader_group(target_view, atlas_off)
+                atlas_by_name = {entry.name: entry for entry in atlas_group.entries if entry}
+                names = ("ambient_body.shadert", "ambient_emissive_brakelight.shadert")
+                if any(name not in atlas_by_name for name in names):
+                    raise ValueError("body atlas lacks required ambient shaders")
+                siblings = [piece for piece in tp.pieces()
+                            if piece["vehicle"].casefold() == vehicle.casefold()
+                            and piece["index"] != target["index"]]
+                preserve = sorted({index for piece in siblings
+                                   for index in tp.materials(piece["off"])})
+                shader_result = shader_transplant.transplant(
+                    tp.pck, body_atlas_source or traffic_path, roots[0] + 0x08,
+                    [atlas_by_name[name].index for name in names], preserve,
+                    donor_group_off=atlas_off,
+                    donor_arena_boundaries=[target_view.pointer(root + field)
+                        for _name, root in tp.roots() for field in (0x10, 0x68)
+                        if target_view.pointer(root + field) is not None])
+                body_shader, emissive_shader = [shader_result.shader_map[
+                    atlas_by_name[name].index] for name in names]
+                # Report only independent, appended serialized resources.
+                for name in names:
+                    entry = atlas_by_name[name]
+                    resource_off = shader_result.clone.offset_map[entry.resource_off]
+                    atlas_bindings[shader_result.shader_map[entry.index]] = tp.pck.V(resource_off)
 
             donor_group = shader_transplant.find_shader_group(
                 shader_transplant.Pck(vp_path))
@@ -479,6 +521,10 @@ def insert(traffic_path, vp_path, vehicle, out_path, lod="MLOD", material=None,
         if max(actual_materials, default=-1) >= target_shader_count:
             raise ValueError(
                 "self-check failed: traffic-stock material exceeds target group")
+        new_group = shader_transplant.read_shader_group(view, new_group_off)
+        for index, resource_va in atlas_bindings.items():
+            if new_group.entries[index].resource_va != resource_va:
+                raise ValueError("self-check failed: body atlas binding changed")
 
     return dict(target=target, donor=donor, merged_stats=merged.stats(),
                 scale=merged.scale, new_va=new_va, pointers_fixed=fixed,
@@ -488,6 +534,7 @@ def insert(traffic_path, vp_path, vehicle, out_path, lod="MLOD", material=None,
                 shader_profile=("forced" if material is not None
                                 else shader_profile),
                 uv_profile=uv_profile, uv_report=uv_report,
+                body_atlas=body_atlas, atlas_bindings=atlas_bindings,
                 material_map=material_map, material_names=material_names,
                 materials=actual_materials)
 
@@ -495,7 +542,7 @@ def insert(traffic_path, vp_path, vehicle, out_path, lod="MLOD", material=None,
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("traffic", help="retail/copy *_traffic.pck")
-    ap.add_argument("vp", help="main vp_*.pck (not *_g or *_o)")
+    ap.add_argument("vp", help="vp_*.pck or opponent vp_*_o.pck")
     ap.add_argument("--vehicle", required=True,
                     help="directory name, e.g. va_civic_sh")
     ap.add_argument("--lod", default="MLOD", choices=("HLOD", "MLOD", "LLOD"))
@@ -513,12 +560,15 @@ def main(argv=None):
                     help="preserve keeps donor UVs; civic-share maps material "
                          "roles to safe swatches in va_civic_share.tex")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--body-atlas", choices=("va_civic_sh",),
+                    help="clone independent Civic body/light resources inside this traffic PCK; "
+                         "allows civic-share on other ambient vehicle slots")
     ns = ap.parse_args(argv)
 
     result = insert(ns.traffic, ns.vp, ns.vehicle, ns.out,
                     lod=ns.lod, material=ns.material, stock=ns.stock,
                     shader_profile=ns.shader_profile,
-                    uv_profile=ns.uv_profile)
+                    uv_profile=ns.uv_profile, body_atlas=ns.body_atlas)
     print("%s <- %s %s" % (ns.vehicle, os.path.basename(ns.vp), ns.lod))
     for item in result["donor"]:
         print("  [%d] id=%d %-14s %d group(s), %d vertices  %s  (%s)" %
@@ -534,7 +584,9 @@ def main(argv=None):
     shaders = result["shader_transplant"]
     if result["shader_profile"] == "traffic-stock":
         print("shader profile: traffic-stock; 0 donor shaders/textures; "
-              "target retail group unchanged")
+              "target group preserved%s" %
+              ("; independent body/light atlas cloned from " + ns.body_atlas
+               if result["atlas_bindings"] else ""))
         for old_index, new_index in sorted(result["material_map"].items()):
             print("  vp[%d] %-34s -> traffic[%d]" %
                   (old_index, result["material_names"][old_index], new_index))

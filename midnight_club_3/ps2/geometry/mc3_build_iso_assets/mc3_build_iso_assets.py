@@ -1,18 +1,15 @@
-"""Build the console ASSETS.DAT without compressing the losangeles PCK/PPF files.
+"""Constroi o ASSETS.DAT de console sem comprimir PCK/PPF de losangeles.
 
-The ported city loads those packages as raw data. Compressing them with the
-normal dave.py profile saves space, but freezes the game while the city loads
-from the ISO. Every other file keeps using the normal compact profile.
-
-The default root comes from MC3_ISO_SOURCE (the folder holding assets/ and
-dave.py).
+A cidade portada carrega esses pacotes como dados brutos. Comprimi-los com o
+perfil normal do dave.py economiza espaco, mas congela o jogo durante o loading
+da cidade na ISO. Os demais arquivos continuam usando o perfil compacto normal.
 """
 import argparse
 import importlib.util
 import os
 import struct
 
-DEFAULT_ROOT = os.environ.get('MC3_ISO_SOURCE', 'mod iso - build source')
+DEFAULT_ROOT = os.path.join(os.environ.get('MC3_ISO_SOURCE', ''), 'DVD/mod iso - build source')
 RAW_PREFIXES = (
     'resources/city/losangeles_',
     'resources/prop/losangeles_',
@@ -33,7 +30,7 @@ LOSANGELES_FLASH = (
 def load_dave(path):
     spec = importlib.util.spec_from_file_location('mc3_dave_builder', path)
     if spec is None or spec.loader is None:
-        raise SystemExit(f'could not load {path}')
+        raise SystemExit(f'nao foi possivel carregar {path}')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -49,13 +46,13 @@ def main():
     missing = [name for name in LOSANGELES_FLASH
                if not os.path.isfile(os.path.join(args.source, 'flash', name))]
     if missing:
-        raise SystemExit('missing losangeles flash: ' + ', '.join(missing))
+        raise SystemExit('flash de losangeles ausente: ' + ', '.join(missing))
 
     dave = load_dave(args.dave)
     dave.COMP_DIR_BLOCKLIST = tuple(dict.fromkeys(
         (*dave.COMP_DIR_BLOCKLIST, *RAW_PREFIXES)
     ))
-    print('PCK/PPF left uncompressed:')
+    print('PCK/PPF sem compressao:')
     for prefix in RAW_PREFIXES:
         print('  ' + prefix)
     dave.build_dave(
@@ -71,17 +68,17 @@ def main():
     )
 
     if not os.path.isfile(args.output):
-        raise SystemExit('the output file was not created')
+        raise SystemExit('arquivo de saida nao foi criado')
     with open(args.output, 'rb') as archive:
         magic = archive.read(4)
         entries = struct.unpack('<I', archive.read(4))[0]
     size = os.path.getsize(args.output)
     if magic != b'Dave':
-        raise SystemExit(f'unexpected magic: {magic!r}')
+        raise SystemExit(f'magic inesperado: {magic!r}')
     if size >= 0x80000000:
         raise SystemExit(
-            f'ASSETS went over the safe 2 GiB limit: {size} bytes')
-    print(f'ASSETS verified: {entries} entries, {size} bytes')
+            f'ASSETS excedeu o limite seguro de 2 GiB: {size} bytes')
+    print(f'ASSETS verificado: {entries} entradas, {size} bytes')
 
 
 if __name__ == '__main__':

@@ -1,0 +1,22 @@
+{
+  "name": "mc3_cobertura",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "geometry",
+  "entry": "mc3_cobertura.py",
+  "summary": "mc3_cobertura.py - quanto do .pck de cidade a gente ja sabe ler",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

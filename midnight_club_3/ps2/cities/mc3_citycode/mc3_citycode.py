@@ -42,14 +42,14 @@ import os
 import re
 import shutil
 
-DEFAULT_ASSETS = os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'ASSETS')
-CODES = ('s', 'a', 'd', 't')          # sd, atlanta, detroit, tokyo
-NAMES = ('sd', 'atlanta', 'detroit', 'tokyo')
-MIN_FAMILY = 2                          # other cities that must share the slot
+ASSETS_PADRAO = os.path.join(os.environ.get('MC3_HOSTFS', ''), 'ASSETS')
+CODIGOS = ('s', 'a', 'd', 't')          # sd, atlanta, detroit, tokyo
+NOMES = ('sd', 'atlanta', 'detroit', 'tokyo')
+MIN_FAMILIA = 2                          # other cities that must share the slot
 
 
-def slice_name(name, city):
-    """('<city>_', 'rest') - the data assets use the NAME, not the short code.
+def fatia_nome(nome, cidade):
+    """('<cidade>_', 'resto') - os assets de dados usam o NOME, nao a sigla.
 
     Two conventions in one game, and it costs a boot to find out: the loading
     screen builds `loading_generic_<code>.pck` from the short code, while the
@@ -58,159 +58,159 @@ def slice_name(name, city):
     # Two shapes, and missing the second one cost `tokyo.override` on the first
     # run: `<name>_<rest>` for tokyo_midnight_clear.pck, and `<name>.<ext>` for
     # tokyo.loc / tokyo.locinf / tokyo.override, which have no underscore at all.
-    low = name.lower()
-    if low.startswith(city + '_'):
-        return city + '_', name[len(city) + 1:]
-    if low.startswith(city + '.'):
-        return city, name[len(city):]        # the rest already starts with the dot
+    baixo = nome.lower()
+    if baixo.startswith(cidade + '_'):
+        return cidade + '_', nome[len(cidade) + 1:]
+    if baixo.startswith(cidade + '.'):
+        return cidade, nome[len(cidade):]        # o resto ja comeca com o ponto
     return None
 
 
-def slice_(name, code):
-    """('prefix', 'suffix') if `name` has the form <pref>_<code><digits><ext>."""
-    m = re.match(r'^(.*_)%s(\d*)(\.[^.]+)$' % re.escape(code), name, re.I)
+def fatia(nome, codigo):
+    """('prefixo', 'sufixo') se `nome` for do formato <pref>_<codigo><digitos><ext>."""
+    m = re.match(r'^(.*_)%s(\d*)(\.[^.]+)$' % re.escape(codigo), nome, re.I)
     if not m:
         return None
     return m.group(1), m.group(2) + m.group(3)
 
 
-def family(files, assemble, donor, universe):
-    """How many OTHER cities have exactly the same slot."""
+def familia(arquivos, monta, doador, universo):
+    """Quantas OUTRAS cidades tem exatamente o mesmo slot."""
     n = 0
-    for c in universe:
-        if c == donor:
+    for c in universo:
+        if c == doador:
             continue
-        if assemble(c).lower() in files:
+        if monta(c).lower() in arquivos:
             n += 1
     return n
 
 
-def scan(root, donor, new):
-    by_name = donor in NAMES
-    universe = NAMES if by_name else CODES
-    planes = []
-    for base, _dirs, names in os.walk(root):
-        present = set(n.lower() for n in names)
-        for n in names:
-            if by_name:
-                cut = slice_name(n, donor)
-                if not cut:
+def varre(raiz, doador, novo):
+    por_nome = doador in NOMES
+    universo = NOMES if por_nome else CODIGOS
+    planos = []
+    for base, _dirs, nomes in os.walk(raiz):
+        presentes = set(n.lower() for n in nomes)
+        for n in nomes:
+            if por_nome:
+                corte = fatia_nome(n, doador)
+                if not corte:
                     continue
-                _pref, rest = cut
-                # `rest` carries its own separator: '_' was consumed above for
+                _pref, resto = corte
+                # `resto` carries its own separator: '_' was consumed above for
                 # the underscore shape, and the dotted shape keeps its dot.
-                sep = '' if rest.startswith('.') else '_'
-                assemble = lambda c, r=rest, j=sep: c + j + r
+                sep = '' if resto.startswith('.') else '_'
+                monta = lambda c, r=resto, j=sep: c + j + r
             else:
-                cut = slice_(n, donor)
-                if not cut:
+                corte = fatia(n, doador)
+                if not corte:
                     continue
-                prefix, suffix = cut
-                assemble = lambda c, p=prefix, s=suffix: p + c + s
-            if family(present, assemble, donor, universe) < MIN_FAMILY:
+                prefixo, sufixo = corte
+                monta = lambda c, p=prefixo, s=sufixo: p + c + s
+            if familia(presentes, monta, doador, universo) < MIN_FAMILIA:
                 continue
-            planes.append((os.path.join(base, n),
-                           os.path.join(base, assemble(new)),
-                           family(present, assemble, donor, universe)))
-    return sorted(planes)
+            planos.append((os.path.join(base, n),
+                           os.path.join(base, monta(novo)),
+                           familia(presentes, monta, doador, universo)))
+    return sorted(planos)
 
 
-def scan_dirs(root, donor, new):
-    """[(source, target)] of the directories named after the city.
+def varre_dirs(raiz, doador, novo):
+    """[(origem, destino)] dos diretorios com o nome da cidade.
 
     Only in name mode: `tune/traffic/t` is not a thing, the directories are
     always spelled out. The family check is the same idea as for files - a
     directory only counts when at least two other cities have one beside it.
     """
-    planes = []
-    for base, dirs, _f in os.walk(root):
-        present = set(d.lower() for d in dirs)
+    planos = []
+    for base, dirs, _f in os.walk(raiz):
+        presentes = set(d.lower() for d in dirs)
         for d in dirs:
-            if d.lower() != donor:
+            if d.lower() != doador:
                 continue
-            siblings = sum(1 for c in NAMES if c != donor and c in present)
-            if siblings < MIN_FAMILY:
+            irmaos = sum(1 for c in NOMES if c != doador and c in presentes)
+            if irmaos < MIN_FAMILIA:
                 continue
-            planes.append((os.path.join(base, d), os.path.join(base, new)))
-    return sorted(planes)
+            planos.append((os.path.join(base, d), os.path.join(base, novo)))
+    return sorted(planos)
 
 
-def clone_dir(origin, dest, donor, new, write_):
-    """Recursive copy, renaming the files prefixed with the city."""
+def clona_dir(origem, destino, doador, novo, escrever):
+    """Copia recursivo, renomeando os arquivos prefixados com a cidade."""
     n = 0
-    for base, _dirs, names in os.walk(origin):
-        rel = os.path.relpath(base, origin)
-        target = dest if rel == '.' else os.path.join(dest, rel)
-        if write_ and not os.path.isdir(target):
-            os.makedirs(target)
-        for f in names:
-            cut = slice_name(f, donor)
-            out_path = (new + cut[1] if cut and cut[1].startswith('.')
-                     else new + '_' + cut[1] if cut else f)
-            full = os.path.join(target, out_path)
-            if os.path.exists(full):
+    for base, _dirs, nomes in os.walk(origem):
+        rel = os.path.relpath(base, origem)
+        alvo = destino if rel == '.' else os.path.join(destino, rel)
+        if escrever and not os.path.isdir(alvo):
+            os.makedirs(alvo)
+        for f in nomes:
+            corte = fatia_nome(f, doador)
+            saida = (novo + corte[1] if corte and corte[1].startswith('.')
+                     else novo + '_' + corte[1] if corte else f)
+            cheio = os.path.join(alvo, saida)
+            if os.path.exists(cheio):
                 continue
             n += 1
-            if write_:
-                shutil.copyfile(os.path.join(base, f), full)
+            if escrever:
+                shutil.copyfile(os.path.join(base, f), cheio)
     return n
 
 
 def main():
     p = argparse.ArgumentParser(
-        description='clone the assets indexed by the city short code')
-    p.add_argument('--assets', default=DEFAULT_ASSETS)
+        description='clona os assets indexados pela sigla da cidade')
+    p.add_argument('--assets', default=ASSETS_PADRAO)
     p.add_argument('--donor', default='t',
-                   help='short code (t) for the screen assets, or name (tokyo) '
-                        'for the city data - the mode comes from this')
-    p.add_argument('--new', required=True, help='short code or name of the new city')
+                   help='sigla (t) para os assets de tela, ou nome (tokyo) '
+                        'para os dados de cidade - o modo sai daqui')
+    p.add_argument('--new', required=True, help='sigla ou nome da cidade nova')
     p.add_argument('--write', action='store_true',
-                   help='without it, only list what it would do')
+                   help='sem isso, so lista o que faria')
     a = p.parse_args()
 
     if a.donor.lower() == a.new.lower():
-        raise SystemExit('donor and target are the same code')
+        raise SystemExit('doador e destino sao a mesma sigla')
 
-    donor = a.donor.lower()
-    if donor not in CODES and donor not in NAMES:
-        raise SystemExit('donor %r is neither a code (%s) nor a name (%s)'
-                         % (a.donor, '/'.join(CODES), '/'.join(NAMES)))
-    mode = 'name' if donor in NAMES else 'code'
-    print('mode: city %s  (%s -> %s)' % (mode, donor, a.new.lower()))
-    planes = scan(a.assets, donor, a.new.lower())
-    if not planes:
-        raise SystemExit('nothing with %s %r in %s' % (mode, a.donor, a.assets))
+    doador = a.donor.lower()
+    if doador not in CODIGOS and doador not in NOMES:
+        raise SystemExit('doador %r nao e sigla (%s) nem nome (%s)'
+                         % (a.donor, '/'.join(CODIGOS), '/'.join(NOMES)))
+    modo = 'nome' if doador in NOMES else 'sigla'
+    print('modo: %s de cidade  (%s -> %s)' % (modo, doador, a.new.lower()))
+    planos = varre(a.assets, doador, a.new.lower())
+    if not planos:
+        raise SystemExit('nada com %s %r em %s' % (modo, a.donor, a.assets))
 
-    new_items = made_n = 0
-    for origin, dest, siblings in planes:
-        exists = os.path.exists(dest)
-        marks = 'already exists' if exists else ('copied' if a.write else 'would copy')
-        print('   %-46s -> %-46s [%d siblings] %s'
-              % (os.path.basename(origin), os.path.basename(dest),
-                 siblings, marks))
-        if exists:
+    novos = feitos = 0
+    for origem, destino, irmaos in planos:
+        existe = os.path.exists(destino)
+        marca = 'ja existe' if existe else ('copia' if a.write else 'copiaria')
+        print('   %-46s -> %-46s [%d irmaos] %s'
+              % (os.path.basename(origem), os.path.basename(destino),
+                 irmaos, marca))
+        if existe:
             continue
-        new_items += 1
+        novos += 1
         if a.write:
-            shutil.copyfile(origin, dest)
-            made_n += 1
+            shutil.copyfile(origem, destino)
+            feitos += 1
 
-    if mode == 'name':
-        dirs = scan_dirs(a.assets, donor, a.new.lower())
+    if modo == 'nome':
+        dirs = varre_dirs(a.assets, doador, a.new.lower())
         print()
-        for origin, dest in dirs:
-            n = clone_dir(origin, dest, donor, a.new.lower(), a.write)
-            print('   %-46s -> %-30s %d file(s) %s'
-                  % (os.path.relpath(origin, a.assets),
-                     os.path.relpath(dest, a.assets), n,
-                     'copied' if a.write else 'to copy'))
-            made_n += n if a.write else 0
-            new_items += n
+        for origem, destino in dirs:
+            n = clona_dir(origem, destino, doador, a.new.lower(), a.write)
+            print('   %-46s -> %-30s %d arquivo(s) %s'
+                  % (os.path.relpath(origem, a.assets),
+                     os.path.relpath(destino, a.assets), n,
+                     'copiados' if a.write else 'a copiar'))
+            feitos += n if a.write else 0
+            novos += n
 
     print()
-    print('%d files with %s %r, %d missing for %r%s'
-          % (len(planes), mode, a.donor, new_items, a.new,
-             (', %d copied' % made_n) if a.write else ' (use --write)'))
+    print('%d arquivos com %s %r, %d faltando para %r%s'
+          % (len(planos), modo, a.donor, novos, a.new,
+             (', %d copiados' % feitos) if a.write else ' (use --write)'))
 
 
 if __name__ == '__main__':

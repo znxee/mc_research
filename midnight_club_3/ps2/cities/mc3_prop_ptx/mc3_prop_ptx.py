@@ -32,7 +32,7 @@ swPtxBirth::SetTexture(rule, <x>_shared_particle, 8, 8) and the tiles index
 that 8x8 atlas, so rules from detroit's pack go with d_shared_particle.
 
     python mc3_prop_ptx.py detroit_dusk_clear_props.pck --list
-    python mc3_prop_ptx.py detroit_dusk_clear_props.pck --out $MC3_HOSTFS/ASSETS/tune/effects
+    python mc3_prop_ptx.py detroit_dusk_clear_props.pck --out Y:/MC3HostFS/ASSETS/tune/effects
 """
 import argparse
 import os

@@ -3,10 +3,10 @@
 the wall, Backspace = remove the last one) - list them, map them, and set up
 a camera tour that photographs each one.
 
-    python mc3_pins.py                                  # LA: $MC3_HOSTFS/mc2_pins.txt
-    python mc3_pins.py --city paris                     # $MC3_HOSTFS/mc2_pins_paris.txt
-    python mc3_pins.py --state "$MC3_PCSX2_DATA/sstates/mc3boot (0641698A).01.p2s"
-    python mc3_pins.py --map out/pins_map.png --camtour $MC3_HOSTFS/mc2_camtour.txt
+    python mc3_pins.py                                  # LA: Y:/MC3HostFS/mc2_pins.txt
+    python mc3_pins.py --city paris                     # Y:/MC3HostFS/mc2_pins_paris.txt
+    python mc3_pins.py --state "X:/Documents/PCSX2/sstates/mc3boot (0641698A).01.p2s"
+    python mc3_pins.py --map Y:/temp/pins_map.png --camtour Y:/MC3HostFS/mc2_camtour.txt
 
 Sources: the text file the game rewrites at every pin (one per city:
 host0:/mc2_pins.txt for LA, host0:/mc2_pins_paris.txt for Paris),
@@ -26,17 +26,17 @@ import zipfile
 
 NAMES = {1: 'texture', 2: 'collision', 3: 'other'}
 COLOURS = {1: (255, 140, 0), 2: (230, 30, 30), 3: (60, 140, 255)}
-MC2_ASSETS = os.environ.get('MC2_PS2_ASSETS', 'mc2_ps2/assets')
+MC2_ASSETS = os.path.join(os.environ.get('MC2_PS2_RESEARCH', ''), 'assets')
 CITIES = {   # key: (pins file, MC2 map texture, MC2 city folder)
-    'la': (os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'mc2_pins.txt'), 'hud_map_la.tex', 'losangeles'),
-    'paris': (os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'mc2_pins_paris.txt'), 'hud_map_paris.tex', 'paris'),
+    'la': (os.path.join(os.environ.get('MC3_HOSTFS', ''), 'mc2_pins.txt'), 'hud_map_la.tex', 'losangeles'),
+    'paris': (os.path.join(os.environ.get('MC3_HOSTFS', ''), 'mc2_pins_paris.txt'), 'hud_map_paris.tex', 'paris'),
 }
 
 
 def lvl_extents(folder):
     """(min x, max x, min z, max z) from <folder>.lvl of the installed originals."""
     import re
-    t = open(os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'mc2/%s/city/%s.lvl') % (folder, folder)).read()
+    t = open(os.path.join(os.environ.get('MC3_HOSTFS', ''), 'mc2/%s/city/%s.lvl') % (folder, folder)).read()
     lo = [float(v) for v in re.search(r'extents_min\s*\{\s*([^}]*)\}', t).group(1).split()]
     hi = [float(v) for v in re.search(r'extents_max\s*\{\s*([^}]*)\}', t).group(1).split()]
     return lo[0], hi[0], lo[2], hi[2]

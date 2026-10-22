@@ -6,17 +6,17 @@
   "type": "menu",
   "entry": "mc3_flash_insert_button_positioned_demo.py",
   "summary": "Same object-insertion technique as insert_button.py, but the new BUTTON",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

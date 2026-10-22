@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Replace only the type10 quadtree of a ``*_bnd.pck`` with MC2's streets.
+"""Substitui apenas a quadtree type10 de um ``*_bnd.pck`` pelas ruas do MC2.
 
-The source ``losangeles.bnd`` is a collision OTGrid; it carries no separate road
-quadtree. This tool extracts the horizontal polygons whose material ends in
-``roadSG``, removes the copies repeated across OTGrid cells, rebuilds the
-neighbours and creates a valid 2D quadtree. The donor's type9 stays byte for
-byte intact; the container's global counts are still type9's, as in the four
-retail files.
+A fonte ``losangeles.bnd`` e um OTGrid de colisao, nao traz uma quadtree de
+estradas separada.  Esta ferramenta extrai os poligonos horizontais cujo
+material termina em ``roadSG``, remove as copias repetidas entre celulas do
+OTGrid, reconstrui vizinhos e cria uma quadtree 2D valida.  O type9 do doador
+fica byte a byte intacto; as contagens globais do container continuam sendo as
+do type9, como nos quatro arquivos retail.
 
-The result is experimental: it reproduces the physical geometry of LA's
-streets, not the original simplified mesh MC2 did not provide in the
-extraction. Reopen it with ``mc3_bound.py`` and use the ``--audit`` produced
-before installing.
+O resultado e experimental: reproduz a geometria fisica das ruas de LA, nao a
+malha simplificada original que o MC2 nao forneceu na extracao.  Reabra com
+``mc3_bound.py`` e use o ``--audit`` produzido antes de instalar.
 """
 
 import argparse
@@ -23,11 +22,11 @@ import os
 import struct
 import sys
 
-from mc2_bnd_parse import read_otgrid
+from mc2_bnd_parse import le_otgrid
 import mc3_bound as MB
 
 
-def normal_and_area(pts):
+def normal_e_area(pts):
     a, b, c = pts[:3]
     u = (b[0] - a[0], b[1] - a[1], b[2] - a[2])
     v = (c[0] - a[0], c[1] - a[1], c[2] - a[2])
@@ -48,7 +47,7 @@ def normal_and_area(pts):
 
 
 def prepare_roads(path, suffixes):
-    source_verts, source_polys, _materials, header = read_otgrid(path)
+    source_verts, source_polys, _materials, header = le_otgrid(path)
     wanted = {x.lower() for x in suffixes}
     selected = [(idx, mat) for idx, mat in source_polys
                 if mat.split(':')[-1].lower() in wanted]
@@ -73,7 +72,7 @@ def prepare_roads(path, suffixes):
             stats['degenerate_polygons'] += 1
             continue
         pts = [verts[i] for i in remapped]
-        normal, area = normal_and_area(pts)
+        normal, area = normal_e_area(pts)
         if normal is None:
             stats['degenerate_polygons'] += 1
             continue
@@ -83,7 +82,7 @@ def prepare_roads(path, suffixes):
         if normal[1] < 0:
             remapped.reverse()
             pts = [verts[i] for i in remapped]
-            normal, area = normal_and_area(pts)
+            normal, area = normal_e_area(pts)
             stats['reversed_polygons'] += 1
         key = tuple(sorted(remapped))
         if key in seen_polys:
@@ -98,13 +97,14 @@ def prepare_roads(path, suffixes):
     polygons = [(n, area, tuple(compact[i] for i in idx), material)
                 for n, area, idx, material in polygons]
     if not polygons:
-        raise ValueError('no street polygon selected')
+        raise ValueError('nenhum poligono de rua selecionado')
     if len(verts) > 0xFFFF or len(polygons) > 0xFFFF:
-        raise ValueError('type10 exceeds the u16 limit: %d verts, %d polys' %
+        raise ValueError('type10 passa do limite u16: %d verts, %d polys' %
                          (len(verts), len(polygons)))
 
-    # Rebuild the edge adjacency after the deduplication. The source repeats
-    # whole cells, so its local indices cannot be used directly as a key.
+    # Reconstrui a adjacencia por aresta depois da deduplicacao.  A fonte
+    # repete celulas inteiras e por isso seus indices locais nao podem ser
+    # usados diretamente como chave.
     neighbors = [[0xFFFF] * len(idx) for _n, _a, idx, _m in polygons]
     edges = {}
     for pi, (_n, _a, idx, _m) in enumerate(polygons):
@@ -201,8 +201,8 @@ def build(args):
         leaf.start, leaf.count = len(refs), len(leaf.ids)
         refs.extend(leaf.ids)
     if len(refs) > 0xFFFF:
-        raise ValueError('%d references exceed the u16 start limit; '
-                         'lower --depth or raise --per-leaf' % len(refs))
+        raise ValueError('%d referencias passam do limite de start u16; '
+                         'reduza --depth ou aumente --per-leaf' % len(refs))
     cell = side / float(2 ** actual_depth)
 
     donor = MB.Bound(args.donor)
@@ -210,7 +210,7 @@ def build(args):
     material_ids = donor.materials(node)
     road_global_id = MB.GLOBAL_MATERIAL_IDS['road']
     if road_global_id not in material_ids:
-        raise ValueError('the donor type10 does not contain road (global id 17)')
+        raise ValueError('type10 doador nao contem road (id global 17)')
     road_material_index = material_ids.index(road_global_id)
     payload = donor.off(donor.u32(node + 0x78))
     before = donor.data
@@ -238,17 +238,17 @@ def build(args):
     vert_off = append(vblob)
     poly_off = append(bytes(pblob))
     index_off = append(struct.pack('<%dH' % len(refs), *refs))
-    # The executable gets the pointer to the four slots, but each vector was
-    # serialised by the game with the 16-byte array header in front of it:
-    # count=4 followed by 0xCD. Keeping that layout stops helper routines
-    # (including freeing/reinitialisation) from reading garbage before the block.
+    # O executavel recebe o ponteiro para os quatro slots, mas cada vetor foi
+    # serializado pelo jogo com o cabecalho de array 16 bytes antes dele:
+    # count=4 seguido de 0xCD. Manter esse layout evita que rotinas auxiliares
+    # (inclusive liberacao/reinicializacao) leiam lixo antes do bloco.
     array4_header = struct.pack('<I', 4) + bytes([0xCD]) * 12
     block_offs = [append(array4_header + bytes(16)) + 16 for _ in blocks]
 
     def slot_value(item):
         if isinstance(item, Leaf):
             if item.count > 0x3FFF:
-                raise ValueError('a leaf with %d references overflows the 14-bit field'
+                raise ValueError('folha com %d referencias passa do campo de 14 bits'
                                  % item.count)
             return (item.start << 16) | (item.count << 2) | 1
         return virtual(block_offs[item[1]])
@@ -270,10 +270,10 @@ def build(args):
     struct.pack_into('<I', data, node + 0x50, len(polys))
     struct.pack_into('<I', data, node + 0x68, virtual(vert_off))
     struct.pack_into('<I', data, node + 0x6C, virtual(poly_off))
-    # +0x7C is the direct root used by the road query. +0x78 leads to the
-    # payload, whose first field points to a slot holding the same root.
-    # Leaving +0x7C as the donor's made the geometry LA's but kept the search in
-    # Tokyo's quadtree: sidewalks (type9) collided and LA's streets did not.
+    # +0x7C e a raiz direta usada pela consulta de estradas. +0x78 leva ao
+    # payload, cujo primeiro campo aponta para um slot que contem a mesma raiz.
+    # Deixar +0x7C no doador fazia a geometria ser LA, mas a busca continuar na
+    # quadtree de Toquio: calcadas (type9) colidiam e ruas de LA nao.
     struct.pack_into('<I', data, node + 0x7C, root_value)
     struct.pack_into('<I', data, payload + 0x00, virtual(root_off))
     struct.pack_into('<I', data, payload + 0x08, len(polys))
@@ -287,8 +287,8 @@ def build(args):
         data.append(0xCD)
     struct.pack_into('<I', data, 0x0C, len(data) - 0x80)
 
-    # Outside the size header and the known type10 fields, no old byte may
-    # change. That also proves type9 stayed intact.
+    # Fora do header de tamanho e dos campos conhecidos do type10, nenhum byte
+    # antigo pode mudar. Isso prova inclusive que type9 ficou intacto.
     allowed = set(range(0x0C, 0x10))
     for start, length in ((node + 0x08, 0x38), (node + 0x4C, 8),
                           (node + 0x68, 8), (node + 0x7C, 4),
@@ -298,7 +298,7 @@ def build(args):
     unexpected = [i for i, (old, new) in enumerate(zip(before, data))
                   if old != new and i not in allowed]
     if unexpected:
-        raise ValueError('unexpected bytes changed before the append: %s' %
+        raise ValueError('bytes inesperados alterados antes do append: %s' %
                          unexpected[:20])
 
     with open(args.out, 'wb') as stream:
@@ -317,14 +317,14 @@ def build(args):
         with open(args.audit, 'w', encoding='utf-8') as stream:
             json.dump(result, stream, indent=2, ensure_ascii=False)
             stream.write('\n')
-    print('source: %d road polys -> %d unique, %d vertices; %d flipped' %
+    print('fonte: %d road polys -> %d unicos, %d vertices; %d invertidos' %
           (source_stats['selected'], len(polys), len(verts),
            source_stats['reversed_polygons']))
-    print('quadtree: %d blocks, %d leaves, %d refs (%.2fx), depth %d, cell %.4f' %
+    print('quadtree: %d blocos, %d folhas, %d refs (%.2fx), depth %d, cell %.4f' %
           (len(blocks), len(leaves), len(refs),
            len(refs) / float(len(polys)), actual_depth, cell))
-    print('validated: type9 intact; type10 node/payload/leaves/areas/neighbours/containment OK')
-    print('written:', args.out, len(data), 'bytes')
+    print('validado: type9 intacto; type10 node/payload/folhas/areas/vizinhos/contencao OK')
+    print('gravado:', args.out, len(data), 'bytes')
     print('SHA256:', result['output_sha256'])
     return result
 
@@ -374,7 +374,7 @@ def validate(path, donor, expected_boxes, source_stats, suffixes,
         cursor += count
     checks['leaf_partition'] = cursor == index_count
 
-    # Check each reference geometrically against the leaf cell.
+    # Confere geometricamente cada referencia contra a celula da folha.
     grid_lo, grid_hi, _cell = MB.grid(bound, node, 10)
     stack = [(root_slot, grid_lo, grid_hi)]
     containment_bad = 0
@@ -415,7 +415,7 @@ def validate(path, donor, expected_boxes, source_stats, suffixes,
     checks['neighbor_reciprocity'] = reciprocal_bad == 0
     failed = [name for name, ok in checks.items() if not ok]
     if failed:
-        raise ValueError('validation failed: ' + ', '.join(failed))
+        raise ValueError('validacao falhou: ' + ', '.join(failed))
     return dict(path=os.path.abspath(path), materials=suffixes,
                 source=source_stats, checks=checks,
                 area_bad=area_bad, containment_bad=containment_bad,
@@ -431,11 +431,11 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
     ap.add_argument('--mc2', required=True)
     ap.add_argument('--donor', required=True,
-                    help='PCK whose type9 is kept and type10 replaced')
+                    help='PCK cujo type9 sera preservado e type10 substituido')
     ap.add_argument('--out', required=True)
     ap.add_argument('--audit')
     ap.add_argument('--materials', default='roadSG',
-                    help='comma-separated material suffixes')
+                    help='sufixos de material separados por virgula')
     ap.add_argument('--depth', type=int, default=8)
     ap.add_argument('--per-leaf', type=int, default=22)
     args = ap.parse_args()

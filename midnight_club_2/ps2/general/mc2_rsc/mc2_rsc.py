@@ -6,15 +6,15 @@ already handles. The PS2 build does not: `resource/<city>/<city>.rsc` is a
 container of finished PS2 display lists, and this file reads them.
 
     python mc2_rsc.py list   <file.rsc>
-    python mc2_rsc.py names  <file.rnt|file.rsc>   [--filter SUBSTR]
-    python mc2_rsc.py models <file.rsc>            [--filter SUBSTR]
+    python mc2_rsc.py names  <file.rnt|file.rsc>   [--filtro SUBSTR]
+    python mc2_rsc.py models <file.rsc>            [--filtro SUBSTR]
     python mc2_rsc.py dump   <file.rsc> <index>    # VIF/DMA disassembly
     python mc2_rsc.py check  <file.rsc>            # the structural self-tests
     python mc2_rsc.py hood   <file.rsc>            # the .hood layout beside it
-    python mc2_rsc.py cpv    <file.rsc> [--hour T] [--filter S]  # the colours
-    python mc2_rsc.py errors <file.rsc>            # score the placement mistakes
-    python mc2_rsc.py obj    <file.rsc> [--out X.obj] [--filter S] [--lod N]
-    python mc2_rsc.py map    <file.rsc> [--out X.png] [--lod N] [--colour HOUR]
+    python mc2_rsc.py cpv    <file.rsc> [--hora T] [--filtro S]  # the colours
+    python mc2_rsc.py erros  <file.rsc>            # score the placement mistakes
+    python mc2_rsc.py obj    <file.rsc> [--out X.obj] [--filtro S] [--lod N]
+    python mc2_rsc.py map    <file.rsc> [--out X.png] [--lod N] [--cor HORA]
 
 Everything below was measured out of the data. No instruction of the game was
 read to get here, and `check` re-runs every assertion the decoder rests on.
@@ -110,7 +110,7 @@ PLACEMENT - and there are two kinds of it
     triangle winding is mirrored; the PC build of the same city has none,
     because there the mirrored pieces are separate `_flip_` meshes instead.
 
-BUGS OF PLACEMENT - `errors` scores them, `map --simulate` draws them
+BUGS OF PLACEMENT - `erros` scores them, `map --simular` draws them
     A port that puts the pieces in roughly the right district but breaks the
     joins between them has one of a small number of bugs, and the `.hood`
     settles which: every instance carries its own emin/emax, so placing the
@@ -144,7 +144,7 @@ COLOUR - `<time of day>_cpvs.rsc`, and it is the real draw chain
     mean RGB distance 3.5 between midnight and dawn, 4.7 between midnight and
     dusk, over 29244 vertices compared. The per-vertex colour is baked LOCAL
     light - lamp pools, corner shading - and whatever makes dawn look like dawn
-    lives somewhere else. `map --colour midnight_clear` renders it.
+    lives somewhere else. `map --cor midnight_clear` renders it.
 """
 
 import argparse
@@ -155,13 +155,13 @@ import re
 import struct
 import sys
 
-import mc3_output
+import mc3_saida
 
 
-def _out_path(item_name):
+def _saida(nome):
     """Output path, with its directory created. Keeps this tool inside the
     output/<assunto>/ convention the forks agreed on."""
-    path = mc3_output.path(item_name)
+    path = mc3_saida.caminho(nome)
     folder = os.path.dirname(path)
     if folder and not os.path.isdir(folder):
         os.makedirs(folder)
@@ -823,11 +823,11 @@ class Instance(object):
         then measures the damage - see BUGS OF PLACEMENT in the module doc.
         """
         r, t = self.rot, self.pos
-        if how == 'transposed':                     # R * p + T
+        if how == 'transposta':                     # R * p + T
             return (r[0][0] * point[0] + r[0][1] * point[1] + r[0][2] * point[2] + t[0],
                     r[1][0] * point[0] + r[1][1] * point[1] + r[1][2] * point[2] + t[1],
                     r[2][0] * point[0] + r[2][1] * point[1] + r[2][2] * point[2] + t[2])
-        if how == 'no-scale':                     # rows normalised to length 1
+        if how == 'sem-escala':                     # rows normalised to length 1
             n = [math.dist((0, 0, 0), q) or 1.0 for q in r]
             r = [[r[a][b] / n[a] for b in range(3)] for a in range(3)]
             self_r, self.rot = self.rot, r
@@ -835,14 +835,14 @@ class Instance(object):
                 return self.apply(point)
             finally:
                 self.rot = self_r
-        if how == 'aabb-pivot':                      # template re-centred first
+        if how == 'pivo-aabb':                      # template re-centred first
             return self.apply([point[k] - centre[k] for k in range(3)])
-        if how == 'translation-only':                  # matrix ignored
+        if how == 'so-translacao':                  # matrix ignored
             return (point[0] + t[0], point[1] + t[1], point[2] + t[2])
-        raise ValueError('unknown mode: %s' % how)
+        raise ValueError('modo desconhecido: %s' % how)
 
 
-ERRORS = ('transposed', 'no-scale', 'aabb-pivot', 'translation-only')
+ERROS = ('transposta', 'sem-escala', 'pivo-aabb', 'so-translacao')
 
 
 def city_folder(rsc_path):
@@ -901,7 +901,7 @@ def outside(points, emin, emax):
 # ---------------------------------------------------------------------------
 
 def cmd_list(args):
-    rsc = Rsc(args.file_)
+    rsc = Rsc(args.arquivo)
     kinds = collections.Counter(e[1] for e in rsc.entries)
     total = collections.Counter()
     for off, fcc, size in rsc.entries:
@@ -916,7 +916,7 @@ def cmd_list(args):
 
 
 def cmd_names(args):
-    path = args.file_
+    path = args.arquivo
     if path.lower().endswith('.rsc'):
         path = os.path.splitext(path)[0] + '.rnt'
     with open(path, 'rb') as fh:
@@ -928,7 +928,7 @@ def cmd_names(args):
     for i in range(count):
         soff, fcc, handle = struct.unpack_from('<I4sI', d, 0x18 + 12 * i)
         name = d[soff:d.index(b'\0', soff)].decode('ascii', 'replace')
-        if args.filter_ and args.filter_ not in name:
+        if args.filtro and args.filtro not in name:
             continue
         print('  %-5s %#07x  idx %5d  %s' % (fcc.decode('ascii', 'replace'),
                                              handle, (handle & 0x3FFF) - 1, name))
@@ -936,12 +936,12 @@ def cmd_names(args):
 
 
 def cmd_models(args):
-    rsc = Rsc(args.file_)
+    rsc = Rsc(args.arquivo)
     print('%-44s %9s %9s %9s %8s %5s %s' %
           ('name', 'x', 'y', 'z', 'radius', 'flags', 'slots'))
     shown = 0
     for m in read_models(rsc):
-        if args.filter_ and args.filter_ not in m.name:
+        if args.filtro and args.filtro not in m.name:
             continue
         shown += 1
         slots = ' '.join('-' if not any(p) else
@@ -955,8 +955,8 @@ def cmd_models(args):
 
 
 def cmd_dump(args):
-    rsc = Rsc(args.file_)
-    index = int(args.index, 0)
+    rsc = Rsc(args.arquivo)
+    index = int(args.indice, 0)
     off, fcc, size = rsc.entries[index]
     print('entry %d  %s  offset %#x  size %d  name %s'
           % (index, fcc, off, size, rsc.name(index)))
@@ -987,11 +987,11 @@ def cmd_dump(args):
 
 
 def cmd_check(args):
-    rsc = Rsc(args.file_)
+    rsc = Rsc(args.arquivo)
     fails = []
 
     def test(label, ok, detail=''):
-        print('  %-52s %s%s' % (label, 'PASS' if ok else 'FAIL',
+        print('  %-52s %s%s' % (label, 'PASSA' if ok else 'FALHA',
                                 ('   ' + detail) if detail else ''))
         if not ok:
             fails.append(label)
@@ -1014,12 +1014,12 @@ def cmd_check(args):
                 got = rsc.resolve(t.addr)
                 if got is None or got[0].entries[got[1]][1] != 'TEX0':
                     badtex += 1
-    test('the DMA chain consumes the whole block', not residue,
-         '%d with leftovers' % len(residue))
-    test('only call tags, ending in a single ret',
+    test('cadeia DMA consome o bloco inteiro', not residue,
+         '%d com sobra' % len(residue))
+    test('so tags call, terminando em um unico ret',
          set(ids) == {'call', 'ret'} and ids['ret'] == len(pmd), str(dict(ids)))
-    test('every call addr resolves to a TEX0', badtex == 0,
-         '%d of %d failed' % (badtex, ntex))
+    test('todo addr de call resolve para um TEX0', badtex == 0,
+         '%d de %d falharam' % (badtex, ntex))
 
     good = bad = 0
     other = collections.Counter()
@@ -1035,9 +1035,9 @@ def cmd_check(args):
                 bad += 1
             for f in b.adc[1:]:
                 other[f] += 1
-    test('flag[0] of a batch is the vertex count', bad == 0,
-         '%d ok, %d not, %d incomplete' % (good, bad, nostream))
-    test('the other flags are only 0x00 and 0x80', set(other) <= {0x00, 0x80},
+    test('flag[0] de um batch e a contagem de vertices', bad == 0,
+         '%d ok, %d nao, %d incompletos' % (good, bad, nostream))
+    test('os demais flags sao so 0x00 e 0x80', set(other) <= {0x00, 0x80},
          str(sorted(other)))
 
     seen, kinds = collections.Counter(), collections.Counter()
@@ -1049,11 +1049,11 @@ def cmd_check(args):
                 continue
             seen[got[1]] += 1
             kinds[got[0].entries[got[1]][1]] += 1
-    test('CMI0 slots point only to PMD0', set(kinds) == {'PMD0'},
+    test('slots do CMI0 apontam so para PMD0', set(kinds) == {'PMD0'},
          str(dict(kinds)))
-    test('every PMD0 is referenced exactly once',
+    test('todo PMD0 e referenciado exatamente uma vez',
          all(seen.get(i, 0) == 1 for i in pmd),
-         'ownerless %d, repeated %d'
+         'sem dono %d, repetidos %d'
          % (sum(1 for i in pmd if not seen.get(i)),
             sum(1 for i in pmd if seen.get(i, 0) > 1)))
 
@@ -1072,31 +1072,31 @@ def cmd_check(args):
             slack.append(max(math.dist(m.centre, p) for p in pts) - m.radius)
     slack.sort()
     tight = sum(1 for s in slack if s > -0.5)
-    test('decoded geometry fits in the CMI0 sphere',
+    test('geometria decodificada cabe na esfera do CMI0',
          slack and slack[-1] < 0.5,
-         'max overflow %+.4f; %d of %d tight spheres'
+         'estouro max %+.4f; %d de %d esferas justas'
          % (slack[-1] if slack else 0.0, tight, len(slack)))
 
     # The plain-text layout under assets/city/<name>/ names the same models the
     # container does, so the two halves can check each other.
     comps, insts = read_hoods(city_folder(rsc.path))
     if not comps and not insts:
-        print('  (no assets/city/<name>/ alongside: 4 .hood tests skipped)')
+        print('  (sem assets/city/<nome>/ ao lado: 4 testes do .hood pulados)')
     else:
         by = models_by_name(rsc)
         cnames = {c.name.lower() for c in comps}
         tnames = {i.type.lower() for i in insts}
         missing = (cnames | tnames) - set(by)
-        test('every .hood name exists as a CMI0', not missing,
-             '%d components + %d instances, %d without CMI0'
+        test('todo nome do .hood existe como CMI0', not missing,
+             '%d componentes + %d instancias, %d sem CMI0'
              % (len(comps), len(insts), len(missing)))
         # The two roles partition the CMI0 set exactly: a model is either baked
         # in world coordinates or it is a template, never both and never
         # neither. Do NOT test this by the `#geom` suffix - that only holds in
         # Los Angeles; Paris and Tokyo split big blocks into `#geom1`, `#geom2`.
-        test('CMI0 = components + kinds, no leftover or overlap',
+        test('CMI0 = componentes + tipos, sem sobra nem sobreposicao',
              not (cnames & tnames) and not (set(by) - cnames - tnames),
-             '%d + %d = %d of %d CMI0, %d in common'
+             '%d + %d = %d de %d CMI0, %d em comum'
              % (len(cnames), len(tnames), len(cnames) + len(tnames), len(by),
                 len(cnames & tnames)))
 
@@ -1106,9 +1106,9 @@ def cmd_check(args):
             pts = model_points(rsc, m) if m else []
             if pts:
                 spill.append(outside(pts, c.emin, c.emax))
-        test('baked geometry fits in the .hood emin/emax',
+        test('geometria assada cabe no emin/emax do .hood',
              spill and max(spill) < 0.5,
-             'max overflow %.4f in %d components'
+             'estouro max %.4f em %d componentes'
              % (max(spill) if spill else 0.0, len(spill)))
 
         spill = []
@@ -1117,15 +1117,15 @@ def cmd_check(args):
             pts = model_points(rsc, m) if m else []
             if pts:
                 spill.append(outside([i.apply(p) for p in pts], i.emin, i.emax))
-        test('instance times the matrix falls in its emin/emax',
+        test('instancia vezes a matriz cai no emin/emax dela',
              spill and max(spill) < 0.5,
-             'max overflow %.4f in %d instances'
+             'estouro max %.4f em %d instancias'
              % (max(spill) if spill else 0.0, len(spill)))
 
     # The colour layer, when a `<time>_cpvs.rsc` is beside the container.
     cpvs = open_cpvs(rsc)
     if cpvs is None:
-        print('  (no midnight_clear_cpvs.rsc alongside: 3 colour tests skipped)')
+        print('  (sem midnight_clear_cpvs.rsc ao lado: 3 testes de cor pulados)')
     else:
         pmap = payload_map(rsc)
         okref = badref = 0
@@ -1146,8 +1146,8 @@ def cmd_check(args):
                         break
                 else:
                     badref += 1
-        test('every PCP0 ref finds its tags in the source PMD0', badref == 0,
-             '%d groups ok, %d without a source, tags left at the end %s'
+        test('todo ref de PCP0 acha suas tags no PMD0 fonte', badref == 0,
+             '%d grupos ok, %d sem fonte, sobra de tags no fim %s'
              % (okref, badref, dict(tail)))
 
         nb = shortcol = nocol = 0
@@ -1161,20 +1161,20 @@ def cmd_check(args):
                     shortcol += 1
                 elif b.cpv[0] == len(b.pos):
                     idx0 += 1
-        test('one colour index per vertex, in every batch',
+        test('um indice de cor por vertice, em todo batch',
              shortcol == 0 and nocol == 0,
-             '%d batches, %d without colour, %d with a wrong count' % (nb, nocol, shortcol))
+             '%d batches, %d sem cor, %d com contagem errada' % (nb, nocol, shortcol))
         # Element 0 of the ADC stream is a count; element 0 of the colour
         # stream is NOT - it is a colour like any other.
-        test('colour index 0 is NOT a count (unlike the ADC)',
+        test('o indice de cor 0 NAO e contagem (ao contrario do ADC)',
              nb and idx0 < nb * 0.05,
-             '%d of %d batches coincide with the count' % (idx0, nb))
+             '%d de %d batches coincidem com a contagem' % (idx0, nb))
 
-    print('\n%d tests failed' % len(fails))
+    print('\n%d testes falharam' % len(fails))
     return 1 if fails else 0
 
 
-def _gather(rsc, filter_=None, lod=None, instances=True):
+def _gather(rsc, filtro=None, lod=None, instances=True):
     """[(label, [(Batch, Instance or None)])] ready to draw.
 
     A baked `*#geom` model comes out untransformed. A template comes out once
@@ -1195,7 +1195,7 @@ def _gather(rsc, filter_=None, lod=None, instances=True):
     for m in read_models(rsc):
         if m.name.lower() in placed:
             continue                    # drawn below, once per instance
-        if filter_ and filter_ not in m.name:
+        if filtro and filtro not in m.name:
             continue
         got = batches_of(m)
         if got:
@@ -1204,7 +1204,7 @@ def _gather(rsc, filter_=None, lod=None, instances=True):
     by = models_by_name(rsc)
     cache = {}
     for i in insts:
-        if filter_ and filter_ not in i.type:
+        if filtro and filtro not in i.type:
             continue
         m = by.get(i.type.lower())
         if m is None:
@@ -1217,28 +1217,28 @@ def _gather(rsc, filter_=None, lod=None, instances=True):
 
 
 def cmd_hood(args):
-    rsc = Rsc(args.file_)
+    rsc = Rsc(args.arquivo)
     folder = city_folder(rsc.path)
     if not folder:
-        sys.exit('no assets/city/<name>/ next to %s' % rsc.path)
+        sys.exit('sem assets/city/<nome>/ ao lado de %s' % rsc.path)
     comps, insts = read_hoods(folder)
     print('%s: %d unique_component, %d instance_component'
           % (folder, len(comps), len(insts)))
     per = collections.Counter(i.type for i in insts)
     for c in comps:
-        if args.filter_ and args.filter_ not in c.name:
+        if args.filtro and args.filtro not in c.name:
             continue
-        print('  baked    %-46s %s -> %s' % (
+        print('  assado   %-46s %s -> %s' % (
             c.name[:46], ' '.join('%.1f' % v for v in c.emin),
             ' '.join('%.1f' % v for v in c.emax)))
     for t, n in per.most_common():
-        if args.filter_ and args.filter_ not in t:
+        if args.filtro and args.filtro not in t:
             continue
-        print('  template %-46s %d instances' % (t[:46], n))
+        print('  template %-46s %d instancias' % (t[:46], n))
     return 0
 
 
-def _gather_cpv(rsc, cpvs, filter_=None, lod=0):
+def _gather_cpv(rsc, cpvs, filtro=None, lod=0):
     """[(label, [(Batch, Instance or None)])] taken from the colour layer.
 
     Every batch here carries `cpv`, because the PCP0 chain is the one that
@@ -1251,7 +1251,7 @@ def _gather_cpv(rsc, cpvs, filter_=None, lod=0):
         if level != lod:
             continue
         label = key[0] if kind == 'inst' else key
-        if filter_ and filter_ not in label:
+        if filtro and filtro not in label:
             continue
         batches = read_pcp(rsc, cpvs, index)
         if not batches:
@@ -1261,24 +1261,24 @@ def _gather_cpv(rsc, cpvs, filter_=None, lod=0):
     return out
 
 
-def _place(batch, inst, simulate=None):
+def _place(batch, inst, simular=None):
     """World points of one batch, optionally placed the wrong way on purpose."""
     if inst is None:
         return list(batch.pos)
-    if not simulate:
+    if not simular:
         return [inst.apply(p) for p in batch.pos]
     lo = [min(p[k] for p in batch.pos) for k in range(3)]
     hi = [max(p[k] for p in batch.pos) for k in range(3)]
     c = [(lo[k] + hi[k]) / 2 for k in range(3)]
-    return [inst.apply_wrong(p, simulate, c) for p in batch.pos]
+    return [inst.apply_wrong(p, simular, c) for p in batch.pos]
 
 
-def cmd_errors(args):
+def cmd_erros(args):
     """Score each way a port can get placement wrong, against the .hood."""
-    rsc = Rsc(args.file_)
+    rsc = Rsc(args.arquivo)
     comps, insts = read_hoods(city_folder(rsc.path))
     if not insts:
-        sys.exit('no assets/city/<name>/ next to %s' % rsc.path)
+        sys.exit('sem assets/city/<nome>/ ao lado de %s' % rsc.path)
     by = models_by_name(rsc)
     cache = {}
     rows = collections.defaultdict(list)
@@ -1301,42 +1301,42 @@ def cmd_errors(args):
         if all(abs(r[a][b] - (1.0 if a == b else 0.0)) < 1e-6
                for a in range(3) for b in range(3)):
             ident += 1
-        rows['correct'].append(outside([i.apply(p) for p in pts], i.emin, i.emax))
-        for how in ERRORS:
+        rows['certo'].append(outside([i.apply(p) for p in pts], i.emin, i.emax))
+        for how in ERROS:
             rows[how].append(outside([i.apply_wrong(p, how, centre) for p in pts],
                                      i.emin, i.emax))
-    n = len(rows['correct'])
-    print('%s: %d instances with geometry, %d of them with an IDENTITY rotation'
+    n = len(rows['certo'])
+    print('%s: %d instancias com geometria, %d delas com rotacao IDENTIDADE'
           % (os.path.basename(rsc.path), n, ident))
-    print('%-16s %12s %9s %9s %9s' % ('hypothesis', 'break', 'median', 'p90', 'max'))
-    for how in ('correct',) + ERRORS:
+    print('%-16s %12s %9s %9s %9s' % ('hipotese', 'quebram', 'mediana', 'p90', 'max'))
+    for how in ('certo',) + ERROS:
         v = sorted(rows[how])
         bad = sum(1 for x in v if x > 0.5)
         print('%-16s %6d/%-5d %9.2f %9.2f %9.2f'
               % (how, bad, n, v[n // 2], v[int(0.9 * n)], v[-1]))
-    print('\nThe cheap discriminator: an instance with an IDENTITY rotation does not')
-    print('move under "transposed" or "no-scale". If the identity ones are also out')
-    print('of place in your build, the bug is NOT the matrix convention.')
+    print('\nO discriminador barato: uma instancia com rotacao IDENTIDADE nao se')
+    print('mexe sob "transposta" nem "sem-escala". Se as identidade tambem estao')
+    print('fora do lugar no seu build, o erro NAO e a convencao da matriz.')
     return 0
 
 
 def cmd_cpv(args):
-    rsc = Rsc(args.file_)
-    tod = args.hour or 'midnight_clear'
+    rsc = Rsc(args.arquivo)
+    tod = args.hora or 'midnight_clear'
     cpvs = open_cpvs(rsc, tod)
     if cpvs is None:
-        sys.exit('no %s_cpvs.rsc next to %s' % (tod, rsc.path))
+        sys.exit('sem %s_cpvs.rsc ao lado de %s' % (tod, rsc.path))
     pal = palette(cpvs)
     ents = cpv_entries(cpvs)
-    print('%s: %d PCP0, palette of %d colours (alpha %s)'
+    print('%s: %d PCP0, paleta de %d cores (alfa %s)'
           % (tod, len(cpvs.indices('PCP0')), len(pal),
              ', '.join('%#x' % a for a in sorted({c[3] for c in pal}))))
     per = collections.Counter((k, l, p) for _, k, _, l, p in ents)
     for key in sorted(per):
         print('   %-5s lod %d %-5s %6d' % (key[0], key[1], key[2], per[key]))
-    if args.filter_:
+    if args.filtro:
         for handle, (fcc, name) in sorted(cpvs.names.items(), key=lambda t: t[1][1]):
-            if fcc == 'PCP0' and args.filter_ in name:
+            if fcc == 'PCP0' and args.filtro in name:
                 bs = read_pcp(rsc, cpvs, (handle & 0x3FFF) - 1)
                 print('   %-64s %2d batches, %5d vertices'
                       % (name[:64], len(bs), sum(len(b.pos) for b in bs)))
@@ -1344,10 +1344,10 @@ def cmd_cpv(args):
 
 
 def cmd_obj(args):
-    rsc = Rsc(args.file_)
+    rsc = Rsc(args.arquivo)
     lod = None if args.lod is None else int(args.lod)
-    got = _gather(rsc, args.filter_, lod, not args.without_instances)
-    out = _out_path(args.out or
+    got = _gather(rsc, args.filtro, lod, not args.sem_instancias)
+    out = _saida(args.out or
                  os.path.splitext(os.path.basename(rsc.path))[0] + '.obj')
     nv = nt = 0
     with open(out, 'w') as fh:
@@ -1381,18 +1381,18 @@ def cmd_obj(args):
 
 def cmd_map(args):
     from PIL import Image, ImageDraw
-    rsc = Rsc(args.file_)
+    rsc = Rsc(args.arquivo)
     lod = None if args.lod is None else int(args.lod)
     pal = None
-    if args.colour:
-        cpvs = open_cpvs(rsc, args.colour)
+    if args.cor:
+        cpvs = open_cpvs(rsc, args.cor)
         if cpvs is None:
-            sys.exit('no %s_cpvs.rsc next to %s' % (args.colour, rsc.path))
+            sys.exit('sem %s_cpvs.rsc ao lado de %s' % (args.cor, rsc.path))
         pal = palette(cpvs)
-        got = _gather_cpv(rsc, cpvs, args.filter_, 0 if lod is None else lod)
+        got = _gather_cpv(rsc, cpvs, args.filtro, 0 if lod is None else lod)
     else:
-        got = _gather(rsc, args.filter_, lod, not args.without_instances)
-    world = [_place(b, place, args.simulate) for label, bs in got for b, place in bs]
+        got = _gather(rsc, args.filtro, lod, not args.sem_instancias)
+    world = [_place(b, place, args.simular) for label, bs in got for b, place in bs]
     xs = [p[0] for chunk in world for p in chunk]
     zs = [p[2] for chunk in world for p in chunk]
     if not xs:
@@ -1442,7 +1442,7 @@ def cmd_map(args):
                     px = [to_px(p) for p in pts]
                     for tri in b.triangles():
                         dr.polygon([px[tri[0]], px[tri[1]], px[tri[2]]], fill=col)
-    out = _out_path(args.out or
+    out = _saida(args.out or
                  os.path.splitext(os.path.basename(rsc.path))[0] + '_map.png')
     img.save(out)
     print('%s\n  x %.1f..%.1f  z %.1f..%.1f  %d draws'
@@ -1453,38 +1453,38 @@ def cmd_map(args):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
     sub = ap.add_subparsers(dest='cmd')
-    for name in ('list', 'names', 'models', 'check', 'hood', 'errors'):
+    for name in ('list', 'names', 'models', 'check', 'hood', 'erros'):
         p = sub.add_parser(name)
-        p.add_argument('file_')
-        p.add_argument('--filter', dest='filter_')
+        p.add_argument('arquivo')
+        p.add_argument('--filtro')
     p = sub.add_parser('cpv')
-    p.add_argument('file_')
-    p.add_argument('--filter', dest='filter_')
-    p.add_argument('--hour', help='dawn_clear, midnight_rainy, ... (see TIMES)')
+    p.add_argument('arquivo')
+    p.add_argument('--filtro')
+    p.add_argument('--hora', help='dawn_clear, midnight_rainy, ... (ver TIMES)')
     p = sub.add_parser('dump')
-    p.add_argument('file_')
-    p.add_argument('index')
+    p.add_argument('arquivo')
+    p.add_argument('indice')
     for name in ('obj', 'map'):
         p = sub.add_parser(name)
-        p.add_argument('file_')
+        p.add_argument('arquivo')
         p.add_argument('--out')
-        p.add_argument('--filter', dest='filter_')
+        p.add_argument('--filtro')
         p.add_argument('--lod')
         p.add_argument('--size', default=2048)
-        p.add_argument('--without-instances', action='store_true',
-                       dest='without_instances',
-                       help='only the baked geometry, without the .hood')
-        p.add_argument('--colour', metavar='HOUR',
-                       help='paint with the per-vertex colour of <hour>_cpvs.rsc')
-        p.add_argument('--simulate', choices=ERRORS, metavar='ERROR',
-                       help='place wrongly on purpose: ' + ', '.join(ERRORS))
+        p.add_argument('--sem-instancias', action='store_true',
+                       dest='sem_instancias',
+                       help='so a geometria assada, sem os .hood')
+        p.add_argument('--cor', metavar='HORA',
+                       help='pintar com a cor por vertice de <hora>_cpvs.rsc')
+        p.add_argument('--simular', choices=ERROS, metavar='ERRO',
+                       help='colocar errado de proposito: ' + ', '.join(ERROS))
     args = ap.parse_args(argv)
     if not args.cmd:
         ap.print_help()
         return 2
     return {'list': cmd_list, 'names': cmd_names, 'models': cmd_models,
             'dump': cmd_dump, 'check': cmd_check, 'hood': cmd_hood,
-            'cpv': cmd_cpv, 'errors': cmd_errors,
+            'cpv': cmd_cpv, 'erros': cmd_erros,
             'obj': cmd_obj, 'map': cmd_map}[args.cmd](args) or 0
 
 

@@ -14,7 +14,7 @@ opponents stopped ~13 s at the pillars of (700, -332).
 For every race of the city it lists the legs (waypoint ids, the aib roads
 whose centres are at aib 0x4107 +20/+24) whose segment passes within --radius
 metres of an obstacle prop placement (FixedObject + Obstacle in the city's
-.prop, read with `mc2_props.py --out-path PROPS_PREFIX`). With --fix it runs
+.prop, read with `mc2_props.py --saida PROPS_PREFIX`). With --fix it runs
 mc2_race_shortcut.add_leg on each of them: a shortcut that follows the aib's
 directed car lanes, which sit off the centre line. Legs whose lane path the
 shortcut tool refuses (no lane, detour too long, already a shortcut) are
@@ -33,13 +33,13 @@ CRLF, LF = chr(13) + chr(10), chr(10)
 
 
 def obstacles(props_prefix, only='dummybound'):
-    kinds = {r['name'] for r in csv.DictReader(open(props_prefix + '_kinds.tsv'), delimiter='\t')
-             if r['Obstacle'] == '1' and r['FixedObject'] == '1' and only in r['name']}
+    kinds = {r['nome'] for r in csv.DictReader(open(props_prefix + '_tipos.tsv'), delimiter='\t')
+             if r['Obstacle'] == '1' and r['FixedObject'] == '1' and only in r['nome']}
     out = []
-    for p in json.load(open(props_prefix + '_placement.json')):
-        if p['kind'] in kinds:
-            t = p['matrix'][3]
-            out.append((t[0], t[2], p['kind']))
+    for p in json.load(open(props_prefix + '_colocacao.json')):
+        if p['tipo'] in kinds:
+            t = p['matriz'][3]
+            out.append((t[0], t[2], p['tipo']))
     return out
 
 
@@ -60,7 +60,7 @@ def legs(text):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
     ap.add_argument('--city', required=True)
-    ap.add_argument('--props', required=True, help='prefix written by mc2_props.py --out-path')
+    ap.add_argument('--props', required=True, help='prefix written by mc2_props.py --saida')
     ap.add_argument('--radius', type=float, default=8.0,
                     help='metres from the lane path the AI drives (the road, not the straight line)')
     ap.add_argument('--kinds', default='dummybound', help='obstacle prop types whose name holds this')

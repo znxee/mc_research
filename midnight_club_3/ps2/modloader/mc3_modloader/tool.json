@@ -6,17 +6,17 @@
   "type": "modloader",
   "entry": "mc3_modloader.py",
   "summary": "mc3_modloader.py - mod overlay for Midnight Club 3 PS2, using the engine's own",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

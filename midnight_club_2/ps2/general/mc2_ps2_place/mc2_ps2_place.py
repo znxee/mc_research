@@ -1,28 +1,28 @@
-"""Bridge: MC2 PS2 city -> the place.tsv and .mod files mc3_city_build reads.
+"""Ponte: cidade do MC2 de PS2 -> o place.tsv e os .mod que o mc3_city_build le.
 
-The LA port used to be fed by the MC2 PC export. Fork MC2 PS2 decoded the PS2
-build (mc2_rsc.py) and it is a better source for three reasons they measured:
+O porte de LA vinha sendo alimentado pelo export do MC2 de PC. A Fork MC2 PS2
+decodificou a build de PS2 (mc2_rsc.py) e ela e uma fonte melhor por tres
+motivos medidos por eles:
 
-  * the geometry is already in PS2 form - each PMD0 batch is ONE TRIANGLE STRIP,
-    which is exactly what mc3_city_build consumes;
-  * the winding rule is the SAME on both sides. mc2_rsc's Batch.triangles()
-    uses (i-2,i-1,i) for even i and (i-1,i-2,i) for odd i, and mc2_to_mc3's
-    tris_of() uses the identical one. There is no winding conversion in between;
-  * the placement comes from the text .hood files, with 294 unique_component
-    baked in world space and 8500 instance_component with a matrix.
+  * a geometria ja esta em formato de PS2 - cada batch PMD0 e UMA TRIANGLE STRIP,
+    que e exatamente o que o mc3_city_build consome;
+  * a regra de enrolamento e a MESMA dos dois lados. O Batch.triangles() do
+    mc2_rsc usa (i-2,i-1,i) para i par e (i-1,i-2,i) para i impar, e o tris_of()
+    do mc2_to_mc3 usa a identica. Nao ha conversao de winding no meio;
+  * a colocacao vem dos .hood em texto, com 294 unique_component assados em
+    mundo e 8500 instance_component com matriz.
 
-WHAT THIS BRIDGE DOES NOT SOLVE, noted because the fork warned about it:
+O QUE ESTA PONTE NAO RESOLVE, e esta anotado porque a fork avisou:
 
-  * 24 of the 8500 matrices have a NEGATIVE DETERMINANT - the PS2 swapped
-    mirrored meshes for mirrored matrices, and the PC has none. Where the
-    determinant is negative the winding flips and the face shows reversed. Are
-    they MARKED in the tsv's `hood` column? No - they are counted and reported,
-    and --without-mirrored drops them, which is the safe behaviour until the
-    builder knows how to flip indices.
-  * 1734 of the matrices have a scale != 1 and 1487 of those are non-uniform.
-    The MC3 cull radius is LOCAL to the kind, so a scaled instance can vanish
-    early. The fork measured the worst ratio at 2.54x and the largest absolute
-    slack at 7.71 units.
+  * 24 das 8500 matrizes tem DETERMINANTE NEGATIVO - o PS2 trocou malha
+    espelhada por matriz espelhada, e o PC nao tem nenhuma. Onde o determinante
+    e negativo o winding inverte e a face aparece virada. Aqui elas sao
+    MARCADAS na coluna `hood` do tsv? Nao - sao contadas e relatadas, e o
+    --sem-espelhadas as descarta, que e o comportamento seguro ate o builder
+    saber inverter indice.
+  * 1734 das matrizes tem escala != 1 e 1487 delas sao nao uniformes. O raio de
+    cull do MC3 e LOCAL do tipo, entao instancia escalada pode sumir cedo. A
+    fork mediu a pior razao em 2.54x e a maior folga absoluta em 7.71 unidades.
 
     python mc2_ps2_place.py <losangeles.rsc> --out output/mc2_la_ps2
 """
@@ -33,191 +33,190 @@ import io
 import os
 import sys
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
+_AQUI = os.path.dirname(os.path.abspath(__file__))
 _SPEC = importlib.util.spec_from_file_location(
-    'mc2_rsc', os.path.join(_HERE, 'mc2_rsc.py'))
+    'mc2_rsc', os.path.join(_AQUI, 'mc2_rsc.py'))
 rsc_mod = importlib.util.module_from_spec(_SPEC)
 sys.modules['mc2_rsc'] = rsc_mod
 _SPEC.loader.exec_module(rsc_mod)
 
-HEADER = ('kind\tname\tlod\tpart\tm00\tm01\tm02\tm10\tm11\tm12\tm20\tm21'
+CABECALHO = ('kind\tname\tlod\tpart\tm00\tm01\tm02\tm10\tm11\tm12\tm20\tm21'
              '\tm22\ttx\tty\ttz\teminx\teminy\teminz\temaxx\temaxy\temaxz\thood')
 
 
-def cpv_index(cpvs):
-    """PCP0 name -> entry index."""
+def indice_cpv(cpvs):
+    """nome do PCP0 -> indice de entrada."""
     out = {}
-    for h, (fcc, name) in cpvs.names.items():
+    for h, (fcc, nome) in cpvs.names.items():
         if fcc == 'PCP0':
-            out[name] = (h & 0x3FFF) - 1
+            out[nome] = (h & 0x3FFF) - 1
     return out
 
 
-def model_cpv(name, mapping):
-    """The CPV entry that serves this model, and whether it is exact.
+def cpv_do_modelo(nome, mapa):
+    """A entrada de CPV que serve para este modelo, e se ela e exata.
 
-    In the 294 baked components the PCP0 name is '<name>_0_main' and the colour
-    is EXACT, because each component has its own mesh. In the instances the name
-    is '<owner>_<kind><extension>_<lod>_<main|refl>' - so MC2 keeps colour PER
-    INSTANCE (13,756 PCP0 for 8,774 batches), while MC3 shares one mesh per kind.
-    So for an instance kind only ONE instance can be picked as representative,
-    and the colour of the others comes out approximate. Flagged in the return
-    value so the report does not hide it.
+    Nos 294 componentes assados o nome do PCP0 e '<nome>_0_main' e a cor e
+    EXATA, porque cada componente tem malha propria. Nas instancias o nome e
+    '<owner>_<tipo><extension>_<lod>_<main|refl>' - ou seja o MC2 guarda cor
+    POR INSTANCIA (13.756 PCP0 para 8.774 batches), enquanto o MC3 compartilha
+    uma malha por tipo. Entao para tipo de instancia so da para escolher UMA
+    instancia como representante, e a cor das outras sai aproximada. Marcado no
+    retorno para o relatorio nao esconder isso.
     """
-    exact = mapping.get('%s_0_main' % name)
-    if exact is not None:
-        return exact, True
-    target = '_%s' % name.lower()
-    for k in sorted(mapping):
+    exato = mapa.get('%s_0_main' % nome)
+    if exato is not None:
+        return exato, True
+    alvo = '_%s' % nome.lower()
+    for k in sorted(mapa):
         kl = k.lower()
-        if kl.endswith('_0_main') and target in kl:
-            return mapping[k], False
+        if kl.endswith('_0_main') and alvo in kl:
+            return mapa[k], False
     return None, False
 
 
-def model_strips(rsc, model, cpvs=None, ent_cpv=None,
+def tiras_do_modelo(rsc, modelo, cpvs=None, ent_cpv=None,
                     dup_adc=True):
-    """(positions, uvs, strips) of a model, with ADC already honoured.
+    """(posicoes, uvs, tiras) de um modelo, ja com o ADC respeitado.
 
-    A batch is a strip. An ADC byte with 0x80 says "do not draw the triangle
-    ending here", and the PC text format has no such concept.
+    Um batch e uma strip. O byte de ADC com 0x80 diz "nao desenhe o triangulo
+    que termina aqui", e o formato de texto do PC nao tem esse conceito.
 
-    MY FIRST VERSION BROKE THE STRIP at that point, and it was wrong. The MC2
-    and MC3 winding is (i-2,i-1,i) for EVEN i and (i-1,i-2,i) for ODD i, with
-    the parity counted from the start of the strip. Restarting the strip resets
-    that count: if the cut falls on an even k, every following triangle of that
-    piece comes out with the winding swapped, the face points inwards and
-    vanishes in back-face culling. Since the cut lands on even or odd by chance,
-    this erased close to half the faces after each ADC - it was the "lots of
-    faces not showing" the user saw on screen.
+    A MINHA PRIMEIRA VERSAO QUEBRAVA A TIRA nesse ponto, e estava errada. O
+    enrolamento do MC2 e do MC3 e (i-2,i-1,i) para i PAR e (i-1,i-2,i) para i
+    IMPAR, com a paridade contada do inicio da tira. Reiniciar a tira zera essa
+    contagem: se o corte cai num k par, todo triangulo seguinte daquele pedaco
+    sai com o enrolamento trocado, a face aponta para dentro e some no
+    back-face culling. Como o corte cai em par ou impar por acaso, isso apagava
+    perto de metade das faces depois de cada ADC - foi o "muita face sem
+    aparecer" que o usuario viu na tela.
 
-    The right translation is to DUPLICATE TWO VERTICES instead of cutting:
+    A traducao certa e DUPLICAR DOIS VERTICES em vez de cortar:
 
         ... k-2, k-1, [k-1, k-1], k, k+1 ...
 
-    The three triangles born at the duplicated indices are degenerate (zero
-    area, they do not draw), and one of them sits exactly where the triangle the
-    ADC wanted to suppress was. And since it is TWO vertices, the parity of
-    everything after stays intact. The strip stays whole, which on top of that
-    produces fewer degenerate bridges in strips_to_blocks.
+    Os tres triangulos que nascem nos indices duplicados sao degenerados (area
+    zero, nao desenham), e um deles ocupa exatamente a posicao do triangulo que
+    o ADC queria suprimir. E como sao DOIS vertices, a paridade de tudo o que
+    vem depois fica intacta. A tira continua inteira, o que ainda por cima gera
+    menos pontes de degenerado no strips_to_blocks.
     """
-    pos, uv, colour, strip_list = [], [], [], []
+    pos, uv, cor, tiras = [], [], [], []
     if cpvs is not None and ent_cpv is not None:
-        # The chain that DRAWS is the PCP0 one: it does `ref` into the geometry
-        # inside the PMD0 and adds the colour, so read_pcp returns pos/uv/adc/cpv
-        # together and there is no risk of the two sides getting out of order.
-        # Found by Fork MC2 PS2; using read_pmd in parallel would be reinventing
-        # the pairing.
-        batches_ = rsc_mod.read_pcp(rsc, cpvs, ent_cpv)
+        # A cadeia que DESENHA e a do PCP0: ela faz `ref` na geometria dentro do
+        # PMD0 e acrescenta a cor, entao read_pcp devolve pos/uv/adc/cpv juntos
+        # e nao ha risco de os dois lados sairem fora de ordem. Achado da Fork
+        # MC2 PS2; usar read_pmd em paralelo seria reinventar o pareamento.
+        lotes = rsc_mod.read_pcp(rsc, cpvs, ent_cpv)
     else:
-        batches_ = []
-        for h in rsc_mod.model_blocks(model, lod=None):
+        lotes = []
+        for h in rsc_mod.model_blocks(modelo, lod=None):
             r = rsc.resolve(h)
             if r is not None:
-                batches_.extend(rsc_mod.read_pmd(rsc, r[1])[0])
+                lotes.extend(rsc_mod.read_pmd(rsc, r[1])[0])
     if True:
-        for batch in batches_:
+        for batch in lotes:
             base = len(pos)
             pos.extend(batch.pos)
             uv.extend(batch.uv)
-            # element 0 of the CPV stream IS A COLOUR, unlike the ADC one, where
-            # it is the vertex count - the fork measured that only 123 of 50,170
-            # batches coincide by chance. So the first one is not skipped here.
-            colour.extend(getattr(batch, 'cpv', None) or [0] * len(batch.pos))
-            current = [base, base + 1] if len(batch.pos) >= 2 else []
+            # o elemento 0 do stream de CPV E COR, ao contrario do de ADC, onde
+            # ele e a contagem de vertices - a fork mediu que so 123 de 50.170
+            # batches coincidem por acaso. Entao aqui nao se pula o primeiro.
+            cor.extend(getattr(batch, 'cpv', None) or [0] * len(batch.pos))
+            corrente = [base, base + 1] if len(batch.pos) >= 2 else []
             for k in range(2, len(batch.pos)):
                 if dup_adc and k < len(batch.adc) and (batch.adc[k] & 0x80):
-                    current += [current[-1], current[-1]]
-                current.append(base + k)
-            if len(current) >= 3:
-                strip_list.extend(strip_part(current))
-    return pos, uv, colour, strip_list
+                    corrente += [corrente[-1], corrente[-1]]
+                corrente.append(base + k)
+            if len(corrente) >= 3:
+                tiras.extend(parte_tira(corrente))
+    return pos, uv, cor, tiras
 
 
-# The retail limit, measured on the 1353 atlanta city meshes.
+# O limite do retail, medido nos 1353 meshes de cidade do atlanta.
 MAX_VERTS = 48
-STRIP = 'str'          # see the note in write_mod
+TIRA = 'str'          # ver a nota no escreve_mod
 
 
-def strip_part(t):
-    """Break a long strip into pieces of at most MAX_VERTS, without changing any
-    triangle.
+def parte_tira(t):
+    """Quebra uma tira longa em pedacos de no maximo MAX_VERTS, sem mudar
+    nenhum triangulo.
 
-    strips_to_blocks NEVER splits a strip: it only decides whether to
-    CONCATENATE the next one into the current block. That worked with MC2 PC,
-    where the strips are tiny (the wfargo tower has 287 strips, almost all of 4
-    vertices), and breaks with the PS2, where a batch is one long strip -
-    measured on the 723 models, 62.9%% of the blocks went over 48 vertices and
-    the largest had 131.
+    O strips_to_blocks NUNCA parte uma tira: ele so decide se CONCATENA a
+    proxima no bloco corrente. Isso funcionava com o MC2 de PC, onde as tiras
+    sao minusculas (a torre wfargo tem 287 tiras, quase todas de 4 vertices),
+    e quebra com o PS2, onde um batch e uma tira longa - medido nos 723
+    modelos, 62,9%% dos blocos passavam de 48 vertices e o maior tinha 131.
 
-    AND THAT BLOWS UP IN VU1: the block's three streams sit at fixed addresses
-    with 48 qwords each - normal at 160, uv at 208, position at 256. A
-    131-vertex block writes 131 qwords from 160 on and overruns the other two,
-    so the position ends up read from where the UV was. On screen that becomes
-    a giant triangle across the scene, with VU1 at 99.9%%.
+    E ISSO EXPLODE NA VU1: os tres streams do bloco ficam em enderecos fixos
+    com 48 qwords cada - normal em 160, uv em 208, posicao em 256. Um bloco de
+    131 vertices escreve 131 qwords a partir de 160 e invade os outros dois,
+    entao a posicao passa a ser lida de onde estava a UV. Na tela isso vira
+    triangulo gigante atravessando a cena, com a VU1 em 99,9%%.
 
-    THE SPLIT KEEPS THE PARITY. The winding is (i-2,i-1,i) for even i and
-    (i-1,i-2,i) for odd i, counted from the start of the strip, so a new piece
-    can only start at an EVEN offset. The pieces have 48 vertices and advance by
-    46, overlapping the last two - 46 is even, so every start lands on an even
-    index and the winding stays the same. The overlap of two is what keeps the
-    chain of triangles connected across the cut.
+    A QUEBRA PRESERVA A PARIDADE. O enrolamento e (i-2,i-1,i) para i par e
+    (i-1,i-2,i) para i impar, contado do inicio da tira, entao um pedaco novo
+    so pode comecar num deslocamento PAR. Os pedacos tem 48 vertices e avancam
+    de 46, sobrepondo os dois ultimos - 46 e par, entao todo inicio cai em
+    indice par e o enrolamento continua o mesmo. A sobreposicao de dois e o que
+    mantem a cadeia de triangulos ligada atraves do corte.
     """
-    # 46 and not 48: strips_to_blocks' `open_()` adds ONE duplicated vertex in
-    # front of every `stp` strip so it lands on an odd index, and with 48-vertex
-    # pieces the block came out with 49 - one more than the VU1 region.
-    # 46 is even, so the 44 step is too, and the parity still holds.
-    ceiling = MAX_VERTS - 2
-    if len(t) <= ceiling:
+    # 46 e nao 48: o `abre()` do strips_to_blocks acrescenta UM vertice
+    # duplicado na frente de toda tira `stp` para ela cair em indice impar, e
+    # com pedaco de 48 o bloco saia com 49 - um a mais que a regiao da VU1.
+    # 46 e par, entao o passo de 44 tambem e, e a paridade continua de pe.
+    teto = MAX_VERTS - 2
+    if len(t) <= teto:
         return [t]
-    step = ceiling - 2
+    passo = teto - 2
     out = []
     s = 0
     while s < len(t) - 2:
-        chunk = t[s:s + ceiling]
-        if len(chunk) >= 3:
-            out.append(chunk)
-        s += step
+        pedaco = t[s:s + teto]
+        if len(pedaco) >= 3:
+            out.append(pedaco)
+        s += passo
     return out
 
 
-def write_mod(path, pos, uv, colour, strip_list):
-    """The text mc2_to_mc3's read_xmod already knows how to read.
+def escreve_mod(caminho, pos, uv, cor, tiras):
+    """O texto que o read_xmod do mc2_to_mc3 ja sabe ler.
 
-    `adj` uses fields 1 and 4 (vertex and uv); the `packet` at the start resets
-    the strip index base, so everything here is indexed globally.
+    `adj` usa os campos 1 e 4 (vertice e uv); o `packet` no inicio zera a base
+    dos indices de tira, entao aqui tudo e indexado globalmente.
     """
-    with io.open(path, 'w', encoding='latin1') as f:
+    with io.open(caminho, 'w', encoding='latin1') as f:
         for x, y, z in pos:
             f.write('v %.6f %.6f %.6f\n' % (x, y, z))
         for u, w in uv:
             f.write('t1 %.6f %.6f\n' % (u, w))
-        f.write('packet %d %d\n' % (len(pos), len(strip_list)))
-        # Field 3 of `adj` is the COLOUR. In the MC2 format the tuple is
-        # `adj <vertex> <normal> <colour> <uv>` and read_xmod already read
-        # fields 1 and 4; now it reads 3 as well. It is where the palette index
-        # fits without inventing a new record in the format.
+        f.write('packet %d %d\n' % (len(pos), len(tiras)))
+        # O campo 3 do `adj` e a COR. No formato do MC2 a tupla e
+        # `adj <vertice> <normal> <cor> <uv>` e o read_xmod ja lia os campos
+        # 1 e 4; agora le o 3 tambem. E onde o indice de paleta cabe sem
+        # inventar registro novo no formato.
         for i in range(len(pos)):
-            f.write('adj %d 0 %d %d\n' % (i, colour[i] if i < len(colour) else 0, i))
-        # `str` AND NOT `stp`, and this was MEASURED, not chosen.
+            f.write('adj %d 0 %d %d\n' % (i, cor[i] if i < len(cor) else 0, i))
+        # `str` E NAO `stp`, e isto foi MEDIDO, nao escolhido.
         #
-        # strips_to_blocks maps `stp` to odd=True, and its open_() prepends a
-        # duplicated vertex so the strip lands on an ODD index. That mapping was
-        # measured on MC2 PC, whose convention is the REVERSE of MC3's. The PS2
-        # data is not: it comes from a real PS2 display list, with the same
-        # (i-2,i-1,i) for even i that MC3 uses - so the strip has to start on an
-        # EVEN index, without the extra vertex, which is what `str` produces.
+        # O strips_to_blocks mapeia `stp` para impar=True, e o abre() dele
+        # prepende um vertice duplicado para a tira cair em indice IMPAR. Esse
+        # mapeamento foi medido no MC2 de PC, cuja convencao e a INVERSA da do
+        # MC3. O dado de PS2 nao e: ele vem de uma display list de PS2 de
+        # verdade, com o mesmo (i-2,i-1,i) para i par que o MC3 usa - entao a
+        # tira tem que comecar em indice PAR, sem o vertice extra, que e o que
+        # `str` produz.
         #
-        # Measured block by block against Fork MC2 PS2's decoder on 120 models:
-        # with `stp` 0 of 120 are right and 34,817 triangles are just REVERSED;
-        # with `str` it is 120 of 120 and zero reversed. On screen `stp` showed
-        # up as a row of alternating triangles, with most faces vanishing in
-        # back-face culling.
-        for t in strip_list:
+        # Medido bloco a bloco contra o decodificador da Fork MC2 PS2 em 120
+        # modelos: com `stp` sao 0 de 120 corretos e 34.817 triangulos apenas
+        # INVERTIDOS; com `str` sao 120 de 120 e zero invertidos. Na tela o
+        # `stp` aparecia como fileira de triangulos alternados, com a maioria
+        # das faces sumindo no back-face culling.
+        for t in tiras:
             f.write('str %d %s\n' % (len(t), ' '.join(str(i) for i in t)))
 
 
-def determinant_(m):
+def determinante(m):
     return (m[0] * (m[4] * m[8] - m[5] * m[7])
             - m[1] * (m[3] * m[8] - m[5] * m[6])
             + m[2] * (m[3] * m[7] - m[4] * m[6]))
@@ -229,204 +228,203 @@ def main():
     ap.add_argument('rsc')
     ap.add_argument('--out', default='output/mc2_la_ps2')
     ap.add_argument('--cpvs', metavar='CPVS.RSC',
-                    help='MC2 PS2 <hour>_cpvs.rsc: carries the per-vertex colour')
+                    help='<hora>_cpvs.rsc do MC2 de PS2: leva a cor por vertice')
     ap.add_argument('--angel', action='store_true',
-                    help='emit the full Angel Studios dialect: parity per '
-                         'strip, material per texture and colour per vertex. It '
-                         'is what mc3_mesh_convert and the game itself read, and '
-                         'the toolkit read_xmod reads it too, because it is a superset')
-    ap.add_argument('--strip', choices=('stp', 'str'), default='str',
-                    help='strip parity; str is the measured right one (120/120)')
-    ap.add_argument('--without-adc', action='store_true',
-                    help='ignore the ADC bit instead of degenerating the triangle')
-    ap.add_argument('--without-mirrored', action='store_true',
-                    help='drop the instances with a negative determinant')
+                    help='emite o dialeto Angel Studios completo: paridade por '
+                         'tira, material por textura e cor por vertice. E o que '
+                         'o mc3_mesh_convert e o proprio jogo leem, e o '
+                         'read_xmod do toolkit tambem le, porque e superconjunto')
+    ap.add_argument('--tira', choices=('stp', 'str'), default='str',
+                    help='paridade da tira; str e a medida certa (120/120)')
+    ap.add_argument('--sem-adc', action='store_true',
+                    help='ignora o bit ADC em vez de degenerar o triangulo')
+    ap.add_argument('--sem-espelhadas', action='store_true',
+                    help='descarta as instancias de determinante negativo')
     a = ap.parse_args()
 
-    globals()['STRIP'] = a.strip
+    globals()['TIRA'] = a.tira
     rsc = rsc_mod.Rsc(a.rsc)
     cpvs = rsc_mod.Rsc(a.cpvs) if a.cpvs else None
-    cpv_map = cpv_index(cpvs) if cpvs else {}
-    palette = None
+    mapa_cpv = indice_cpv(cpvs) if cpvs else {}
+    paleta = None
     if cpvs:
         for _o, _f, _sz in cpvs.entries:
             if _f == 'CPP0':
                 _b = cpvs.data[_o:_o + _sz]
-                palette = [struct.unpack_from('<3B', _b, _k * 4)
+                paleta = [struct.unpack_from('<3B', _b, _k * 4)
                           for _k in range(256)]
                 break
-    byName = rsc_mod.models_by_name(rsc)
-    folder = rsc_mod.city_folder(a.rsc)
-    comps, insts = rsc_mod.read_hoods(folder)
+    porNome = rsc_mod.models_by_name(rsc)
+    pasta = rsc_mod.city_folder(a.rsc)
+    comps, insts = rsc_mod.read_hoods(pasta)
 
     dmod = os.path.join(a.out, 'model')
     if not os.path.isdir(dmod):
         os.makedirs(dmod)
 
-    # ---- the models, once each
-    needs = set([c.name for c in comps] + [i.type for i in insts])
-    written = 0
-    empties = []
-    exact_colour = approx_colour = no_colour = 0
-    for name in sorted(needs):
-        m = byName.get(name.lower()) or byName.get(name)
+    # ---- os modelos, uma vez cada
+    precisa = set([c.name for c in comps] + [i.type for i in insts])
+    escritos = 0
+    vazios = []
+    cor_exata = cor_aprox = sem_cor = 0
+    for nome in sorted(precisa):
+        m = porNome.get(nome.lower()) or porNome.get(nome)
         if m is None:
-            empties.append(name)
+            vazios.append(nome)
             continue
-        ent, exact = model_cpv(name, cpv_map) if cpvs else (None, False)
+        ent, exato = cpv_do_modelo(nome, mapa_cpv) if cpvs else (None, False)
         if a.angel:
-            batches_ = (rsc_mod.read_pcp(rsc, cpvs, ent)
+            lotes = (rsc_mod.read_pcp(rsc, cpvs, ent)
                      if (cpvs and ent is not None) else [])
-            if not batches_:
-                batches_ = []
+            if not lotes:
+                lotes = []
                 for h in rsc_mod.model_blocks(m, lod=None):
                     r = rsc.resolve(h)
                     if r is not None:
-                        batches_.extend(rsc_mod.read_pmd(rsc, r[1])[0])
+                        lotes.extend(rsc_mod.read_pmd(rsc, r[1])[0])
             def _tex(h):
                 nm = rsc.texture_name(h)
-                return (nm or 'no_texture').replace(' ', '_')
-            if write_mod_angel(os.path.join(dmod, '%s_0_main.mod' % name),
-                                 batches_, palette, _tex):
-                written += 1
+                return (nm or 'sem_textura').replace(' ', '_')
+            if escreve_mod_angel(os.path.join(dmod, '%s_0_main.mod' % nome),
+                                 lotes, paleta, _tex):
+                escritos += 1
                 if cpvs:
                     if ent is None:
-                        no_colour += 1
-                    elif exact:
-                        exact_colour += 1
+                        sem_cor += 1
+                    elif exato:
+                        cor_exata += 1
                     else:
-                        approx_colour += 1
+                        cor_aprox += 1
             else:
-                empties.append(name)
+                vazios.append(nome)
             continue
-        pos, uv, colour, strip_list = model_strips(rsc, m, cpvs, ent,
-                                              not a.without_adc)
-        if not strip_list:
-            empties.append(name)
+        pos, uv, cor, tiras = tiras_do_modelo(rsc, m, cpvs, ent,
+                                              not a.sem_adc)
+        if not tiras:
+            vazios.append(nome)
             continue
-        write_mod(os.path.join(dmod, '%s_0_main.mod' % name), pos, uv, colour, strip_list)
-        written += 1
+        escreve_mod(os.path.join(dmod, '%s_0_main.mod' % nome), pos, uv, cor, tiras)
+        escritos += 1
         if cpvs:
             if ent is None:
-                no_colour += 1
-            elif exact:
-                exact_colour += 1
+                sem_cor += 1
+            elif exato:
+                cor_exata += 1
             else:
-                approx_colour += 1
-    print('models: %d written, %d without geometry' % (written, len(empties)))
+                cor_aprox += 1
+    print('modelos: %d escritos, %d sem geometria' % (escritos, len(vazios)))
     if cpvs:
-        print('per-vertex colour: %d exact (component), %d approximate (one '
-              'instance stands for the kind), %d without colour'
-              % (exact_colour, approx_colour, no_colour))
+        print('cor por vertice: %d exata (componente), %d aproximada (uma '
+              'instancia representa o tipo), %d sem cor'
+              % (cor_exata, cor_aprox, sem_cor))
 
-    # ---- the place.tsv
-    lines = []
-    mirrored = 0
+    # ---- o place.tsv
+    linhas = []
+    espelhadas = 0
     for c in comps:
-        lines.append(['comp', c.name, '0', 'main',
+        linhas.append(['comp', c.name, '0', 'main',
                        '1', '0', '0', '0', '1', '0', '0', '0', '1',
                        '0', '0', '0']
                       + ['%.6f' % x for x in list(c.emin) + list(c.emax)]
                       + [c.hood])
     for i in insts:
-        m = [x for line in i.rot for x in line]
-        if determinant_(m) < 0:
-            mirrored += 1
-            if a.without_mirrored:
+        m = [x for linha in i.rot for x in linha]
+        if determinante(m) < 0:
+            espelhadas += 1
+            if a.sem_espelhadas:
                 continue
-        lines.append(['inst', i.type, '0', 'main']
+        linhas.append(['inst', i.type, '0', 'main']
                       + ['%.6f' % x for x in m]
                       + ['%.6f' % x for x in i.pos]
                       + ['%.6f' % x for x in list(i.emin) + list(i.emax)]
                       + [i.hood])
 
-    mn = [min(float(l[16 + k]) for l in lines) for k in range(3)]
-    mx = [max(float(l[19 + k]) for l in lines) for k in range(3)]
-    out_path = os.path.join(a.out, 'losangeles_ps2_place.tsv')
-    with io.open(out_path, 'w', encoding='latin1') as f:
-        f.write('# %s: %d hoods (source: MC2 PS2)\n'
+    mn = [min(float(l[16 + k]) for l in linhas) for k in range(3)]
+    mx = [max(float(l[19 + k]) for l in linhas) for k in range(3)]
+    saida = os.path.join(a.out, 'losangeles_ps2_place.tsv')
+    with io.open(saida, 'w', encoding='latin1') as f:
+        f.write('# %s: %d hoods (fonte: MC2 de PS2)\n'
                 % (os.path.splitext(os.path.basename(a.rsc))[0],
                    len(set(c.hood for c in comps) | set(i.hood for i in insts))))
         f.write('# extents_min\t%.6f\t%.6f\t%.6f\n' % tuple(mn))
         f.write('# extents_max\t%.6f\t%.6f\t%.6f\n' % tuple(mx))
-        f.write(HEADER + '\n')
-        for l in lines:
+        f.write(CABECALHO + '\n')
+        for l in linhas:
             f.write('\t'.join(l) + '\n')
 
-    ncomp = sum(1 for l in lines if l[0] == 'comp')
-    ninst = len(lines) - ncomp
-    print('place: %d components + %d instances -> %s' % (ncomp, ninst, out_path))
+    ncomp = sum(1 for l in linhas if l[0] == 'comp')
+    ninst = len(linhas) - ncomp
+    print('place: %d componentes + %d instancias -> %s' % (ncomp, ninst, saida))
     print('extents: x %.1f..%.1f  y %.1f..%.1f  z %.1f..%.1f'
           % (mn[0], mx[0], mn[1], mx[1], mn[2], mx[2]))
-    print('instances with a NEGATIVE determinant: %d%s'
-          % (mirrored, ' (dropped)' if a.without_mirrored else
-             ' (kept - their winding will come out reversed)'))
+    print('instancias com determinante NEGATIVO: %d%s'
+          % (espelhadas, ' (descartadas)' if a.sem_espelhadas else
+             ' (mantidas - o winding delas vai sair invertido)'))
 
 
 
 # ---------------------------------------------------------------------------
-#  THE TEXT ROUTE
+#  A ROTA DE TEXTO
 # ---------------------------------------------------------------------------
 #
-# The game builds the .pck by itself: rmcModel::Create reads .mesh/.mod as TEXT
-# and rmcGeometry::Packet::Init 0x2AB110 is what EMITS THE VIF. Stripping,
-# parity, ADC and block splitting are its job. Emitting VIF packets by hand,
-# which is what this bridge used to do, was the origin of the last three
-# defects: ADC parity (6,486 wrong triangles), overflowing 48 vertices per
-# block (giant triangle, VU1 at 99.9%) and a global stp/str (most faces
-# vanishing).
+# O jogo constroi o .pck sozinho: rmcModel::Create le .mesh/.mod em TEXTO e
+# rmcGeometry::Packet::Init 0x2AB110 e quem EMITE O VIF. Estripificacao,
+# paridade, ADC e corte em bloco sao trabalho dele. Emitir pacote VIF a mao,
+# que era o que esta ponte fazia, foi a origem dos tres ultimos defeitos:
+# paridade do ADC (6.486 triangulos errados), estouro de 48 vertices por bloco
+# (triangulo gigante, VU1 em 99,9%) e stp/str global (maioria das faces sumindo).
 #
-# Here the bridge emits the real Angel Studios dialect - what
-# mc3_mesh_convert.py reads - instead of the simplified dialect only the
-# toolkit's read_xmod understood.
+# Aqui a ponte passa a emitir o dialeto Angel Studios de verdade - o que o
+# mc3_mesh_convert.py le - em vez do dialeto simplificado que so o read_xmod do
+# toolkit entendia.
 #
-# THREE THINGS THE DIALECT SOLVES FOR FREE:
+# TRES COISAS QUE O DIALETO RESOLVE DE GRACA:
 #
-#   * PARITY PER STRIP. Retail .mod files MIX `str` and `stp` in the same
-#     packet (arrow4.mod has 16 str, one stp and another str). The reader's rule
-#     is `(i-2,i-1,i)` when `(i even) == (str)`, so `str` is the natural PS2/MC3
-#     winding and `stp` the reversed one. So a piece starting at an EVEN offset
-#     comes out `str` and one starting at an ODD offset comes out `stp`, and ADC
-#     no longer needs a duplicated vertex.
-#   * MATERIAL PER TEXTURE. Each PMD0 batch carries a texture handle; grouping
-#     by it gives several `mtl`, instead of the single material index the
-#     generated city had been using.
-#   * COLOUR PER VERTEX. The dialect has `c r g b a` with four floats and the
-#     `adj` points to it. mc3_mesh_convert STILL drops that channel when reading
-#     - the C++ FORK noted it and said Cpv is the reader's top improvement
-#     priority - but the text already comes out right, so once it reads it the
-#     city gains colour without touching anything here.
+#   * PARIDADE POR TIRA. Os .mod de varejo MISTURAM `str` e `stp` no mesmo
+#     packet (o arrow4.mod tem 16 str, um stp e outro str). A regra do leitor e
+#     `(i-2,i-1,i)` quando `(i par) == (str)`, ou seja `str` e o enrolamento
+#     natural do PS2/MC3 e `stp` e o invertido. Entao um pedaco que comeca num
+#     deslocamento PAR sai `str` e um que comeca em IMPAR sai `stp`, e o ADC
+#     deixa de exigir vertice duplicado.
+#   * MATERIAL POR TEXTURA. Cada batch do PMD0 carrega um handle de textura;
+#     agrupando por ele saem varios `mtl`, em vez do indice de material unico
+#     que a cidade gerada vinha usando.
+#   * COR POR VERTICE. O dialeto tem `c r g b a` com quatro floats e o `adj`
+#     aponta para ele. O mc3_mesh_convert AINDA descarta esse canal na leitura -
+#     a FORK C++ anotou isso e disse que Cpv e a primeira prioridade de melhoria
+#     do leitor - mas o texto ja sai correto, entao quando ele passar a ler a
+#     cidade ganha cor sem mexer aqui.
 
-MOD_HEADER = ('version: 1.10\n'
+CAB_MOD = ('version: 1.10\n'
            'verts: %d\nnormals: %d\ncolors: %d\ntex1s: %d\ntex2s: 0\n'
            'tangents: 0\nmaterials: %d\nadjuncts: %d\nprimitives: %d\n'
            'matrices: 1\nreskins: 1\n\n')
 
 
-def chunks_per_adc(n, adc):
-    """[(offset, [local indices])] of a batch, cutting at the ADC.
+def pedacos_por_adc(n, adc):
+    """[(deslocamento, [indices locais])] de um batch, cortando no ADC.
 
-    No vertex is duplicated: the cut becomes a new piece and its parity is
-    chosen by the offset, which is what the dialect lets us say.
+    Sem duplicar vertice: o corte vira um pedaco novo e a paridade dele e
+    escolhida pelo deslocamento, que e o que o dialeto permite dizer.
     """
     out = []
-    start_ = 0
+    ini = 0
     for k in range(2, n):
         if k < len(adc) and (adc[k] & 0x80):
-            if k - start_ >= 3:
-                out.append((start_, list(range(start_, k))))
-            start_ = k - 1
-    if n - start_ >= 3:
-        out.append((start_, list(range(start_, n))))
+            if k - ini >= 3:
+                out.append((ini, list(range(ini, k))))
+            ini = k - 1
+    if n - ini >= 3:
+        out.append((ini, list(range(ini, n))))
     return out
 
 
-def write_mod_angel(path, batches_, palette, tex_name):
-    """A .mod in the dialect mc3_mesh_convert (and the game) read."""
+def escreve_mod_angel(caminho, lotes, paleta, nome_tex):
+    """Um .mod no dialeto que o mc3_mesh_convert (e o jogo) leem."""
     V, T1, C = [], [], []
-    colour_index = {}
-    packets = []                      # (texture, [adj], [(kind, [locals])])
-    for b in batches_:
+    icor = {}
+    pacotes = []                      # (textura, [adj], [(tipo, [locais])])
+    for b in lotes:
         base_v = len(V)
         V.extend(b.pos)
         T1.extend(b.uv)
@@ -434,28 +432,28 @@ def write_mod_angel(path, batches_, palette, tex_name):
         adjs = []
         for k in range(len(b.pos)):
             idx = cpv[k] if k < len(cpv) else 0
-            if idx not in colour_index:
-                colour_index[idx] = len(C)
-                r, g, bl = palette[idx] if palette else (128, 128, 128)
+            if idx not in icor:
+                icor[idx] = len(C)
+                r, g, bl = paleta[idx] if paleta else (128, 128, 128)
                 C.append((r / 128.0, g / 128.0, bl / 128.0, 1.0))
-            adjs.append((base_v + k, 0, colour_index[idx], base_v + k))
+            adjs.append((base_v + k, 0, icor[idx], base_v + k))
         prims = []
-        for offs_, idxs in chunks_per_adc(len(b.pos), b.adc):
-            # an EVEN offset keeps the winding; an ODD one reverses it
-            prims.append(('str' if offs_ % 2 == 0 else 'stp', idxs))
+        for desl, idxs in pedacos_por_adc(len(b.pos), b.adc):
+            # deslocamento PAR mantem o enrolamento; IMPAR o inverte
+            prims.append(('str' if desl % 2 == 0 else 'stp', idxs))
         if prims:
-            packets.append((tex_name(b.texture), adjs, prims))
+            pacotes.append((nome_tex(b.texture), adjs, prims))
 
-    if not packets:
+    if not pacotes:
         return 0
-    per_mtl = {}
-    for tex, adjs, prims in packets:
-        per_mtl.setdefault(tex, []).append((adjs, prims))
-    n_adj = sum(len(a) for _t, a, _p in packets)
-    n_tri = sum(len(i) - 2 for _t, _a, p in packets for _k, i in p)
+    por_mtl = {}
+    for tex, adjs, prims in pacotes:
+        por_mtl.setdefault(tex, []).append((adjs, prims))
+    n_adj = sum(len(a) for _t, a, _p in pacotes)
+    n_tri = sum(len(i) - 2 for _t, _a, p in pacotes for _k, i in p)
 
-    with io.open(path, 'w', encoding='utf-8') as f:
-        f.write(MOD_HEADER % (len(V), 1, len(C), len(T1), len(per_mtl),
+    with io.open(caminho, 'w', encoding='utf-8') as f:
+        f.write(CAB_MOD % (len(V), 1, len(C), len(T1), len(por_mtl),
                            n_adj, n_tri))
         for x, y, z in V:
             f.write('v\t%f\t%f\t%f\n' % (x, y, z))
@@ -465,25 +463,25 @@ def write_mod_angel(path, batches_, palette, tex_name):
         for u, w in T1:
             f.write('t1\t%f\t%f\n' % (u, w))
         f.write('\n')
-        for tex, blocks in per_mtl.items():
+        for tex, blocos in por_mtl.items():
             f.write('mtl %s {\n\tpackets:\t%d\n\tprimitives:\t%d\n'
                     '\ttextures:\t1\n\tillum: diffuse\n'
                     '\tambient:\t0.000000 0.000000 0.000000\n'
                     '\tdiffuse:\t1.000000 1.000000 1.000000\n'
                     '\tspecular:\t0.000000 0.000000 0.000000\n'
                     '\ttexture: 0 "%s"\n\tattributes:\t0\n}\n\n'
-                    % (tex, len(blocks),
-                       sum(len(i) - 2 for _a, p in blocks for _k, i in p), tex))
-            for adjs, prims in blocks:
+                    % (tex, len(blocos),
+                       sum(len(i) - 2 for _a, p in blocos for _k, i in p), tex))
+            for adjs, prims in blocos:
                 f.write('packet %d %d 1 {\n' % (len(adjs), len(prims)))
                 for v, n, c, t in adjs:
                     f.write('\tadj\t%d\t%d\t%d\t%d\t-1\t0\n' % (v, n, c, t))
                 base = adjs[0][0]
-                for kind, idxs in prims:
+                for tipo, idxs in prims:
                     f.write('\t%s\t%d\t%s\n'
-                            % (kind, len(idxs), '\t'.join(str(i) for i in idxs)))
+                            % (tipo, len(idxs), '\t'.join(str(i) for i in idxs)))
                 f.write('\tmtx 0 \n}\n\n')
-    return len(packets)
+    return len(pacotes)
 
 if __name__ == '__main__':
     main()

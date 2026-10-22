@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MC3 Audio Studio - unified vehicle audio editor for Midnight Club 3.
+MC3 Audio Studio - editor unificado de audio de veiculos do Midnight Club 3.
 
-Brings together in a single tool:
-- the .pck curve viewer (mc3_audio_curve_gui), now with real EDITING: block
-  fields, ranges (sample/RPM), curve points (drag on the graph or edit in the
-  table) and profile parameters - all written in place into the .pck (.bak backup);
-- the bnk_tool (MUX/DEMUX of Sony/SCREAM .bnk): finds the bank by the name the
-  block references (e.g. E_350Z -> assets/audio/banks/E_350Z.bnk + e_350z.td),
-  plays individual samples and lets you extract/rebuild banks from the menu;
-- audible preview: renders an approximation of the engine sound at a fixed RPM
-  or over an RPM sweep, applying the range crossfade + volume curve, using a
-  PS-ADPCM decoder that is bit-exact with vgmstream.
+Junta em uma unica ferramenta:
+- o visualizador de curvas de .pck (mc3_audio_curve_gui), agora com EDICAO real:
+  campos do bloco, ranges (sample/RPM), pontos de curva (arraste no grafico ou edite
+  na tabela) e parametros de profile - tudo gravado in-place no .pck (backup .bak);
+- o bnk_tool (MUX/DEMUX de .bnk Sony/SCREAM): localiza o banco pelo nome que o
+  bloco referencia (ex. E_350Z -> assets/audio/banks/E_350Z.bnk + e_350z.td),
+  toca samples individuais e permite extrair/remontar bancos pelo menu;
+- preview audivel: renderiza uma aproximacao do som do motor em um RPM fixo ou
+  numa varredura de RPM, aplicando crossfade dos ranges + curva de volume,
+  usando um decoder PS-ADPCM bit-exato com o vgmstream.
 
-Usage:  python mc3_audio_studio.py [file.pck]
+Uso:  python mc3_audio_studio.py [arquivo.pck]
 """
 from __future__ import annotations
 
@@ -158,19 +158,19 @@ class AudioStudio:
 
         toolbar = ttk.Frame(self.root, style="Panel.TFrame")
         toolbar.pack(side=tk.TOP, fill=tk.X)
-        ttk.Button(toolbar, text="Open PCK", command=self.open_pck_dialog).pack(side=tk.LEFT, padx=4, pady=4)
-        self.save_btn = ttk.Button(toolbar, text="Save PCK", command=self.save_pck)
+        ttk.Button(toolbar, text="Abrir PCK", command=self.open_pck_dialog).pack(side=tk.LEFT, padx=4, pady=4)
+        self.save_btn = ttk.Button(toolbar, text="Salvar PCK", command=self.save_pck)
         self.save_btn.pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(toolbar, text="Reload", command=self.reload_current).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(toolbar, text="Recarregar", command=self.reload_current).pack(side=tk.LEFT, padx=4, pady=4)
 
-        ttk.Label(toolbar, text="Curves:", style="Muted.TLabel").pack(side=tk.LEFT, padx=(20, 4))
+        ttk.Label(toolbar, text="Curvas:", style="Muted.TLabel").pack(side=tk.LEFT, padx=(20, 4))
         for key, label, _, _ in CURVE_FIELDS:
             ttk.Checkbutton(toolbar, text=label, variable=self.curve_visible[key],
                             command=self.redraw_canvas).pack(side=tk.LEFT, padx=3)
-        ttk.Label(toolbar, text="Scale:", style="Muted.TLabel").pack(side=tk.LEFT, padx=(16, 4))
+        ttk.Label(toolbar, text="Escala:", style="Muted.TLabel").pack(side=tk.LEFT, padx=(16, 4))
         ttk.Radiobutton(toolbar, text="0-1", variable=self.curve_scale_mode, value="global",
                         command=self.redraw_canvas).pack(side=tk.LEFT)
-        ttk.Radiobutton(toolbar, text="Fit", variable=self.curve_scale_mode, value="fit",
+        ttk.Radiobutton(toolbar, text="Ajustar", variable=self.curve_scale_mode, value="fit",
                         command=self.redraw_canvas).pack(side=tk.LEFT)
 
         main = ttk.Panedwindow(self.root, orient=tk.HORIZONTAL)
@@ -181,7 +181,7 @@ class AudioStudio:
         main.add(left, weight=1)
         main.add(right, weight=4)
 
-        ttk.Label(left, text="PCK structure", style="Accent.TLabel").pack(anchor="w", padx=8, pady=(8, 4))
+        ttk.Label(left, text="Estrutura do PCK", style="Accent.TLabel").pack(anchor="w", padx=8, pady=(8, 4))
         self.tree = ttk.Treeview(left, show="tree")
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(8, 0), pady=(0, 8))
         sb = ttk.Scrollbar(left, orient=tk.VERTICAL, command=self.tree.yview)
@@ -213,40 +213,40 @@ class AudioStudio:
         self._build_preview_tab()
         self._build_raw_tab()
 
-        self.status = ttk.Label(self.root, text="Open a vehicle .pck (File > Open PCK).",
+        self.status = ttk.Label(self.root, text="Abra um .pck de veiculo (File > Abrir PCK).",
                                 style="Muted.TLabel")
         self.status.pack(side=tk.BOTTOM, fill=tk.X, padx=8, pady=2)
 
     def _build_menu(self):
         menubar = tk.Menu(self.root)
         fm = tk.Menu(menubar, tearoff=False)
-        fm.add_command(label="Open PCK...", command=self.open_pck_dialog, accelerator="Ctrl+O")
-        fm.add_command(label="Save PCK", command=self.save_pck, accelerator="Ctrl+S")
-        fm.add_command(label="Save PCK as...", command=self.save_pck_as)
-        fm.add_command(label="Reload", command=self.reload_current, accelerator="F5")
+        fm.add_command(label="Abrir PCK...", command=self.open_pck_dialog, accelerator="Ctrl+O")
+        fm.add_command(label="Salvar PCK", command=self.save_pck, accelerator="Ctrl+S")
+        fm.add_command(label="Salvar PCK como...", command=self.save_pck_as)
+        fm.add_command(label="Recarregar", command=self.reload_current, accelerator="F5")
         fm.add_separator()
-        fm.add_command(label="Export JSON of the audio section...", command=self.export_json)
+        fm.add_command(label="Exportar JSON da secao de audio...", command=self.export_json)
         fm.add_separator()
-        fm.add_command(label="Quit", command=self.root.quit)
-        menubar.add_cascade(label="File", menu=fm)
+        fm.add_command(label="Sair", command=self.root.quit)
+        menubar.add_cascade(label="Arquivo", menu=fm)
 
         em = tk.Menu(menubar, tearoff=False)
-        em.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z")
-        em.add_command(label="Redo", command=self.redo, accelerator="Ctrl+Y")
+        em.add_command(label="Desfazer", command=self.undo, accelerator="Ctrl+Z")
+        em.add_command(label="Refazer", command=self.redo, accelerator="Ctrl+Y")
         em.add_separator()
-        em.add_command(label="Import audio from another PCK (conservative)...",
+        em.add_command(label="Importar audio de outro PCK (conservador)...",
                        command=lambda: self.import_donor_dialog("conservative"))
-        em.add_command(label="Import audio from another PCK (experimental)...",
+        em.add_command(label="Importar audio de outro PCK (experimental)...",
                        command=lambda: self.import_donor_dialog("experimental"))
-        menubar.add_cascade(label="Edit", menu=em)
+        menubar.add_cascade(label="Editar", menu=em)
 
         bm = tk.Menu(menubar, tearoff=False)
-        bm.add_command(label="Set extra banks folder...", command=self.set_banks_dir)
-        bm.add_command(label="Info on the selected block's bank", command=self.show_bank_info)
+        bm.add_command(label="Definir pasta extra de bancos...", command=self.set_banks_dir)
+        bm.add_command(label="Info do banco do bloco selecionado", command=self.show_bank_info)
         bm.add_separator()
-        bm.add_command(label="Extract bank (DEMUX)...", command=self.demux_bank_dialog)
-        bm.add_command(label="Rebuild bank (MUX)...", command=self.mux_bank_dialog)
-        menubar.add_cascade(label="Banks", menu=bm)
+        bm.add_command(label="Extrair banco (DEMUX)...", command=self.demux_bank_dialog)
+        bm.add_command(label="Remontar banco (MUX)...", command=self.mux_bank_dialog)
+        menubar.add_cascade(label="Bancos", menu=bm)
 
         self.root.config(menu=menubar)
         self.root.bind("<Control-o>", lambda e: self.open_pck_dialog())
@@ -258,7 +258,7 @@ class AudioStudio:
     # ---- tabs ----
     def _build_block_tab(self):
         f = ttk.Frame(self.tabs)
-        self.tabs.add(f, text="Block")
+        self.tabs.add(f, text="Bloco")
         self.block_vars = {}
 
         # header: bank name + rev sound + prefix option, kept in its own grid so the
@@ -274,7 +274,7 @@ class AudioStudio:
         ttk.Entry(header, textvariable=self.rev_sound_var, width=24).grid(
             row=0, column=3, sticky="w", padx=(0, 4), pady=2)
         self.update_prefixes_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(header, text="Changing the bank updates the sample prefix",
+        ttk.Checkbutton(header, text="Trocar banco atualiza prefixo dos samples",
                         variable=self.update_prefixes_var).grid(
             row=1, column=0, columnspan=4, sticky="w", padx=4, pady=(2, 0))
 
@@ -297,8 +297,8 @@ class AudioStudio:
 
         btns = ttk.Frame(f)
         btns.pack(side=tk.TOP, fill=tk.X, padx=8, pady=(8, 4))
-        ttk.Button(btns, text="Apply block fields", command=self.apply_block_fields).pack(side=tk.LEFT, padx=4)
-        ttk.Label(btns, text="(apply writes to the buffer; use Save PCK to write the file)",
+        ttk.Button(btns, text="Aplicar campos do bloco", command=self.apply_block_fields).pack(side=tk.LEFT, padx=4)
+        ttk.Label(btns, text="(aplicar grava no buffer; use Salvar PCK para gravar no arquivo)",
                   style="Muted.TLabel").pack(side=tk.LEFT, padx=8)
 
     def _build_ranges_tab(self):
@@ -307,7 +307,7 @@ class AudioStudio:
         self.ranges_tree = ttk.Treeview(
             f, columns=("idx", "active", "sample", "min", "mid", "max"), show="headings", height=6)
         for col, text, width, anchor in [
-            ("idx", "#", 40, "e"), ("active", "Active", 60, "center"), ("sample", "Sample", 320, "w"),
+            ("idx", "#", 40, "e"), ("active", "Ativo", 60, "center"), ("sample", "Sample", 320, "w"),
             ("min", "Min RPM", 100, "e"), ("mid", "Mid RPM", 100, "e"), ("max", "Max RPM", 100, "e"),
         ]:
             self.ranges_tree.heading(col, text=text)
@@ -324,31 +324,31 @@ class AudioStudio:
         for k, lbl in (("min", "Min"), ("mid", "Mid"), ("max", "Max")):
             ttk.Label(edit, text=lbl + ":").pack(side=tk.LEFT)
             ttk.Entry(edit, textvariable=self.range_vars[k], width=9).pack(side=tk.LEFT, padx=3)
-        ttk.Button(edit, text="Apply range", command=self.apply_range).pack(side=tk.LEFT, padx=6)
-        ttk.Label(edit, text="Active:").pack(side=tk.LEFT, padx=(12, 2))
+        ttk.Button(edit, text="Aplicar range", command=self.apply_range).pack(side=tk.LEFT, padx=6)
+        ttk.Label(edit, text="Ativos:").pack(side=tk.LEFT, padx=(12, 2))
         self.active_count_var = tk.StringVar()
         ttk.Spinbox(edit, from_=0, to=RANGE_ALLOCATED_COUNT, width=4,
                     textvariable=self.active_count_var).pack(side=tk.LEFT)
-        ttk.Button(edit, text="Apply count", command=self.apply_active_count).pack(side=tk.LEFT, padx=4)
-        ttk.Button(edit, text="▶ Play sample", command=self.play_selected_range_sample).pack(side=tk.LEFT, padx=12)
+        ttk.Button(edit, text="Aplicar contagem", command=self.apply_active_count).pack(side=tk.LEFT, padx=4)
+        ttk.Button(edit, text="▶ Tocar sample", command=self.play_selected_range_sample).pack(side=tk.LEFT, padx=12)
 
     def _build_curves_tab(self):
         f = ttk.Frame(self.tabs)
-        self.tabs.add(f, text="Curves (edit)")
+        self.tabs.add(f, text="Curvas (editar)")
         top = ttk.Frame(f)
         top.pack(side=tk.TOP, fill=tk.X, padx=8, pady=(8, 2))
-        ttk.Label(top, text="Curve being edited:").pack(side=tk.LEFT)
+        ttk.Label(top, text="Curva em edicao:").pack(side=tk.LEFT)
         self.curve_combo = ttk.Combobox(top, textvariable=self.edit_curve_key, state="readonly",
                                         values=[k for k, _, _, _ in CURVE_FIELDS], width=18)
         self.curve_combo.pack(side=tk.LEFT, padx=6)
         self.curve_combo.bind("<<ComboboxSelected>>", lambda e: self.load_pending_curve())
-        ttk.Button(top, text="+ segment", command=self.add_curve_segment).pack(side=tk.LEFT, padx=4)
-        ttk.Button(top, text="- segment", command=self.remove_curve_segment).pack(side=tk.LEFT, padx=4)
-        ttk.Button(top, text="Copy", command=self.copy_curve).pack(side=tk.LEFT, padx=4)
+        ttk.Button(top, text="+ segmento", command=self.add_curve_segment).pack(side=tk.LEFT, padx=4)
+        ttk.Button(top, text="- segmento", command=self.remove_curve_segment).pack(side=tk.LEFT, padx=4)
+        ttk.Button(top, text="Copiar", command=self.copy_curve).pack(side=tk.LEFT, padx=4)
         ttk.Button(top, text="Colar", command=self.paste_curve).pack(side=tk.LEFT, padx=4)
-        ttk.Button(top, text="Apply curve", command=self.apply_curve).pack(side=tk.LEFT, padx=10)
-        ttk.Button(top, text="Revert", command=self.load_pending_curve).pack(side=tk.LEFT, padx=4)
-        ttk.Label(top, text="Drag points on the graph; right click inserts/deletes a point.",
+        ttk.Button(top, text="Aplicar curva", command=self.apply_curve).pack(side=tk.LEFT, padx=10)
+        ttk.Button(top, text="Reverter", command=self.load_pending_curve).pack(side=tk.LEFT, padx=4)
+        ttk.Label(top, text="Arraste pontos no grafico; clique direito insere/apaga ponto.",
                   style="Muted.TLabel").pack(side=tk.LEFT, padx=10)
 
         self.seg_tree = ttk.Treeview(
@@ -362,10 +362,10 @@ class AudioStudio:
 
     def _build_preview_tab(self):
         f = ttk.Frame(self.tabs)
-        self.tabs.add(f, text="Audio preview")
+        self.tabs.add(f, text="Preview de audio")
         info = ttk.Frame(f)
         info.pack(side=tk.TOP, fill=tk.X, padx=8, pady=(8, 4))
-        self.bank_status = ttk.Label(info, text="Select an engine/exhaust block.", style="Muted.TLabel")
+        self.bank_status = ttk.Label(info, text="Selecione um bloco de motor/escape.", style="Muted.TLabel")
         self.bank_status.pack(side=tk.LEFT)
 
         ctl = ttk.Frame(f)
@@ -380,16 +380,16 @@ class AudioStudio:
 
         btns = ttk.Frame(f)
         btns.pack(side=tk.TOP, fill=tk.X, padx=8, pady=4)
-        ttk.Button(btns, text="▶ Play at this RPM (2s)", command=self.play_at_rpm).pack(side=tk.LEFT, padx=4)
-        ttk.Button(btns, text="▶ RPM sweep (6s)", command=self.play_sweep).pack(side=tk.LEFT, padx=4)
-        ttk.Button(btns, text="■ Stop", command=self.stop_audio).pack(side=tk.LEFT, padx=4)
-        ttk.Button(btns, text="Save sweep as WAV...", command=self.export_sweep_wav).pack(side=tk.LEFT, padx=12)
-        ttk.Label(btns, text="Approximate preview: crossfade per range + volume curve; pitch = RPM/MidRPM.",
+        ttk.Button(btns, text="▶ Tocar neste RPM (2s)", command=self.play_at_rpm).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btns, text="▶ Varredura de RPM (6s)", command=self.play_sweep).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btns, text="■ Parar", command=self.stop_audio).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btns, text="Salvar varredura como WAV...", command=self.export_sweep_wav).pack(side=tk.LEFT, padx=12)
+        ttk.Label(btns, text="Preview aproximado: crossfade por range + curva de volume; pitch = RPM/MidRPM.",
                   style="Muted.TLabel").pack(side=tk.LEFT, padx=8)
 
         gears = ttk.Frame(f)
         gears.pack(side=tk.TOP, fill=tk.X, padx=8, pady=4)
-        ttk.Button(gears, text="▶ Simulate gear shifts",
+        ttk.Button(gears, text="▶ Simular passagem de marchas",
                    command=self.play_gear_drive).pack(side=tk.LEFT, padx=4)
         ttk.Radiobutton(gears, text="Base (stock)", variable=self.perf_variant, value="base",
                         command=self.refresh_perf_label).pack(side=tk.LEFT, padx=4)
@@ -400,7 +400,7 @@ class AudioStudio:
 
         sf = ttk.Frame(f)
         sf.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=8, pady=4)
-        ttk.Label(sf, text="Bank samples (double click to play):", style="Muted.TLabel").pack(anchor="w")
+        ttk.Label(sf, text="Samples do banco (duplo clique para tocar):", style="Muted.TLabel").pack(anchor="w")
         self.samples_list = tk.Listbox(sf, bg=self.PANEL2, fg=self.FG, height=6,
                                        selectbackground="#3A4052")
         self.samples_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, pady=4)
@@ -415,7 +415,7 @@ class AudioStudio:
 
     # ------------------------------------------------------------------ file ops
     def open_pck_dialog(self):
-        path = filedialog.askopenfilename(title="Open vehicle PCK",
+        path = filedialog.askopenfilename(title="Abrir PCK de veiculo",
                                           filetypes=[("PCK", "*.pck"), ("Todos", "*.*")])
         if path:
             self.load_pck(Path(path))
@@ -424,7 +424,7 @@ class AudioStudio:
         try:
             doc = parse_pck(path)
         except (PckError, OSError) as exc:
-            messagebox.showerror("Failed to open PCK", str(exc))
+            messagebox.showerror("Falha ao abrir PCK", str(exc))
             return
         self.doc = doc
         self.editor = PckEditor(doc)
@@ -438,12 +438,12 @@ class AudioStudio:
         self.root.title(f"MC3 Audio Studio - {Path(path).name}")
         self.rebuild_tree()
         self.show_doc_summary()
-        self.set_status(f"Loaded: {path}")
+        self.set_status(f"Carregado: {path}")
 
     def reload_current(self):
         if self.current_path:
             if self.editor and self.editor.dirty:
-                if not messagebox.askyesno("Reload", "There are unsaved edits. Discard them and reload?"):
+                if not messagebox.askyesno("Recarregar", "Ha edicoes nao salvas. Descartar e recarregar?"):
                     return
             self.load_pck(self.current_path)
 
@@ -453,10 +453,10 @@ class AudioStudio:
         try:
             out = self.editor.save()
         except OSError as exc:
-            messagebox.showerror("Failed to save", str(exc))
+            messagebox.showerror("Falha ao salvar", str(exc))
             return
         self.editor.dirty = False
-        self.set_status(f"Saved: {out} (.bak backup created on the first save)")
+        self.set_status(f"Salvo: {out} (backup .bak criado na primeira gravacao)")
 
     def save_pck_as(self):
         if not self.editor:
@@ -467,7 +467,7 @@ class AudioStudio:
         if not path:
             return
         out = self.editor.save(path, backup=False)
-        self.set_status(f"Saved as: {out}")
+        self.set_status(f"Salvo como: {out}")
 
     def export_json(self):
         if not self.doc:
@@ -540,7 +540,7 @@ class AudioStudio:
             self.show_doc_summary()
         elif isinstance(item, str):
             info = aux_category_info(item)
-            self.set_summary(f"Category: {item}\n\nRole: {info['role']}\nEditing: {info['edit']}")
+            self.set_summary(f"Categoria: {item}\n\nPapel: {info['role']}\nEdicao: {info['edit']}")
         self.redraw_canvas()
 
     # ------------------------------------------------------------------ views
@@ -564,7 +564,7 @@ class AudioStudio:
         lines = [
             f"{d.path}",
             f"Root: {d.root_name} | magic {AUDIO_ROOT_MAGICS.get(d.root_magic, hex(d.root_magic))}",
-            f"Blocks: {len(d.blocks)} | Profiles: {len(d.profiles)} | Referenced banks: {', '.join(d.bank_names())}",
+            f"Blocos: {len(d.blocks)} | Profiles: {len(d.profiles)} | Bancos referenciados: {', '.join(d.bank_names())}",
         ]
         if d.warnings:
             lines += ["Avisos: " + "; ".join(d.warnings)]
@@ -573,8 +573,8 @@ class AudioStudio:
 
     def show_block(self, b: AudioBlock):
         self.set_summary(
-            f"{b.label} ({b.category}) | bank: {b.bank_name or '<empty>'} | "
-            f"RPM rec {b.min_rpm_rec:.0f}-{b.max_rpm_rec:.0f} | active ranges: {b.active_range_count}\n"
+            f"{b.label} ({b.category}) | banco: {b.bank_name or '<vazio>'} | "
+            f"RPM rec {b.min_rpm_rec:.0f}-{b.max_rpm_rec:.0f} | ranges ativos: {b.active_range_count}\n"
             f"magic: {AUDIO_BLOCK_MAGICS.get(b.magic, hex(b.magic))}"
             + ("\nAvisos: " + "; ".join(b.warnings) if b.warnings else ""))
         # block tab
@@ -593,7 +593,7 @@ class AudioStudio:
         # curves tab
         self.load_pending_curve()
         # raw tab
-        lines = ["Curves:"]
+        lines = ["Curvas:"]
         for k, c in b.curves.items():
             lines.append(f"  {k}: count={c.point_count} off={c.file_off and hex(c.file_off)} "
                          f"pts_off={c.points_file_off and hex(c.points_file_off)} {c.warning}")
@@ -603,13 +603,13 @@ class AudioStudio:
 
     def show_profile(self, p: ProfileBlock):
         self.set_summary(f"{p.label} | magic {hex(p.magic)}\n"
-                         "The 22 parameters appear in the Ranges tab - double click one of them to edit it.")
+                         "Os 22 parametros aparecem na aba Ranges - duplo clique em um deles para editar.")
         self.ranges_tree.delete(*self.ranges_tree.get_children())
         for i, v in enumerate(p.params):
             self.ranges_tree.insert("", "end", iid=str(i),
                                     values=(i, "-", f"param[{i:02d}]", f"{v:.9g}", "", ""))
         lines = [f"[{i:02d}] {v:.9g}" for i, v in enumerate(p.params)]
-        self.set_raw("Profile parameters:\n" + "\n".join(lines))
+        self.set_raw("Parametros do profile:\n" + "\n".join(lines))
 
     def _edit_profile_param(self, p: ProfileBlock):
         sel = self.ranges_tree.selection()
@@ -620,22 +620,22 @@ class AudioStudio:
         new = simple_prompt(self.root, f"{p.label} - param[{idx:02d}]", f"{cur:.9g}")
         if new is None:
             return
-        self.push_undo(f"param[{idx:02d}] of {p.label}")
+        self.push_undo(f"param[{idx:02d}] de {p.label}")
         try:
             self.editor.set_profile_param(p, idx, float(new))
         except (ValueError, PckError) as exc:
-            messagebox.showerror("Invalid value", str(exc))
+            messagebox.showerror("Valor invalido", str(exc))
             self.undo_stack.pop()
             return
         self._after_edit()
-        self.set_status(f"param[{idx:02d}] applied (not saved yet).")
+        self.set_status(f"param[{idx:02d}] aplicado (nao salvo ainda).")
 
     def show_raw_aux(self, r: RawAuxBlock):
         info = aux_category_info(r.category)
         self.set_summary(
-            f"{r.label} ({r.category}) | magic {hex(r.magic)} | kind {r.kind}\n"
-            f"Role: {info['role']}\n"
-            "Candidate strings and floats in the Ranges tab - double click to edit (experimental).")
+            f"{r.label} ({r.category}) | magic {hex(r.magic)} | tipo {r.kind}\n"
+            f"Papel: {info['role']}\n"
+            "Strings e floats candidatos na aba Ranges - duplo clique para editar (experimental).")
         # repurpose the ranges table: strings then float candidates, editable via prompt
         self.ranges_tree.delete(*self.ranges_tree.get_children())
         for e in r.found_string_entries:
@@ -665,7 +665,7 @@ class AudioStudio:
             try:
                 self.editor.set_aux_string(r, rel_off, new)
             except PckError as exc:
-                messagebox.showerror("Error", str(exc))
+                messagebox.showerror("Erro", str(exc))
                 self.undo_stack.pop()
                 return
         else:
@@ -684,11 +684,11 @@ class AudioStudio:
             try:
                 self.editor.set_aux_float(r, rel_off, value)
             except PckError as exc:
-                messagebox.showerror("Error", str(exc))
+                messagebox.showerror("Erro", str(exc))
                 self.undo_stack.pop()
                 return
         self._after_edit()
-        self.set_status(f"{r.label} +0x{rel_off:X} applied (not saved yet).")
+        self.set_status(f"{r.label} +0x{rel_off:X} aplicado (nao salvo ainda).")
 
     # ------------------------------------------------------------------ edits
     def _current_block(self) -> AudioBlock | None:
@@ -733,7 +733,7 @@ class AudioStudio:
 
     def undo(self):
         if not self.editor or not self.undo_stack:
-            self.set_status("Nothing to undo.")
+            self.set_status("Nada para desfazer.")
             return
         label, buf = self.undo_stack.pop()
         self.redo_stack.append((label, bytes(self.editor.buf)))
@@ -745,7 +745,7 @@ class AudioStudio:
 
     def redo(self):
         if not self.editor or not self.redo_stack:
-            self.set_status("Nothing to redo.")
+            self.set_status("Nada para refazer.")
             return
         label, buf = self.redo_stack.pop()
         self.undo_stack.append((label, bytes(self.editor.buf)))
@@ -758,32 +758,32 @@ class AudioStudio:
     # ---- donor import ----
     def import_donor_dialog(self, mode: str):
         if not self.editor:
-            messagebox.showinfo("Import", "Open the target PCK first.")
+            messagebox.showinfo("Importar", "Abra o PCK alvo primeiro.")
             return
         path = filedialog.askopenfilename(
-            title=f"Donor PCK ({'conservative' if mode == 'conservative' else 'experimental'})",
+            title=f"PCK doador ({'conservador' if mode == 'conservative' else 'experimental'})",
             filetypes=[("PCK", "*.pck"), ("Todos", "*.*")])
         if not path:
             return
         try:
             donor = parse_pck(path)
         except PckError as exc:
-            messagebox.showerror("Failed to open the donor", str(exc))
+            messagebox.showerror("Falha ao abrir doador", str(exc))
             return
         if not messagebox.askyesno(
-                "Confirm import",
-                f"Import audio from {os.path.basename(path)} into {self.doc.path.name} "
-                f"({'conservative' if mode == 'conservative' else 'experimental'} mode)?\n\n"
-                "Conservative: banks, sample prefixes, RPMs and gear-shift curves.\n"
-                "Experimental: all safe fields, full ranges, all curves, "
-                "EngineRevSound, auxiliary strings/floats and Commons.\n\n"
-                "The operation can be undone with Ctrl+Z and nothing is saved until you save."):
+                "Confirmar importacao",
+                f"Importar audio de {os.path.basename(path)} para {self.doc.path.name} "
+                f"(modo {'conservador' if mode == 'conservative' else 'experimental'})?\n\n"
+                "Conservador: bancos, prefixos de sample, RPMs e curvas de troca de marcha.\n"
+                "Experimental: todos os campos seguros, ranges completos, todas as curvas, "
+                "EngineRevSound, strings/floats auxiliares e Commons.\n\n"
+                "A operacao pode ser desfeita com Ctrl+Z e nada e salvo ate voce salvar."):
             return
-        self.push_undo(f"import {mode} from {os.path.basename(path)}")
+        self.push_undo(f"import {mode} de {os.path.basename(path)}")
         try:
             report = self.editor.import_from_document(donor, mode=mode)
         except PckError as exc:
-            messagebox.showerror("Import failed", str(exc))
+            messagebox.showerror("Falha na importacao", str(exc))
             self.undo_stack.pop()
             return
         self._after_edit()
@@ -791,19 +791,19 @@ class AudioStudio:
         counters = "\n".join(f"  {k}: {v}" for k, v in report.items()
                              if k != "warnings" and isinstance(v, int) and v)
         warns = report.get("warnings", [])
-        msg = f"Import finished:\n{counters}"
+        msg = f"Importacao concluida:\n{counters}"
         if warns:
             msg += f"\n\nAvisos ({len(warns)}):\n" + "\n".join("  - " + w for w in warns[:10])
             if len(warns) > 10:
-                msg += f"\n  ... and {len(warns) - 10} more"
-        messagebox.showinfo("Import", msg)
-        self.set_status(f"Audio imported ({mode}) - use Save PCK to write it.")
+                msg += f"\n  ... e mais {len(warns) - 10}"
+        messagebox.showinfo("Importacao", msg)
+        self.set_status(f"Audio importado ({mode}) - use Salvar PCK para gravar.")
 
     def apply_block_fields(self):
         b = self._current_block()
         if not b or not self.editor:
             return
-        self.push_undo("block fields")
+        self.push_undo("campos do bloco")
         changed_prefixes = 0
         try:
             if self.bank_name_var.get() != b.bank_name:
@@ -821,12 +821,12 @@ class AudioStudio:
                 if value != getattr(b, name):
                     self.editor.set_block_scalar(b, name, value)
         except (ValueError, PckError) as exc:
-            messagebox.showerror("Invalid value", str(exc))
+            messagebox.showerror("Valor invalido", str(exc))
             self.undo_stack.pop()
             return
         self._after_edit()
-        extra = f" ({changed_prefixes} sample prefixes updated)" if changed_prefixes else ""
-        self.set_status(f"Block fields applied{extra} (not saved yet).")
+        extra = f" ({changed_prefixes} prefixos de sample atualizados)" if changed_prefixes else ""
+        self.set_status(f"Campos do bloco aplicados{extra} (nao salvos ainda).")
 
     def on_range_select(self, _event=None):
         b = self._current_block()
@@ -854,25 +854,25 @@ class AudioStudio:
                 mid_rpm=float(self.range_vars["mid"].get()),
                 max_rpm=float(self.range_vars["max"].get()))
         except (ValueError, PckError) as exc:
-            messagebox.showerror("Invalid value", str(exc))
+            messagebox.showerror("Valor invalido", str(exc))
             self.undo_stack.pop()
             return
         self._after_edit()
-        self.set_status(f"Range {idx} applied (not saved yet).")
+        self.set_status(f"Range {idx} aplicado (nao salvo ainda).")
 
     def apply_active_count(self):
         b = self._current_block()
         if not b or not self.editor:
             return
-        self.push_undo("range count")
+        self.push_undo("contagem de ranges")
         try:
             self.editor.set_block_scalar(b, "active_range_count", int(self.active_count_var.get()))
         except (ValueError, PckError) as exc:
-            messagebox.showerror("Invalid value", str(exc))
+            messagebox.showerror("Valor invalido", str(exc))
             self.undo_stack.pop()
             return
         self._after_edit()
-        self.set_status("Active range count applied.")
+        self.set_status("Contagem de ranges ativos aplicada.")
 
     # ---- curve editing ----
     def load_pending_curve(self):
@@ -904,7 +904,7 @@ class AudioStudio:
         if not (0 <= field_i < 6):
             return
         cur = self.pending_segments[seg_i][field_i]
-        new = simple_prompt(self.root, f"Segment {seg_i}, field {['X0','Y0','CtrlX','CtrlY','X1','Y1'][field_i]}",
+        new = simple_prompt(self.root, f"Segmento {seg_i}, campo {['X0','Y0','CtrlX','CtrlY','X1','Y1'][field_i]}",
                             f"{cur:.6g}")
         if new is None:
             return
@@ -919,7 +919,7 @@ class AudioStudio:
         if self.pending_segments is None:
             return
         if len(self.pending_segments) >= CURVE_ROW_SLOTS:
-            messagebox.showinfo("Limit", f"At most {CURVE_ROW_SLOTS} segments per curve.")
+            messagebox.showinfo("Limite", f"Maximo de {CURVE_ROW_SLOTS} segmentos por curva.")
             return
         if self.pending_segments:
             x0, y0 = self.pending_segments[-1][4], self.pending_segments[-1][5]
@@ -940,16 +940,16 @@ class AudioStudio:
         b = self._current_block()
         if not b or not self.editor or self.pending_segments is None:
             return
-        self.push_undo(f"curve {self.edit_curve_key.get()}")
+        self.push_undo(f"curva {self.edit_curve_key.get()}")
         try:
             self.editor.set_curve_segments(b, self.edit_curve_key.get(),
                                            [tuple(s) for s in self.pending_segments])
         except PckError as exc:
-            messagebox.showerror("Error", str(exc))
+            messagebox.showerror("Erro", str(exc))
             self.undo_stack.pop()
             return
         self._after_edit()
-        self.set_status(f"Curve {self.edit_curve_key.get()} applied (not saved yet).")
+        self.set_status(f"Curva {self.edit_curve_key.get()} aplicada (nao salva ainda).")
 
     def copy_curve(self):
         if self.pending_segments is None:
@@ -957,7 +957,7 @@ class AudioStudio:
         self.root.clipboard_clear()
         self.root.clipboard_append(json.dumps({"mc3_curve": self.edit_curve_key.get(),
                                                 "segments": self.pending_segments}))
-        self.set_status(f"Curve {self.edit_curve_key.get()} copied ({len(self.pending_segments)} segments).")
+        self.set_status(f"Curva {self.edit_curve_key.get()} copiada ({len(self.pending_segments)} segmentos).")
 
     def paste_curve(self):
         if self.pending_segments is None:
@@ -968,12 +968,12 @@ class AudioStudio:
             assert isinstance(segs, list) and all(len(s) == 6 for s in segs)
             segs = [[float(v) for v in s] for s in segs][:CURVE_ROW_SLOTS]
         except Exception:
-            messagebox.showinfo("Paste curve", "The clipboard does not contain a curve copied from here.")
+            messagebox.showinfo("Colar curva", "A area de transferencia nao contem uma curva copiada daqui.")
             return
         self.pending_segments = segs
         self.refresh_seg_table()
         self.redraw_canvas()
-        self.set_status(f"Curve pasted ({len(segs)} segments) - use Apply curve to write it.")
+        self.set_status(f"Curva colada ({len(segs)} segmentos) - use Aplicar curva para gravar.")
 
     # ------------------------------------------------------------------ canvas
     def _plot_geometry(self):
@@ -1019,7 +1019,7 @@ class AudioStudio:
         c.create_rectangle(0, 0, w, h, fill=self.PANEL, outline="")
         block = self._current_block()
         if not block:
-            c.create_text(w / 2, h / 2, text="Select an audio block to view/edit curves.",
+            c.create_text(w / 2, h / 2, text="Selecione um bloco de audio para ver/editar curvas.",
                           fill=self.MUTED, font=("Segoe UI", 11))
             return
         pw, ph = max(1, w - ml - mr), max(1, h - mt - mb)
@@ -1053,7 +1053,7 @@ class AudioStudio:
                       fill=self.FG, font=("Segoe UI", 10, "bold"))
         edit_key = self.edit_curve_key.get()
         c.create_text(ml + pw, 10, anchor="e",
-                      text=f"editing: {edit_key} (drag the points)", fill=self.ACCENT,
+                      text=f"editando: {edit_key} (arraste os pontos)", fill=self.ACCENT,
                       font=("Segoe UI", 9))
 
         legend_y = mt + 8
@@ -1157,7 +1157,7 @@ class AudioStudio:
     def _insert_knot(self, seg_index: int, x: float, y: float):
         segs = self.pending_segments
         if len(segs) >= CURVE_ROW_SLOTS:
-            self.set_status(f"Limit of {CURVE_ROW_SLOTS} segments reached; cannot insert a point.")
+            self.set_status(f"Limite de {CURVE_ROW_SLOTS} segmentos atingido; nao da para inserir ponto.")
             return
         seg = segs[seg_index]
         a, b_, c_ = fit_quadratic((seg[0], seg[1]), (seg[2], seg[3]), (seg[4], seg[5]))
@@ -1170,7 +1170,7 @@ class AudioStudio:
         segs[seg_index:seg_index + 1] = [left, right]
         self.refresh_seg_table()
         self.redraw_canvas()
-        self.set_status(f"Point inserted at x={x:.3g} (Apply curve to write it).")
+        self.set_status(f"Ponto inserido em x={x:.3g} (Aplicar curva para gravar).")
 
     def _delete_knot(self, seg_index: int, point_index: int):
         segs = self.pending_segments
@@ -1189,11 +1189,11 @@ class AudioStudio:
         elif point_index == 2 and seg_index == len(segs) - 1 and len(segs) > 1:
             segs.pop()
         else:
-            self.set_status("Cannot delete the only segment; use '- segment'.")
+            self.set_status("Nao da para apagar o unico segmento; use '- segmento'.")
             return
         self.refresh_seg_table()
         self.redraw_canvas()
-        self.set_status("Point deleted (Apply curve to write it).")
+        self.set_status("Ponto apagado (Aplicar curva para gravar).")
 
     # ------------------------------------------------------------------ banks/preview
     def _bank_dirs(self):
@@ -1214,7 +1214,7 @@ class AudioStudio:
         try:
             bank = BankSamples(bnk, td)
         except (BnkParseError, OSError) as exc:
-            self.set_status(f"Failed to load bank {bank_name}: {exc}")
+            self.set_status(f"Falha ao carregar banco {bank_name}: {exc}")
             return None
         self.bank_cache[key] = bank
         self.bank_paths[key] = (bnk, td)
@@ -1225,10 +1225,10 @@ class AudioStudio:
         self.samples_list.delete(0, tk.END)
         if bank is None:
             self.bank_status.configure(
-                text=f"Bank '{block.bank_name}' not found. Use Banks > Set extra banks folder.")
+                text=f"Banco '{block.bank_name}' nao encontrado. Use Bancos > Definir pasta extra.")
             return
         bnk, td = self.bank_paths[block.bank_name.upper()]
-        self.bank_status.configure(text=f"Bank: {bnk}" + (f" | td: {os.path.basename(td)}" if td else ""))
+        self.bank_status.configure(text=f"Banco: {bnk}" + (f" | td: {os.path.basename(td)}" if td else ""))
         for name in bank.names():
             self.samples_list.insert(tk.END, name)
         lo = max(200.0, block.min_rpm_rec * 0.7)
@@ -1240,7 +1240,7 @@ class AudioStudio:
         self.refresh_perf_label()  # may widen the slider to the engine's real RPM range
 
     def set_banks_dir(self):
-        d = filedialog.askdirectory(title="Extra folder to search for .bnk/.td")
+        d = filedialog.askdirectory(title="Pasta extra onde procurar .bnk/.td")
         if d:
             self.extra_bank_dirs.insert(0, d)
             self.bank_cache.clear()
@@ -1248,16 +1248,16 @@ class AudioStudio:
             b = self._current_block()
             if b:
                 self.update_preview_tab(b)
-            self.set_status(f"Banks folder added: {d}")
+            self.set_status(f"Pasta de bancos adicionada: {d}")
 
     def _play_wav_bytes(self, wav: bytes):
-        """winsound does not accept SND_MEMORY together with SND_ASYNC, so we write a
-        temporary file and play it by file name (which supports async)."""
+        """winsound nao aceita SND_MEMORY junto com SND_ASYNC, entao gravamos num
+        arquivo temporario e tocamos por nome de arquivo (que suporta async)."""
         if winsound is None:
-            messagebox.showinfo("No audio", "winsound is not available on this platform.")
+            messagebox.showinfo("Sem audio", "winsound indisponivel nesta plataforma.")
             return
         import tempfile
-        winsound.PlaySound(None, winsound.SND_PURGE)  # stop the previous sound before overwriting
+        winsound.PlaySound(None, winsound.SND_PURGE)  # para o som anterior antes de sobrescrever
         if self._tmp_wav is None:
             fd, path = tempfile.mkstemp(suffix=".wav", prefix="mc3studio_")
             os.close(fd)
@@ -1293,7 +1293,7 @@ class AudioStudio:
             self._play_wav_bytes(sample_wav(bank, name))
             self.set_status(f"Tocando sample {name}")
         except PreviewError as exc:
-            messagebox.showerror("Error", str(exc))
+            messagebox.showerror("Erro", str(exc))
 
     def play_selected_range_sample(self):
         if isinstance(self.selected, ProfileBlock):
@@ -1312,13 +1312,13 @@ class AudioStudio:
             return
         bank = self.resolve_bank(b.bank_name)
         if bank is None:
-            self.set_status(f"Bank '{b.bank_name}' not found to play the sample.")
+            self.set_status(f"Banco '{b.bank_name}' nao encontrado para tocar o sample.")
             return
         try:
             self._play_wav_bytes(sample_wav(bank, name))
             self.set_status(f"Tocando sample {name}")
         except PreviewError as exc:
-            messagebox.showerror("Error", str(exc))
+            messagebox.showerror("Erro", str(exc))
 
     def _render_and_play(self, render_fn, what: str):
         b = self._current_block()
@@ -1326,10 +1326,10 @@ class AudioStudio:
             return
         bank = self.resolve_bank(b.bank_name)
         if bank is None:
-            messagebox.showinfo("No bank", f"Bank '{b.bank_name}' not found.")
+            messagebox.showinfo("Sem banco", f"Banco '{b.bank_name}' nao encontrado.")
             return
         if self._render_thread and self._render_thread.is_alive():
-            self.set_status("A render is already in progress...")
+            self.set_status("Ja ha uma renderizacao em andamento...")
             return
         self.set_status(f"Renderizando {what}...")
         result: dict = {}
@@ -1351,7 +1351,7 @@ class AudioStudio:
                 self.root.after(100, poll)
                 return
             if "err" in result:
-                self.set_status(f"Preview failed: {result['err']}")
+                self.set_status(f"Falha no preview: {result['err']}")
             elif "wav" in result:
                 self._play_wav_bytes(result["wav"])
                 self.set_status(f"Tocando {what}.")
@@ -1363,11 +1363,11 @@ class AudioStudio:
         self._render_and_play(lambda m: m.render_constant(rpm, 2.0), f"RPM {rpm:.0f}")
 
     def play_sweep(self):
-        self._render_and_play(lambda m: m.render_sweep(duration=6.0), "RPM sweep")
+        self._render_and_play(lambda m: m.render_sweep(duration=6.0), "varredura de RPM")
 
     # ---- performance (vehsim) integration ----
     def get_perf(self, variant: str = None):
-        """VehiclePerf of the open pck (cached); None if the pck has no vehsim."""
+        """VehiclePerf do pck aberto (cacheada); None se o pck nao tiver vehsim."""
         variant = variant or self.perf_variant.get()
         if variant in self.perf_cache:
             return self.perf_cache[variant]
@@ -1384,11 +1384,11 @@ class AudioStudio:
     def refresh_perf_label(self):
         perf = self.get_perf()
         if perf is None:
-            self.perf_label.configure(text="(no performance data in this pck)")
+            self.perf_label.configure(text="(sem dados de performance neste pck)")
             return
         e, t = perf.engine, perf.trans
         self.perf_label.configure(
-            text=f"Idle {e.idle_rpm:.0f} | Max real {e.max_rpm:.0f} RPM | {t.forward_gears} gears | "
+            text=f"Idle {e.idle_rpm:.0f} | Max real {e.max_rpm:.0f} RPM | {t.forward_gears} marchas | "
                  f"troca {t.gear_change_time:.2f}s")
         # RPM slider covers the engine's real range (audio was often recorded lower;
         # the game pitch-stretches beyond max_rpm_rec, and so does the preview)
@@ -1398,13 +1398,13 @@ class AudioStudio:
         perf = self.get_perf()
         if perf is None:
             messagebox.showinfo(
-                "No performance data",
-                "This pck has no readable vehsim data (or it is a psppck).\n"
-                "The gear simulation needs them.")
+                "Sem performance",
+                "Este pck nao tem dados vehsim legiveis (ou e um psppck).\n"
+                "A simulacao de marchas precisa deles.")
             return
         self._render_and_play(
             lambda m: m.render_gear_drive(perf, duration=12.0),
-            f"shift through {perf.trans.forward_gears} gears ({perf.variant})")
+            f"passagem de {perf.trans.forward_gears} marchas ({perf.variant})")
 
     def export_sweep_wav(self):
         b = self._current_block()
@@ -1420,31 +1420,31 @@ class AudioStudio:
             wav = EngineMixer(b, bank).render_sweep(duration=6.0)
             with open(path, "wb") as f:
                 f.write(wav)
-            self.set_status(f"WAV saved: {path}")
+            self.set_status(f"WAV salvo: {path}")
         except PreviewError as exc:
-            messagebox.showerror("Error", str(exc))
+            messagebox.showerror("Erro", str(exc))
 
     # ------------------------------------------------------------------ bank tools
     def show_bank_info(self):
         b = self._current_block()
         if not b:
-            messagebox.showinfo("Info", "Select a block with a bank first.")
+            messagebox.showinfo("Info", "Selecione um bloco com banco primeiro.")
             return
         bnk, td = find_bank_files(b.bank_name, self._bank_dirs())
         if not bnk:
-            messagebox.showinfo("Info", f"Bank '{b.bank_name}' not found.")
+            messagebox.showinfo("Info", f"Banco '{b.bank_name}' nao encontrado.")
             return
         try:
             h = parse_bnk(bnk)
         except BnkParseError as exc:
-            messagebox.showerror("Error", str(exc))
+            messagebox.showerror("Erro", str(exc))
             return
         lines = h.summary_lines()
         lines.append("")
         for s in h.streams:
-            loop = f"loop {s.loop_start}-{s.loop_end}" if s.loop_flag else "no loop"
+            loop = f"loop {s.loop_start}-{s.loop_end}" if s.loop_flag else "sem loop"
             lines.append(f"#{s.index:2d} {s.name or '-':<20} {s.codec} {s.sample_rate}Hz {loop} {s.stream_size}B")
-        messagebox.showinfo(f"Bank {b.bank_name}", "\n".join(lines))
+        messagebox.showinfo(f"Banco {b.bank_name}", "\n".join(lines))
 
     def demux_bank_dialog(self):
         b = self._current_block()
@@ -1452,45 +1452,45 @@ class AudioStudio:
         if b:
             bnk, td = find_bank_files(b.bank_name, self._bank_dirs())
         if not bnk:
-            bnk = filedialog.askopenfilename(title="Choose a .bnk to extract",
+            bnk = filedialog.askopenfilename(title="Escolher .bnk para extrair",
                                              filetypes=[("BNK", "*.bnk"), ("Todos", "*.*")])
             if not bnk:
                 return
-        out_dir = filedialog.askdirectory(title="Output folder for the .genh + manifest")
+        out_dir = filedialog.askdirectory(title="Pasta de saida para os .genh + manifest")
         if not out_dir:
             return
         try:
             manifest = bnk_demux(bnk, out_dir, use_genh=True, td_path=td)
         except (BnkParseError, OSError) as exc:
-            messagebox.showerror("DEMUX failed", str(exc))
+            messagebox.showerror("Falha no DEMUX", str(exc))
             return
-        messagebox.showinfo("DEMUX finished",
-                            f"Streams extracted to:\n{out_dir}\n\nManifest: {manifest}\n\n"
-                            "Replace the .genh files you want (same codec) and use Rebuild bank (MUX).")
+        messagebox.showinfo("DEMUX concluido",
+                            f"Streams extraidos para:\n{out_dir}\n\nManifest: {manifest}\n\n"
+                            "Substitua os .genh desejados (mesmo codec) e use Remontar banco (MUX).")
 
     def mux_bank_dialog(self):
-        orig = filedialog.askopenfilename(title="ORIGINAL .bnk file (template)",
+        orig = filedialog.askopenfilename(title="Arquivo .bnk ORIGINAL (modelo)",
                                           filetypes=[("BNK", "*.bnk")])
         if not orig:
             return
-        folder = filedialog.askdirectory(title="DEMUX folder (containing manifest.json)")
+        folder = filedialog.askdirectory(title="Pasta do DEMUX (contendo manifest.json)")
         if not folder:
             return
         manifest = os.path.join(folder, "manifest.json")
         if not os.path.exists(manifest):
-            messagebox.showerror("Error", f"manifest.json not found in {folder}")
+            messagebox.showerror("Erro", f"manifest.json nao encontrado em {folder}")
             return
-        out = filedialog.asksaveasfilename(title="Save the new .bnk as", defaultextension=".bnk",
+        out = filedialog.asksaveasfilename(title="Salvar novo .bnk como", defaultextension=".bnk",
                                            filetypes=[("BNK", "*.bnk")])
         if not out:
             return
         try:
             path, report = bnk_mux(orig, manifest, out)
         except (BnkMuxError, OSError) as exc:
-            messagebox.showerror("MUX failed", str(exc))
+            messagebox.showerror("Falha no MUX", str(exc))
             return
         self.bank_cache.clear()
-        messagebox.showinfo("MUX finished", f"New bank: {path}\n\n" + "\n".join(report[:12]))
+        messagebox.showinfo("MUX concluido", f"Novo banco: {path}\n\n" + "\n".join(report[:12]))
 
 
 def simple_prompt(parent, title, initial):

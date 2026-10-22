@@ -552,7 +552,7 @@ def read_dave_member(path: pathlib.Path, wanted: str) -> bytes:
 def _audio_module():
     candidates = (
         pathlib.Path(__file__).resolve().parent / "bnk_tool" / "pck.py",
-        pathlib.Path(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools', 'bnk_tool/pck.py')),
+        pathlib.Path(os.path.join(os.environ.get('MC_RESEARCH_ROOT', ''), 'shared/any/audio/bnk_tool/pck.py')),
     )
     path = next((p for p in candidates if p.is_file()), None)
     if path is None:

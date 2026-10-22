@@ -90,6 +90,42 @@ TOOLS = [
         ),
     ),
     dict(
+        name="Flash to SWF",
+        script="mc3_swf.py",
+        gui=False,
+        summary="Flash .pck (alpha 2004) read completely and written back as .swf.",
+        opens=[".pck"],
+        detail=(
+            "python mc3_swf.py swf <flash dir or .pck> --out DIR\n"
+            "python mc3_swf.py cover <dir>     byte coverage of the reader\n"
+            "python mc3_swf.py dump <file.pck> [--obj N]\n"
+            "python mc3_swf.py verify <dir> --swf DIR   (needs JPEXS FFDec)\n\n"
+            "Character ids in the SWF are the object indices of the .pck. Shapes\n"
+            "come back as outlines (the .pck only has triangle fans), fonts are\n"
+            "traced from their bitmap sheets, scripts are the original AVM1.\n"
+            "Each SWF carries an mc3_pck_meta block so mc3_swf2pck.py rebuilds\n"
+            "untouched objects exactly (--no-meta leaves it out).\n"
+            "Alpha build only for now. Spec: Documentation/MC3_FLASH_PCK.md."
+        ),
+    ),
+    dict(
+        name="SWF to Flash .pck",
+        script="mc3_swf2pck.py",
+        gui=False,
+        summary="Compile a .swf into the alpha's flash .pck (the way back).",
+        opens=[".swf"],
+        detail=(
+            "python mc3_swf2pck.py pck <dir or .swf> --out DIR\n"
+            "python mc3_swf2pck.py viaswf <dir or .pck> [--no-meta]   .pck -> .swf -> .pck\n"
+            "python mc3_swf2pck.py roundtrip <dir or .pck> [--layout source|packed]\n\n"
+            "A SWF written by mc3_swf.py carries an mc3_pck_meta block: every tag\n"
+            "left untouched comes back exactly (CLUT, fans, font sheets); an\n"
+            "edited one, or any other SWF, is compiled from the SWF itself:\n"
+            "shapes tessellated, bitmaps resampled and quantized, font sheets\n"
+            "drawn for the sizes the texts use. Alpha build only for now."
+        ),
+    ),
+    dict(
         name="Shading group",
         script="mc3_shadinggroup.py",
         gui=False,
@@ -195,13 +231,13 @@ TOOLS = [
     dict(
         name="Rim Importer & Explorer",
         script="Rim Importer & Explorer 2.0.py",
-        dirs=[os.environ.get("MC3_RIM_IMPORTER", "")],
+        dirs=[os.environ.get("RIM_IMPORTER_DIR", "")],
         gui=True,
         summary="Rims: browse, preview, import and repaint shaders inside rim.ppf.",
         opens=[".ppf"],
         detail=(
             "By Victor (Mid Engine) and RibeiroG -- not part of this toolkit,\n"
-            "launched from wherever it lives (point MC3_RIM_IMPORTER at its folder).\n\n"
+            "launched from wherever it lives (L:\\ by default).\n\n"
             "Reads the pf05 pack straight: header, descriptor table, one entry\n"
             "per rim, geometry packets, shader batches. Browses and names the\n"
             "entries, previews the mesh, exports OBJ, imports a replacement and\n"
@@ -227,10 +263,10 @@ TOOLS = [
         summary="Build a city .pck from scratch, or graft one generated piece into a real one.",
         opens=['.pck'],
         detail=(
-            "python mc3_city_build.py --donor CITY.pck --out-path new.pck\n"
-            "python mc3_city_build.py --donor CITY.pck --xmod M.xmod --out-path new.pck\n"
-            "python mc3_city_build.py --base CITY.pck --graft shaders --out-path g.pck\n"
-            "python mc3_city_build.py --verify-only new.pck\n"
+            "python mc3_city_build.py --doador CITY.pck --saida new.pck\n"
+            "python mc3_city_build.py --doador CITY.pck --xmod M.xmod --saida new.pck\n"
+            "python mc3_city_build.py --base CITY.pck --enxerta shaders --saida g.pck\n"
+            "python mc3_city_build.py --verificar new.pck\n"
             "\n"
             "GENERATED: header, MapRoot (0x290 bytes -- mcCity reaches +0x228), hood\n"
             "table and records, components, mcCityModelType, meshes, group and block\n"
@@ -238,7 +274,7 @@ TOOLS = [
             "COPIED from the donor: one shader block (0xB0, sub-object at +0x10) and\n"
             "the cullable classes, with their counts zeroed.\n"
             "\n"
-            "--graft is the differential bisection: start from a file that LOADS and\n"
+            "--enxerta is the differential bisection: start from a file that LOADS and\n"
             "swap ONE generated piece, so a boot excludes half the space instead of\n"
             "testing one field. That cleared the shader group and isolated the\n"
             "ComponentData.\n"
@@ -256,8 +292,8 @@ TOOLS = [
         summary="Run the city loader's Place walk on the PC and report what would hang.",
         opens=['.pck'],
         detail=(
-            "python mc3_place_sim.py CITY.pck [--detail]\n"
-            "python mc3_place_sim.py MINE.pck --coverage RETAIL.pck\n"
+            "python mc3_place_sim.py CITY.pck [--detalhe]\n"
+            "python mc3_place_sim.py MINE.pck --cobertura RETAIL.pck\n"
             "\n"
             "Replays in Python the same graph the game walks:\n"
             "  mcCity::mcCity(datResource&)              0x259160\n"
@@ -272,7 +308,7 @@ TOOLS = [
             "+0x1C index, ComponentData constants, and per-block qwc/nv against the\n"
             "VIF stream.\n"
             "\n"
-            "--coverage says which MapRoot fields your file leaves empty AND which\n"
+            "--cobertura says which MapRoot fields your file leaves empty AND which\n"
             "ones this simulator does not verify. Knowing the gaps matters more than\n"
             "the list of passes.\n"
             "\n"
@@ -287,11 +323,11 @@ TOOLS = [
         opens=['.xmod', '.mod'],
         detail=(
             "python mc2_port.py check    FILE_OR_DIR\n"
-            "python mc2_port.py textures DIR --textures MC2/texture_x\n"
+            "python mc2_port.py textures DIR --texturas MC2/texture_x\n"
             "python mc2_port.py mod      DIR\n"
-            "python mc2_port.py fit      MESH --how RETAIL.mod\n"
-            "python mc2_port.py retex    MESH --texture NAME\n"
-            "python mc2_port.py city     MC2/city/losangeles\n"
+            "python mc2_port.py fit      MESH --como RETAIL.mod\n"
+            "python mc2_port.py retex    MESH --textura NAME\n"
+            "python mc2_port.py cidade   MC2/city/losangeles\n"
             "\n"
             "MC3 still ships a TEXT mesh reader and uses it for 39 of its own models.\n"
             "rmcModel::Create (0x2A8CA0) does strrchr(name, '.'): `.mod` goes to\n"
@@ -310,85 +346,6 @@ TOOLS = [
         ),
     ),
     dict(
-        name='MC2 races and modes',
-        script='mc2_races_to_mc3.py',
-        gui=False,
-        summary="Install an MC2 city's races into its MC3 slot, plus MC3-only modes built from them.",
-        opens=['.rac', '.loc'],
-        detail=(
-            'python mc2_races_to_mc3.py --mc2-city losangeles\n'
-            'python mc2_races_to_mc3.py --mc2-city losangeles --add-types capture_the_flag,bomb_tag\n'
-            'python mc2_race_modes.py --city losangeles\n'
-            'python mc2_race_shortcut.py --city paris --race NAME --leg A B\n'
-            '\n'
-            "Reads the user's own MC2 PS2 races and writes MC3 .rac/.rinf, the .loc and\n"
-            '.locinf entries and the menu and loading-screen strings (mcstrings01 and\n'
-            "mcloadstrings). MC2's bomb_tag is MC3's Detonator. --add-types only APPENDS,\n"
-            'so hand-fixed races survive. mc2_race_modes builds Tag and Paint from the\n'
-            'Capture the Flag arenas and Frenzy from the longest ordered races.\n'
-            'mc2_race_shortcut injects AI shortcuts that follow the road network.'
-        ),
-    ),
-    dict(
-        name='MC2 city occluders',
-        script='mc2_occluders.py',
-        gui=False,
-        summary='Generate an MC3 .occlude for an MC2 city, so lights and cars stop showing through walls.',
-        opens=['.rsc'],
-        detail=(
-            'python mc2_occluders.py --city losangeles --out losangeles.occlude --png la.png\n'
-            '\n'
-            "Boxes from MC2's own collision (BND0) and rendered buildings, flood-filled\n"
-            'from the road network; boxes touching a lane are dropped.'
-        ),
-    ),
-    dict(
-        name='City trains and pedestrians',
-        script='mc3_peds_graph.py',
-        gui=False,
-        summary="Put an MC2 city's pedestrian sidewalks into its _peds.pck; list or remove compiled trains.",
-        opens=['.pck', '.graph', '.aib'],
-        detail=(
-            'python mc2_ped_graph.py --city losangeles --out losangeles.graph\n'
-            'python mc3_peds_graph.py losangeles_peds.pck losangeles.graph\n'
-            'python mc3_traffic_trains.py losangeles_traffic.pck --remove\n'
-            '\n'
-            'Pedestrians walk the graph compiled into <city>_peds.pck, not the text\n'
-            '.graph; mc2_ped_graph builds sidewalk strips from the pedestrian rails of\n'
-            "the MC2 city's .aib and mc3_peds_graph appends them to the pack. Trains are\n"
-            'compiled into <city>_traffic.pck; a copied pack runs its trams on any road\n'
-            'of type 3 - mc3_traffic_trains sets their count to 0.'
-        ),
-    ),
-    dict(
-        name='Prop particle rules',
-        script='mc3_prop_ptx.py',
-        gui=False,
-        summary="Extract the particle rules compiled into a city's props pack as text .ptx.",
-        opens=['.pck'],
-        detail=(
-            'python mc3_prop_ptx.py detroit_dusk_clear_props.pck --list\n'
-            'python mc3_prop_ptx.py detroit_dusk_clear_props.pck --out ASSETS/tune/effects\n'
-            '\n'
-            'Each rule (mcPropParticleBirthRule, 0x190 bytes) is written field by\n'
-            'field; mcPropParticleBirthRule::LoadWithHash reads it back byte-identical.\n'
-            "Tiles index the city's <x>_shared_particle atlas (d_ for detroit)."
-        ),
-    ),
-    dict(
-        name='Rename an added city',
-        script='mc3_rename_city.py',
-        gui=False,
-        summary='Rename an added MC3 city in paths, text files, mc3boot.ini and string tables.',
-        opens=[],
-        detail=(
-            'python mc3_rename_city.py --old OLD --new NEW --dry-run\n'
-            '\n'
-            "The city's MC3 name is the key every asset path is built from; no .pck or\n"
-            '.ppf stores it. Rebuild the registry module (city_paris_slot7) with NEW.'
-        ),
-    ),
-    dict(
         name="Symbols (alpha -> retail)",
         script="mc3_symbols.py",
         gui=False,
@@ -398,36 +355,36 @@ TOOLS = [
             "python mc3_symbols.py dump  --elf ALPHA.i64 --out alpha.tsv\n"
             "python mc3_symbols.py dump  --elf RETAIL    --out retail.tsv\n"
             "python mc3_symbols.py match  alpha.tsv retail.tsv\n"
-            "python mc3_symbols.py graph  alpha.tsv retail.tsv names.tsv\n"
-            "python mc3_symbols.py tokens alpha.tsv retail.tsv names.tsv\n"
+            "python mc3_symbols.py grafo  alpha.tsv retail.tsv nomes.tsv\n"
+            "python mc3_symbols.py tokens alpha.tsv retail.tsv nomes.tsv\n"
             "python mc3_symbols.py apply\n"
-            "python mc3_symbols.py search Hood     (query without opening IDA)\n"
-            "python mc3_symbols.py annotate EA NAME 'how I confirmed it'\n"
+            "python mc3_symbols.py busca Hood      (query without opening IDA)\n"
+            "python mc3_symbols.py anota EA NAME 'how I confirmed it'\n"
             "\n"
             "Addresses and bytes both change between builds; what survives is what a\n"
             "function TALKS ABOUT, the company it keeps, and where it SITS. Four\n"
             "passes, each reaching what the previous cannot:\n"
-            "  match      string literals           1224 pairs\n"
-            "  graph      callers and callees       3219 pairs\n"
-            "  neighbours source order + size       6304 pairs\n"
-            "  tokens     referenced data / vtables  183 pairs\n"
+            "  match     string literals            1224 pairs\n"
+            "  grafo     callers and callees        3219 pairs\n"
+            "  vizinhos  source order + size        6304 pairs\n"
+            "  tokens    referenced data / vtables   183 pairs\n"
             "10946 names applied, 98%+ precision on a blind hold-out.\n"
             "\n"
-            "Results live in tools/symbols/ as layered .tsv files that every fork of\n"
+            "Results live in tools/simbolos/ as layered .tsv files that every fork of\n"
             "the project reads and writes; the manual layer always wins."
         ),
     ),
     dict(
         name="Modloader (run your own C++)",
         script="mc3_inject.py",
+        dirs=["modloader"],
         gui=False,
-        summary="Inject a compiled C++ payload into the running game (mc3boot repo).",
+        summary="Inject a compiled C++ payload into the running game.",
         opens=['.bin', '.p2s'],
         detail=(
-            "python mc3_inject.py all --embed payload/mc3mod.bin\n"
-            "python mc3_inject.py state savestate.p2s\n"
-            "cd payload && sh build.sh\n"
-            "(all three run inside the mc3boot checkout; set MC3BOOT to it)\n"
+            "python modloader/mc3_inject.py all --embed payload/mc3mod.bin\n"
+            "python modloader/mc3_inject.py state savestate.p2s\n"
+            "cd modloader/payload && sh build.sh\n"
             "\n"
             "A patch file can only change constants. This runs real code: the\n"
             "patch carries a 61-instruction loader, and the payload is either a\n"
@@ -449,7 +406,7 @@ TOOLS = [
             "generated from the real .pnach files by mc3_pnach.py --to-cpp and\n"
             "the EE instruction cache flushed so hardware behaves like PCSX2.\n"
             "Edit payload/config.h to choose groups. Needs the ps2dev toolchain\n"
-            "to build C++; see the mc3boot README, including the MSYS2 traps."
+            "to build C++; see modloader/README.md, including the MSYS2 traps."
         ),
     ),
     dict(
@@ -491,7 +448,7 @@ TOOLS = [
             "a generated artefact, the others find out by breaking - usually much\n"
             "later, and while chasing something unrelated.\n"
             "\n"
-            "FORKS.md is the channel for that, in the same spirit as symbols/.\n"
+            "FORKS.md is the channel for that, in the same spirit as simbolos/.\n"
             "Newest first. Every entry answers three things: what changed, who it\n"
             "can break, what they should do.\n"
             "\n"
@@ -511,7 +468,7 @@ TOOLS = [
             "\n"
             "PCSX2 loads EVERY file matching the CRC, and warns about nothing.\n"
             "This reads them all, resolves them the way PCSX2 would, and checks\n"
-            "each line against the ELF (labels as mc3boot prints them):\n"
+            "each line against the ELF:\n"
             "  CONFLITO   two files write different values to one address\n"
             "  EXCLUSIVO  alternative groups on one address - tick only one\n"
             "  MORTA      a line a later one overrides\n"
@@ -574,15 +531,14 @@ TOOLS = [
 # travels as a unit with its bnk_tool package), so look around before giving up.
 EXTRA_DIRS = [
     HERE,
-    os.environ.get("MC3BOOT", os.path.join(os.path.dirname(HERE), "mc3boot")),
+    os.path.join(os.path.dirname(HERE), "Claudio"),
     os.path.dirname(HERE),
 ]
 
 
 def resolve(t):
-    # an entry may bring its own directories: not every tool lives in tools/
-    # (mc3_inject and mc3_pnach come from the mc3boot repo, the Rim Importer is
-    # a separate download)
+    # a entrada pode trazer os seus proprios diretorios: nem toda ferramenta
+    # mora em tools/ (o Rim Importer fica em L:\)
     for d in list(t.get("dirs", ())) + EXTRA_DIRS:
         p = os.path.join(d, t["script"])
         if os.path.isfile(p):

@@ -16,8 +16,8 @@ and so on, and the race files name it inside (`City <name>`, race paths
 
 The registry mod itself (city_paris_slot7) must be rebuilt with NEW.
 
-    python mc3_rename_city.py --old OLD --new NEW --dry-run
-    python mc3_rename_city.py --old OLD --new NEW
+    python mc3_rename_city.py --old modcity --new losangeles --dry-run
+    python mc3_rename_city.py --old modcity --new losangeles
 """
 import argparse
 import json
@@ -125,10 +125,10 @@ def rewrite_ini(ini, old, new, dry):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
-    ap.add_argument('--hostfs', default=os.environ.get('MC3_HOSTFS', os.environ.get('MC3_HOSTFS', 'MC3HostFS')))
+    ap.add_argument('--hostfs', default=os.environ.get('MC3_HOSTFS', os.environ.get('MC3_HOSTFS', '')))
     ap.add_argument('--old', required=True)
     ap.add_argument('--new', required=True)
-    ap.add_argument('--strtbl', default=os.environ.get('MC3_STRTBL', 'strtbl.py'))
+    ap.add_argument('--strtbl', default=os.path.join(os.environ.get('MC_WORK_DIR', ''), 'strtbl.py'))
     ap.add_argument('--dry-run', action='store_true')
     a = ap.parse_args()
     assets = os.path.join(a.hostfs, 'ASSETS')

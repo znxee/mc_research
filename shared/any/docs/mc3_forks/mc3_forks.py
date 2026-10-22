@@ -7,8 +7,12 @@ different part. They share one filesystem, so when one of them renames a folder,
 changes a file format or moves a generated artefact, the others find out by
 breaking - usually much later, and usually while chasing something unrelated.
 
-This is the channel for that, in the same spirit as `symbols/`: a file both
+This is the channel for that, in the same spirit as `simbolos/`: a file both
 sides read, with a tool that keeps the shape consistent.
+
+Pending work, bugs, ownership, priority, acceptance criteria and regressions
+belong in TASKS.md through mc3_tasks.py.  FORKS.md records changes that already
+happened; it is not the work queue.
 
 WHAT BELONGS HERE
 
@@ -23,6 +27,7 @@ Only what another session could trip over:
 NOT a diary. "Investigated the flash timing" helps nobody. "The flash patch
 addresses now hold different values, regenerate anything derived from them" does.
 If another session would not change what it does after reading it, leave it out.
+Do not add a pending task here: create or update its stable ID in TASKS.md.
 
 USE
 
@@ -48,6 +53,9 @@ HEAD = """# Fork log
 
 Shared between the parallel sessions working on this game. Newest first.
 
+Pending work, bugs, priorities, owners and regressions live in `TASKS.md` and
+are maintained with `mc3_tasks.py`.
+
 Each entry answers three questions, in this order: what changed, who it can
 break, and what they should do about it. An entry that cannot answer the third
 one is usually a diary entry and does not belong here - see `mc3_forks.py`.
@@ -69,48 +77,48 @@ def _load():
     if not os.path.isfile(LOG):
         return HEAD, []
     txt = io.open(LOG, encoding='utf-8').read()
-    cut = txt.find('\n---\n')
-    if cut < 0:
+    corte = txt.find('\n---\n')
+    if corte < 0:
         return HEAD, []
-    head = txt[:cut + 5]
-    body = txt[cut + 5:].strip('\n')
-    blocks = []
-    if body:
-        parts = re.split(r'\n(?=## \d{4}-\d{2}-\d{2} - )', body)
-        blocks = [p.strip('\n') for p in parts if p.strip()]
-    return head, blocks
+    cabeca = txt[:corte + 5]
+    corpo = txt[corte + 5:].strip('\n')
+    blocos = []
+    if corpo:
+        partes = re.split(r'\n(?=## \d{4}-\d{2}-\d{2} - )', corpo)
+        blocos = [p.strip('\n') for p in partes if p.strip()]
+    return cabeca, blocos
 
 
 def add(fork, changed, affects, action, data=None):
-    head, blocks = _load()
-    day = data or datetime.date.today().isoformat()
-    new = ('## %s - %s\n\n'
+    cabeca, blocos = _load()
+    dia = data or datetime.date.today().isoformat()
+    novo = ('## %s - %s\n\n'
             '**Changed:** %s\n\n'
             '**Affects:** %s\n\n'
-            '**Action:** %s' % (day, fork, changed, affects, action))
+            '**Action:** %s' % (dia, fork, changed, affects, action))
     # Newest first: the entry you need is almost always the most recent one, and
     # a log you have to scroll to the bottom of stops being read.
-    blocks.insert(0, new)
+    blocos.insert(0, novo)
     io.open(LOG, 'w', encoding='utf-8', newline='\n').write(
-        head + '\n' + '\n\n'.join(blocks) + '\n')
-    print('%s: %d entries' % (os.path.basename(LOG), len(blocks)))
+        cabeca + '\n' + '\n\n'.join(blocos) + '\n')
+    print('%s: %d entries' % (os.path.basename(LOG), len(blocos)))
 
 
-def read(n=5, all_=False, since=None):
-    _head, blocks = _load()
-    if not blocks:
+def read(n=5, todos=False, desde=None):
+    _cabeca, blocos = _load()
+    if not blocos:
         print('%s: empty' % os.path.basename(LOG))
         return
-    if since:
-        blocks = [b for b in blocks
+    if desde:
+        blocos = [b for b in blocos
                   if (ENTRY.search(b) or [None]) and ENTRY.search(b)
-                  and ENTRY.search(b).group(1) >= since]
-        if not blocks:
-            print('no entries since %s' % since)
+                  and ENTRY.search(b).group(1) >= desde]
+        if not blocos:
+            print('no entries since %s' % desde)
             return
-    elif not all_:
-        blocks = blocks[:n]
-    for b in blocks:
+    elif not todos:
+        blocos = blocos[:n]
+    for b in blocos:
         print(b)
         print()
 
@@ -118,7 +126,7 @@ def read(n=5, all_=False, since=None):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0],
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    sub = ap.add_subparsers(dest='action')
+    sub = ap.add_subparsers(dest='acao')
 
     a = sub.add_parser('add', help='append an entry')
     a.add_argument('--fork', required=True)
@@ -135,12 +143,12 @@ def main():
     s.add_argument('data')
 
     ns = ap.parse_args()
-    if ns.action == 'add':
+    if ns.acao == 'add':
         add(ns.fork, ns.changed, ns.affects, ns.action, ns.date)
-    elif ns.action == 'since':
-        read(since=ns.data)
-    elif ns.action == 'read':
-        read(n=ns.n, all_=ns.all)
+    elif ns.acao == 'since':
+        read(desde=ns.data)
+    elif ns.acao == 'read':
+        read(n=ns.n, todos=ns.all)
     else:
         read()
     return 0

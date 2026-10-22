@@ -1,0 +1,22 @@
+{
+  "name": "mc3_obrigatorio",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "modloader",
+  "entry": "mc3_obrigatorio.py",
+  "summary": "mc3_obrigatorio.py - que campo do .pck de cidade NUNCA vem nulo no varejo",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

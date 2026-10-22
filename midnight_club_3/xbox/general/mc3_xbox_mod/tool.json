@@ -1,0 +1,22 @@
+{
+  "name": "mc3_xbox_mod",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "xbox",
+  "type": "general",
+  "entry": "mc3_xbox_mod.py",
+  "summary": "Build/inspect native relocatable i386 .xmod containers. Never accepts PS2 .mod.",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

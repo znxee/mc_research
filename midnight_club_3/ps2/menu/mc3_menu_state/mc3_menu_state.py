@@ -86,6 +86,8 @@ class State:
     def __str__(self):
         lines = ['state %d  %s %08x  row %d of %d  seq %d' % (
             self.state, 'box' if self.box else 'menu', self.menu, self.row, self.count, self.seq)]
+        if getattr(self, 'game_state', None) is not None:
+            lines[0] += '  game %d' % self.game_state
         for i, r in enumerate(self.rows):
             lines.append('  %s %s' % ('>' if i == self.row else ' ', r))
         return '\n'.join(lines)
@@ -99,6 +101,8 @@ class State:
             return self.selected.lower().strip() == t[1:].strip()
         if t.startswith('state:'):
             return str(self.state) == t[6:]
+        if t.startswith('game:'):
+            return str(getattr(self, 'game_state', None)) == t[5:]
         if t.startswith('row:'):
             return any(t[4:] in r.lower() for r in self.rows)
         return t in self.selected.lower()
@@ -140,7 +144,12 @@ class MenuState:
         if struct.unpack_from('<I', raw, 0)[0] != MNUS:
             self.addr = None
             return None
-        return State(raw)
+        state = State(raw)
+        # Retail mcGameState::ChangeState publishes the native state at +4.
+        # The shell stops updating in the garage, so its last state is stale.
+        game = self.pine.read32(0x6199F0)
+        state.game_state = self.pine.read32(game + 4) if 0x100000 <= game < 0x2000000 else None
+        return state
 
     def lists(self):
         """Every list menu among the menu widgets (a diagnostic, read straight

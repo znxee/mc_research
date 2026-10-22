@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""City packet round trip: decode and re-encode, compare byte for byte.
+"""Round-trip do packet de cidade: decodifica e re-encoda, compara byte a byte.
 
-It is the test that says whether I can WRITE a city block, not only read one.
+E o teste que diz se eu sei ESCREVER um bloco de cidade, nao so ler.
 """
 import os
 import struct
@@ -9,14 +9,14 @@ import math
 import re
 import collections
 
-PATH = os.path.join(os.environ.get('MC3_ASSETS', 'ASSETS'), 'resources/city/atlanta_midnight_clear.pck')
+PATH = os.path.join(os.environ.get('MC3_CLEAN_ASSETS', ''), 'ASSETS/resources/city/atlanta_midnight_clear.pck')
 d = open(PATH, 'rb').read()
 N = len(d)
 TAG = re.compile(rb'..\x02\x60', re.DOTALL)
 
 
 def parse(off):
-    """Return everything the block is made of, including the bytes I do not understand yet."""
+    """Devolve tudo que compoe o bloco, inclusive os bytes que eu ainda nao entendo."""
     if off + 0x10 > N:
         return None
     scale = struct.unpack_from('<f', d, off + 4)[0]
@@ -48,7 +48,7 @@ def parse(off):
 
 
 def encode(b):
-    """Re-encode from the decoded fields."""
+    """Re-encoda a partir dos campos decodificados."""
     o = bytearray()
     o += b['tag']
     o += struct.pack('<f', b['scale'])
@@ -63,52 +63,52 @@ def encode(b):
     return bytes(o)
 
 
-blocks = []
+blocos = []
 for m in TAG.finditer(d):
     o = m.start()
     if o % 16:
         continue
     b = parse(o)
     if b:
-        blocks.append(b)
+        blocos.append(b)
 
-equal = dif = 0
-examples = []
-for b in blocks:
+igual = dif = 0
+exemplos = []
+for b in blocos:
     orig = d[b['off']:b['end']]
-    new = encode(b)
-    if orig == new:
-        equal += 1
+    novo = encode(b)
+    if orig == novo:
+        igual += 1
     else:
         dif += 1
-        if len(examples) < 3:
-            j = next((i for i in range(min(len(orig), len(new))) if orig[i] != new[i]), -1)
-            examples.append((hex(b['off']), len(orig), len(new), j))
+        if len(exemplos) < 3:
+            j = next((i for i in range(min(len(orig), len(novo))) if orig[i] != novo[i]), -1)
+            exemplos.append((hex(b['off']), len(orig), len(novo), j))
 
-print('blocks: %d' % len(blocks))
-print('round trip byte-for-byte IDENTICAL: %d | differs: %d' % (equal, dif))
-for e in examples:
-    print('   differs at %s  orig %d B, new %d B, 1st difference at byte %d' % e)
+print('blocos: %d' % len(blocos))
+print('round-trip byte a byte IDENTICO: %d | difere: %d' % (igual, dif))
+for e in exemplos:
+    print('   difere em %s  orig %d B, novo %d B, 1a diferenca no byte %d' % e)
 
-# what is in the fields I treat as opaque
-subp = collections.Counter(b['sub_pos'].hex() for b in blocks)
-subu = collections.Counter(b['sub_uv'].hex() for b in blocks)
-padp = collections.Counter(len(b['pad_pos']) for b in blocks)
+# o que ha nos campos que eu trato como opacos
+subp = collections.Counter(b['sub_pos'].hex() for b in blocos)
+subu = collections.Counter(b['sub_uv'].hex() for b in blocos)
+padp = collections.Counter(len(b['pad_pos']) for b in blocos)
 print()
-print('sub_pos (+0x0C, 4 bytes): %d distinct values' % len(subp))
-print('   most common: %s' % dict(subp.most_common(4)))
-print('sub_uv  (4 bytes): %d distinct values' % len(subu))
-print('   most common: %s' % dict(subu.most_common(4)))
-print('padding between positions and uv: %s' % dict(padp))
+print('sub_pos (+0x0C, 4 bytes): %d valores distintos' % len(subp))
+print('   mais comuns: %s' % dict(subp.most_common(4)))
+print('sub_uv  (4 bytes): %d valores distintos' % len(subu))
+print('   mais comuns: %s' % dict(subu.most_common(4)))
+print('padding entre posicoes e uv: %s' % dict(padp))
 
-# can sub_pos and sub_uv be derived from the count?
-ok_p = sum(1 for b in blocks
+# sub_pos e sub_uv sao derivaveis da contagem?
+ok_p = sum(1 for b in blocos
            if b['sub_pos'] == bytes([b['sub_pos'][0], b['sub_pos'][1], b['cnt'] & 0xFF, 0x69]))
-ok_u = sum(1 for b in blocks
+ok_u = sum(1 for b in blocos
            if b['sub_uv'] == bytes([b['sub_uv'][0], b['sub_uv'][1], b['cnt'] & 0xFF, 0x65]))
 print()
-print('sub_pos = [?, ?, cnt, 0x69] in %d/%d' % (ok_p, len(blocks)))
-print('sub_uv  = [?, ?, cnt, 0x65] in %d/%d' % (ok_u, len(blocks)))
-# and the first 2 bytes of the tag?
-tg = collections.Counter(b['tag'][:2].hex() for b in blocks)
-print('first 2 bytes of the tag: %d distinct, most common %s' % (len(tg), dict(tg.most_common(4))))
+print('sub_pos = [?, ?, cnt, 0x69] em %d/%d' % (ok_p, len(blocos)))
+print('sub_uv  = [?, ?, cnt, 0x65] em %d/%d' % (ok_u, len(blocos)))
+# e os 2 primeiros bytes do tag?
+tg = collections.Counter(b['tag'][:2].hex() for b in blocos)
+print('2 primeiros bytes do tag: %d distintos, mais comuns %s' % (len(tg), dict(tg.most_common(4))))

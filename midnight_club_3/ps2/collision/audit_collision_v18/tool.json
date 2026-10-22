@@ -5,18 +5,18 @@
   "platform": "ps2",
   "type": "collision",
   "entry": "audit_collision_v18.py",
-  "summary": "Audit of a candidate in which TYPE9 changed (and type10 with it).",
+  "summary": "Auditoria de um candidato em que o TYPE9 mudou (e o type10 junto).",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

@@ -1,83 +1,82 @@
-"""mc3_occlude.py - the city culling that is NOT in the .pck
+"""mc3_occlude.py - o culling da cidade que NAO esta no .pck
 
-I spent weeks editing `resources/city/<city>_<cond>.pck` thinking the whole city
-lived there. It does not. What decides what shows on screen lives in
-`ASSETS/city/<city>/`, and none of it is touched when the geometry is swapped:
+Passei semanas editando `resources/city/<cidade>_<cond>.pck` achando que a
+cidade inteira morava la. Nao mora. O que decide o que aparece na tela esta em
+`ASSETS/city/<cidade>/`, e nada disso e tocado quando se troca a geometria:
 
-    <city>.occlude        TEXT. Occluder boxes in world coordinates. Atlanta
-                          has 340. Loaded by
-                          `mcOccluderSystem::LoadDynamicGeomDataset` (its error
-                          message is at 0x0065C8D0 in the retail ELF).
-    <city>_city.aib       BINARY. Magic `TSV1`, tagged blocks
-                          [u8 tag]['A'][u32 size][body]. Atlanta has 4396
-                          28-byte records and 4713 of 20, plus the name
-                          "atlanta" written inside. The game builds the name as
+    <cidade>.occlude      TEXTO. Caixas ocluidoras em coordenada de mundo.
+                          O atlanta tem 340. Carregado por
+                          `mcOccluderSystem::LoadDynamicGeomDataset` (a mensagem
+                          de erro dele esta em 0x0065C8D0 do ELF de varejo).
+    <cidade>_city.aib     BINARIO. Magica `TSV1`, blocos etiquetados
+                          [u8 tag]['A'][u32 tamanho][corpo]. O atlanta tem 4396
+                          registros de 28 bytes e 4713 de 20, mais o nome
+                          "atlanta" gravado dentro. O jogo monta o nome como
                           `city/%s/%s_city.aib`.
-    <city>.graph          TEXT. Street graph. Its `MinExtents` matches EXACTLY
-                          the field at MapRoot+0x250 of the .pck.
-    <city>_pvs.aib        Same format as _city.aib, but the PS2 ELF has no
-                          `pvs` string that builds this name - only `$cpvs`
-                          (a .mod token) and `nopvs`. Probably not read in this
-                          build.
+    <cidade>.graph        TEXTO. Grafo de ruas. O `MinExtents` dele bate EXATO
+                          com o campo em MapRoot+0x250 do .pck.
+    <cidade>_pvs.aib      Mesmo formato do _city.aib, mas o ELF de PS2 nao tem
+                          nenhuma string `pvs` que monte esse nome - so `$cpvs`
+                          (token de .mod) e `nopvs`. Provavelmente nao e lido
+                          nesta build.
 
-An occluder box hides whatever is BEHIND it. Atlanta's 340 describe atlanta's
-buildings; imported geometry that falls behind one of them vanishes, and there
-is nothing on screen that explains why. Since the file is text, its
-contribution can be tested in a minute: sink every box far below the world and
-see how much comes back.
+Uma caixa ocluidora esconde o que estiver ATRAS dela. As 340 do atlanta
+descrevem predios do atlanta; geometria importada que caia atras de uma delas
+some, e nao ha nada na tela que explique por que. Como o arquivo e texto, da pra
+testar a contribuicao disso em um minuto: afunda todas as caixas para bem abaixo
+do mundo e veja quanto reaparece.
 
-    python mc3_occlude.py                        # what exists today
-    python mc3_occlude.py --neutralize           # sink the boxes (makes a backup)
-    python mc3_occlude.py --restore              # bring the backup back
+    python mc3_occlude.py                        # o que existe hoje
+    python mc3_occlude.py --neutraliza           # afunda as caixas (faz backup)
+    python mc3_occlude.py --restaura             # volta o backup
 
-It is not the final version of anything: it is a switch to MEASURE how much of
-"everything vanished" is occlusion and how much is something else.
+Nao e a versao final de nada: e um interruptor pra MEDIR quanto do "sumiu tudo"
+e oclusao e quanto e outra coisa.
 """
 import argparse
 import os
 import re
 import shutil
 
-ROOT = os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'ASSETS/city')
-BACKGROUND = 100000.0          # how far to sink, in world units
+RAIZ = os.path.join(os.environ.get('MC3_HOSTFS', ''), 'ASSETS/city')
+FUNDO = 100000.0          # quanto afundar, em unidades de mundo
 
 
-def path(city):
-    return os.path.join(ROOT, city, '%s.occlude' % city)
+def caminho(cidade):
+    return os.path.join(RAIZ, cidade, '%s.occlude' % cidade)
 
 
-def le(city):
-    with open(path(city), 'r', encoding='latin1') as f:
+def le(cidade):
+    with open(caminho(cidade), 'r', encoding='latin1') as f:
         return f.read()
 
 
-def summary(text):
-    """(version, num_geoms, num_primitives, [name of each occluder])."""
-    def field(name):
-        m = re.search(r'^%s:\s*(\d+)' % name, text, re.M)
+def resume(texto):
+    """(versao, num_geoms, num_primitives, [nome de cada ocluidor])."""
+    def campo(nome):
+        m = re.search(r'^%s:\s*(\d+)' % nome, texto, re.M)
         return int(m.group(1)) if m else -1
-    names = re.findall(r'^;\|[^\r\n]*\|([^\t\r\n]+)\t\[(\d+)\]', text, re.M)
-    return field('version'), field('num_geoms'), field('num_primitives'), names
+    nomes = re.findall(r'^;\|[^\r\n]*\|([^\t\r\n]+)\t\[(\d+)\]', texto, re.M)
+    return campo('version'), campo('num_geoms'), campo('num_primitives'), nomes
 
 
-def sink(text, dy=BACKGROUND):
-    """Move every vertex and every sphere centre down by `dy`.
+def afunda(texto, dy=FUNDO):
+    """Desce todo vertice e todo centro de esfera em `dy`.
 
-    Touching Y and not the count is on purpose. Zeroing `num_geoms` would change
-    the size of everything after it and I do not know whether the reader accepts
-    zero; this way the file keeps the SAME shape, the same number of boxes, the
-    same order, and only their place changes. If the game hangs like this, the
-    problem was not occlusion.
+    Mexer no Y e nao na contagem e de proposito. Zerar `num_geoms` mudaria o
+    tamanho de tudo que vem depois e eu nao sei se o leitor aceita zero; assim o
+    arquivo continua com a MESMA forma, mesmo numero de caixas, mesma ordem, e
+    so o lugar delas muda. Se o jogo travar assim, o problema nao era oclusao.
     """
-    out_path = []
-    for line in text.splitlines(True):
-        s = line.rstrip('\r\n')
-        end = line[len(s):]
+    saida = []
+    for linha in texto.splitlines(True):
+        s = linha.rstrip('\r\n')
+        fim = linha[len(s):]
         if s.startswith('sphere:'):
             p = s.split()
             if len(p) == 5:
                 p[2] = '%.7f' % (float(p[2]) - dy)
-                out_path.append(' '.join(p) + end)
+                saida.append(' '.join(p) + fim)
                 continue
         else:
             p = s.split('\t')
@@ -85,56 +84,56 @@ def sink(text, dy=BACKGROUND):
                 try:
                     v = [float(x) for x in p]
                 except ValueError:
-                    out_path.append(line)
+                    saida.append(linha)
                     continue
                 v[1] -= dy
-                out_path.append('\t'.join('%.7f' % x for x in v) + end)
+                saida.append('\t'.join('%.7f' % x for x in v) + fim)
                 continue
-        out_path.append(line)
-    return ''.join(out_path)
+        saida.append(linha)
+    return ''.join(saida)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--city', default='atlanta')
-    ap.add_argument('--neutralize', action='store_true')
-    ap.add_argument('--restore', action='store_true')
-    ap.add_argument('--root', default=ROOT)
+    ap.add_argument('--cidade', default='atlanta')
+    ap.add_argument('--neutraliza', action='store_true')
+    ap.add_argument('--restaura', action='store_true')
+    ap.add_argument('--raiz', default=RAIZ)
     a = ap.parse_args()
 
-    globals()['ROOT'] = a.root
-    target = path(a.city)
-    bak = target + '.orig'
+    globals()['RAIZ'] = a.raiz
+    alvo = caminho(a.cidade)
+    bak = alvo + '.orig'
 
-    if a.restore:
+    if a.restaura:
         if not os.path.isfile(bak):
-            raise SystemExit('no backup at %s' % bak)
-        shutil.copyfile(bak, target)
-        print('restored %s' % target)
+            raise SystemExit('sem backup em %s' % bak)
+        shutil.copyfile(bak, alvo)
+        print('restaurado %s' % alvo)
         return
 
-    text = le(a.city)
-    ver, ng, npr, names = summary(text)
-    print('%s: version %d, num_geoms %d, num_primitives %d, %d named box(es)'
-          % (os.path.basename(target), ver, ng, npr, len(names)))
-    for name, idx in names[:5]:
-        print('   [%s] %s' % (idx, name))
-    if len(names) > 5:
-        print('   ... %d more' % (len(names) - 5))
+    texto = le(a.cidade)
+    ver, ng, npr, nomes = resume(texto)
+    print('%s: version %d, num_geoms %d, num_primitives %d, %d caixa(s) nomeada(s)'
+          % (os.path.basename(alvo), ver, ng, npr, len(nomes)))
+    for nome, idx in nomes[:5]:
+        print('   [%s] %s' % (idx, nome))
+    if len(nomes) > 5:
+        print('   ... mais %d' % (len(nomes) - 5))
 
-    if not a.neutralize:
+    if not a.neutraliza:
         return
 
     if not os.path.isfile(bak):
-        shutil.copyfile(target, bak)
-        print('backup at %s' % bak)
-    new = sink(text)
-    with open(target, 'w', encoding='latin1', newline='') as f:
-        f.write(new)
-    print('sunk %.0f units; %d bytes (was %d)'
-          % (BACKGROUND, len(new), len(text)))
-    print('to undo: python mc3_occlude.py --restore')
+        shutil.copyfile(alvo, bak)
+        print('backup em %s' % bak)
+    novo = afunda(texto)
+    with open(alvo, 'w', encoding='latin1', newline='') as f:
+        f.write(novo)
+    print('afundadas %.0f unidades; %d bytes (era %d)'
+          % (FUNDO, len(novo), len(texto)))
+    print('para voltar: python mc3_occlude.py --restaura')
 
 
 if __name__ == '__main__':

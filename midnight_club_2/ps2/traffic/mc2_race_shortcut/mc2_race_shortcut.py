@@ -27,8 +27,8 @@ import re
 import struct
 import sys
 
-RACES = os.environ.get('MC3_RACES', os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'ASSETS/tune/race'))
-CITIES = os.environ.get('MC3_CITIES', os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'ASSETS/city'))
+RACES = os.environ.get('MC3_RACES', os.path.join(os.environ.get('MC3_HOSTFS', ''), 'ASSETS/tune/race'))
+CITIES = os.environ.get('MC3_CITIES', os.path.join(os.environ.get('MC3_HOSTFS', ''), 'ASSETS/city'))
 SPEED = 6.0          # node speed field (same scale as the converted MC2 shortcuts)
 SPACING = 30.0       # metres between nodes along the lane path
 

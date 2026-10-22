@@ -1,30 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Audit of a candidate in which TYPE9 changed (and type10 with it).
+"""Auditoria de um candidato em que o TYPE9 mudou (e o type10 junto).
 
-`audit_type10_groundplane.py` requires a byte-for-byte identical type9, on
-purpose: it audits candidates whose only change is the quadtree. Here type9 is
-what changes, so that proof does not apply and is swapped for another one,
-stronger for this case:
+O `audit_type10_groundplane.py` exige type9 byte a byte identico, de proposito:
+ele audita candidatos cuja mudanca e so a quadtree. Aqui o type9 e o que muda,
+entao aquela prova nao serve e e trocada por outra, mais forte para este caso:
 
-    the candidate's type9 face set has to CONTAIN the baseline's.
+    o conjunto de faces do type9 do candidato precisa CONTER o do baseline.
 
-No face may vanish. New faces are expected and are listed.
+Nenhuma face pode sumir. Faces novas sao esperadas e sao listadas.
 
-It also checks:
+Checa, alem disso:
 
-  u16 ceiling  type9 refs <= 65535. The leaf start is `a1[1]` of an
-               `unsigned short*` in phQuadtreeCell/phOctreeCell::
-               CullSpherePolysRecurse, so going past 65535 is unreachable, not
-               just tight.
-  2000 ceiling type10 stays within numPolys<=2000 and numVerts<=2000
-  structure    both trees: counts, leaves partitioning the refs, indices in
-               range, leaf containment walking down the tree with the box,
-               depth <= 20, normals, areas, materials, neighbours
-  holes        the points the baseline did not cover become covered
+  teto u16    refs do type9 <= 65535. O start da folha e `a1[1]` de um
+              `unsigned short*` em phQuadtreeCell/phOctreeCell::
+              CullSpherePolysRecurse, entao passar de 65535 e inatingivel, nao
+              so apertado.
+  teto 2000   o type10 continua dentro de numPolys<=2000 e numVerts<=2000
+  estrutura   as duas arvores: contagens, folhas particionando as refs, indices
+              na faixa, containment de folha descendo a arvore com a caixa,
+              profundidade <= 20, normais, areas, materiais, vizinhos
+  buracos     os pontos que o baseline nao cobria passam a ser cobertos
 
     python audit_collision_v18.py --baseline v13.pck --candidate v18.pck \\
-        --holes points.json --json audit.json
+        --holes pontos.json --json auditoria.json
 """
 
 import argparse
@@ -46,8 +45,8 @@ REFS_CAP = 65535
 
 
 def floor_cells(b, cell):
-    """XZ grid cells that have some floor face. Independent of how the surface
-    was cut into polygons, which is the point."""
+    """Celulas de grade XZ que tem alguma face de piso. Independe de como a
+    superficie foi cortada em poligonos, que e o ponto."""
     node = b.trees[9]
     v, p = b.geometry(node)
     g = set()
@@ -108,7 +107,7 @@ def hits_at(faces, grid, cell, x, z):
             continue
         ax, ay, az = pts[0]
         out.append((round(ay - (normal[0]*(x-ax) + normal[2]*(z-az))/normal[1], 3),
-                    mat, 'up' if normal[1] > 0 else 'down'))
+                    mat, 'cima' if normal[1] > 0 else 'baixo'))
     return sorted(out)
 
 
@@ -116,7 +115,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
     ap.add_argument('--baseline', required=True)
     ap.add_argument('--candidate', required=True)
-    ap.add_argument('--holes', help='JSON with [[label,x,z],...] that the baseline did not cover')
+    ap.add_argument('--holes', help='JSON com [[rotulo,x,z],...] que o baseline nao cobria')
     ap.add_argument('--json')
     ap.add_argument('--band', type=float, default=4.0)
     ap.add_argument('--sink', type=float, default=0.05)
@@ -124,8 +123,8 @@ def main():
     ap.add_argument('--tol', type=float, default=0.75)
     ap.add_argument('--near', type=float, default=6.0)
     ap.add_argument('--merged-quads', action='store_true',
-                    help='the candidate merged triangles into quads: swaps the face '
-                         'identity proof for the spatial coverage one')
+                    help='o candidato fundiu triangulos em quads: troca a prova '
+                         'de identidade de face pela de cobertura espacial')
     ap.add_argument('--cell', type=float, default=8.0)
     a = ap.parse_args()
 
@@ -137,7 +136,7 @@ def main():
     info['candidate'] = dict(path=a.candidate, size=len(cand.data),
                              sha256=hashlib.sha256(cand.data).hexdigest().upper())
 
-    # --- structure of both trees -----------------------------------------
+    # --- estrutura das duas arvores ---------------------------------------
     for kind in (9, 10):
         check_structure(cand, kind, problems, info, note_only_headers=True)
         check_geometry(cand, kind, problems, info)
@@ -146,30 +145,30 @@ def main():
         refs = [struct.unpack_from('<H', cand.data, ioff + 2*i)[0] for i in range(nref)]
         check_containment(cand, kind, leaves, refs, problems, info)
 
-    # --- u16 ceiling of the type9 refs -----------------------------------
+    # --- teto u16 das refs do type9 ---------------------------------------
     t9 = info['t9']
     info['refs_cap'] = dict(cap=REFS_CAP, refs=t9['refs'],
                             headroom=REFS_CAP - t9['refs'])
     if t9['refs'] > REFS_CAP:
-        problems.append('u16 CEILING: type9 has %d refs, the leaf start only goes to %d'
+        problems.append('TETO u16: type9 tem %d refs, o start de folha so vai a %d'
                         % (t9['refs'], REFS_CAP))
 
-    # --- the quadtree 2000 ceiling ---------------------------------------
+    # --- teto 2000 da quadtree --------------------------------------------
     t10 = info['t10']
     info['quadtree_cap'] = dict(cap=CAP, polys=t10['polys'], verts=t10['verts'])
     if t10['polys'] > CAP:
-        problems.append('CONTRACT: type10 has %d polys, ceiling %d' % (t10['polys'], CAP))
+        problems.append('CONTRATO: type10 tem %d polys, teto %d' % (t10['polys'], CAP))
     if t10['verts'] > CAP:
-        problems.append('CONTRACT: type10 has %d verts, ceiling %d' % (t10['verts'], CAP))
+        problems.append('CONTRATO: type10 tem %d verts, teto %d' % (t10['verts'], CAP))
 
-    # --- nothing was lost from type9 -------------------------------------
+    # --- nada foi perdido do type9 ----------------------------------------
     #
-    # Face identity only holds when the polygons were not rebuilt. With
-    # --merge-quads two triangles become ONE quad: the surface is the same, but
-    # the two old keys vanish and a new one appears, and the identity count
-    # reports a loss that does not exist (measured: 2,762 "losses" with 0 of
-    # surface lost). In that case the proof becomes SPATIAL: every grid cell
-    # that had a floor in the baseline has to have a floor in the candidate.
+    # Identidade de face so vale quando os poligonos nao foram refeitos. Com
+    # --merge-quads dois triangulos viram UM quad: a superficie e a mesma, mas
+    # as duas chaves antigas somem e aparece uma nova, e a contagem por
+    # identidade acusa perda que nao existe (medido: 2.762 "perdas" com 0 de
+    # superficie perdida). Nesse caso a prova passa a ser ESPACIAL: toda celula
+    # de grade que tinha piso no baseline precisa ter piso no candidato.
     if a.merged_quads:
         gb = floor_cells(base, a.cell)
         gc = floor_cells(cand, a.cell)
@@ -180,26 +179,26 @@ def main():
                                          examples=[[k[0]*a.cell, k[1]*a.cell]
                                                    for k in missing[:10]])
         if missing:
-            problems.append('%d cells of %.0f u with a floor in the baseline ended up WITHOUT '
-                            'a floor in the candidate' % (len(missing), a.cell))
+            problems.append('%d celulas de %.0f u com piso no baseline ficaram SEM '
+                            'piso no candidato' % (len(missing), a.cell))
     else:
         fb, fc = face_set(base, 9), face_set(cand, 9)
         lost, gained = fb - fc, fc - fb
         info['type9_faces'] = dict(baseline=len(fb), candidate=len(fc),
                                    lost=len(lost), gained=len(gained))
         if lost:
-            problems.append('%d baseline type9 faces VANISHED in the candidate'
+            problems.append('%d faces do type9 do baseline SUMIRAM no candidato'
                             % len(lost))
 
-    # --- vertex/poly indices within u16 ----------------------------------
+    # --- indices de vertice/poly dentro do u16 ----------------------------
     for kind in (9, 10):
         t = info['t%d' % kind]
         if t['verts'] > 0xFFFF:
-            problems.append('t%d has %d vertices, the index is u16' % (kind, t['verts']))
+            problems.append('t%d tem %d vertices, indice e u16' % (kind, t['verts']))
         if t['polys'] > 0xFFFF:
-            problems.append('t%d has %d polygons, the index is u16' % (kind, t['polys']))
+            problems.append('t%d tem %d poligonos, indice e u16' % (kind, t['polys']))
 
-    # --- are the known holes covered now? --------------------------------
+    # --- os buracos conhecidos ficaram cobertos? --------------------------
     if a.holes:
         pts = json.load(open(a.holes, encoding='utf-8'))
         fb_i = floor_index(base)
@@ -217,53 +216,53 @@ def main():
         info['holes'] = dict(checked=len(pts), fixed=fixed, still_open=still,
                              detail=rows)
         if still:
-            problems.append('%d of the %d hole points still have NO collision'
+            problems.append('%d dos %d pontos de buraco continuam SEM colisao'
                             % (still, len(pts)))
 
-    # --- safety of the type10 plane against the NEW type9 ----------------
+    # --- seguranca do plano type10 contra o type9 NOVO --------------------
     safety_vs_type9(cand, cand, problems, info, a.band, a.sink, a.samples, a.tol, a.near)
 
     info['problems'] = problems
     info['verdict'] = 'PASS' if not problems else 'FAIL'
 
     print('baseline  %s  %d bytes' % (info['baseline']['sha256'][:16], info['baseline']['size']))
-    print('candidate %s  %d bytes' % (info['candidate']['sha256'][:16], info['candidate']['size']))
+    print('candidato %s  %d bytes' % (info['candidate']['sha256'][:16], info['candidate']['size']))
     print()
     for kind in (9, 10):
         t = info['t%d' % kind]
-        print('type%-2d            : %6d verts, %6d polys, %6d refs, %5d leaves, depth %d, dup %.2fx'
+        print('type%-2d            : %6d verts, %6d polys, %6d refs, %5d folhas, depth %d, dup %.2fx'
               % (kind, t['verts'], t['polys'], t['refs'], t['leaves'], t['depth'], t['duplication']))
     r = info['refs_cap']
-    print('u16 refs ceiling  : %d of %d, headroom %d' % (r['refs'], r['cap'], r['headroom']))
+    print('teto u16 das refs : %d de %d, folga %d' % (r['refs'], r['cap'], r['headroom']))
     q = info['quadtree_cap']
-    print('type10 2000 cap   : %d polys, %d verts' % (q['polys'], q['verts']))
+    print('teto 2000 type10  : %d polys, %d verts' % (q['polys'], q['verts']))
     if 'type9_floor_cells' in info:
         f = info['type9_floor_cells']
-        print('type9 floor       : %d cells of %.0f u in the baseline -> %d in the candidate; '
-              'LOST %d, new %d'
+        print('piso do type9     : %d celulas de %.0f u no baseline -> %d no candidato; '
+              'PERDIDAS %d, novas %d'
               % (f['baseline'], f['cell'], f['candidate'], f['missing'], f['gained']))
     else:
         f = info['type9_faces']
-        print('type9 faces       : baseline %d -> candidate %d; lost %d, new %d'
+        print('faces do type9    : baseline %d -> candidato %d; perdidas %d, novas %d'
               % (f['baseline'], f['candidate'], f['lost'], f['gained']))
     for kind in (9, 10):
         t = info['t%d' % kind]
-        print('containment t%-2d   : %d leaf refs checked, %d outside the cell'
+        print('containment t%-2d   : %d refs de folha conferidas, %d fora da celula'
               % (kind, t['leaf_refs_checked'], t['leaf_refs_misplaced']))
     if a.holes:
         h = info['holes']
-        print('holes             : %d checked, %d now have collision, %d still open'
+        print('buracos           : %d conferidos, %d passaram a ter colisao, %d ainda abertos'
               % (h['checked'], h['fixed'], h['still_open']))
     s = info['safety']
-    print('type10 plane      : %d samples, exposed %d (%.2f%%)'
+    print('plano type10      : %d amostras, expostas %d (%.2f%%)'
           % (s['samples'], s['exposed'], s['exposed_pct']))
     print()
     if problems:
-        print('VERDICT: FAIL')
+        print('VEREDITO: FAIL')
         for p in problems:
             print('  - %s' % p)
     else:
-        print('VERDICT: PASS')
+        print('VEREDITO: PASS')
     if a.json:
         with open(a.json, 'w', encoding='utf-8') as stream:
             json.dump(info, stream, indent=2, ensure_ascii=False)

@@ -24,10 +24,10 @@ import struct
 import sys
 import importlib.util as _iu
 _SP = _iu.spec_from_file_location(
-    'mc3_output', os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              'mc3_output.py'))
-_out_path = _iu.module_from_spec(_SP)
-_SP.loader.exec_module(_out_path)
+    'mc3_saida', os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              'mc3_saida.py'))
+_saida = _iu.module_from_spec(_SP)
+_SP.loader.exec_module(_saida)
 _VP_SPEC = _iu.spec_from_file_location(
     'mc3_vifpos', os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                'mc3_vifpos.py'))
@@ -37,8 +37,8 @@ _VP_SPEC.loader.exec_module(_vifpos)
 
 
 # ---------------------------------------------------------------------------
-# Parsers -> list of groups: each group = {name, material, verts:[[x,y,z]...],
-#            tris:[[i,j,k]...]}  (i,j,k indices into verts, order = winding)
+# Parsers -> lista de grupos: cada grupo = {name, material, verts:[[x,y,z]...],
+#            tris:[[i,j,k]...]}  (i,j,k indices em verts, ordem = winding)
 # ---------------------------------------------------------------------------
 
 def _cross(a, b):
@@ -64,7 +64,7 @@ def parse_psppck(path):
         p = struct.unpack_from("<I", d, off)[0] - base
         cnt = struct.unpack_from("<H", d, off + 4)[0]
         off += 0xC
-        # the group's continuous range (from the 1st sub-offset to the last), gaps included
+        # range continuo do grupo (do 1o sub-offset ao ultimo), inclui os gaps
         starts, ends = [], []
         po = p
         for k in range(cnt):
@@ -78,7 +78,7 @@ def parse_psppck(path):
         if g1 * 14 + mesh_ptr > len(d):
             continue
         verts = [list(struct.unpack_from("<hhh", d, mesh_ptr + i*14 + 8)) for i in range(g0, g1)]
-        # contiguous strip with parity local to the group; skip degenerates
+        # tira contigua com paridade local ao grupo; pula degenerados
         tris = []
         for i in range(2, g1 - g0):
             a, b, c = (i-2, i-1, i) if i % 2 == 0 else (i-1, i-2, i)
@@ -101,13 +101,13 @@ def parse_ps2_pck(path):
     def in_file(off):
         return 0 <= off <= N - 2
 
-    # accept any mesh tag ?? ?? 7A 00 (98 0F=vp, 18 1E=traffic, etc.)
+    # aceita qualquer tag de mesh ?? ?? 7A 00 (98 0F=vp, 18 1E=traffic, etc.)
     if d[0x82:0x84] != b"\x7a\x00":
         raise ValueError("not a mesh.pck (missing ?? ?? 7A 00 tag at 0x80)")
 
-    # try reading the header (num_ptr / material table / main pointers). If the
-    # pointers fall outside the file (e.g. a slice extracted from a container),
-    # ignore it and treat everything as a single group.
+    # tenta ler header (num_ptr / material table / main pointers). Se os
+    # ponteiros cairem fora do arquivo (ex.: fatia extraida de um container),
+    # ignora e trata tudo como um grupo so.
     material_indices = []
     group_starts = []
     try:
@@ -123,7 +123,7 @@ def parse_ps2_pck(path):
     except Exception:
         pass
 
-    # every packet block (vp uses ...6C, traffic uses ...60)
+    # todos os blocos de packet (vp usa ...6C, traffic usa ...60)
     block_offs = [m.start() for m in re.finditer(
         rb"(\x98\x00\x02[\x6c\x60]|\xc5\x01\x02[\x6c\x60])", d)]
 
@@ -134,10 +134,10 @@ def parse_ps2_pck(path):
                 gi = j
         return gi
 
-    # decode each block into (verts, tris) and accumulate per group
+    # decodifica cada bloco em (verts, tris) e acumula por grupo
     per_group = {}
     for bo in block_offs:
-        # vertex scale = float @ +4
+        # scale do vertice = float @ +4
         scale = struct.unpack_from("<f", d, bo + 4)[0] or (1/256.0)
         m = re.search(rb"(\xee\x00|\x1b\x02)(.)\x69", d[bo:bo+0x40], re.DOTALL)
         if not m:
@@ -175,12 +175,12 @@ def parse_ps2_pck(path):
 
 
 # ---------------------------------------------------------------------------
-# Traffic container (multi-vehicle): *_traffic.pck
+# Container traffic (multi-veiculo): *_traffic.pck
 # ---------------------------------------------------------------------------
 
 def _find_blocks(d):
-    # flexible block start (vp uses ...6C, traffic ...60; tokyo likewise);
-    # validated by requiring an EE00../1B02..69 vertex tag right after.
+    # inicio de bloco flexivel (vp usa ...6C, traffic ...60; tokyo idem);
+    # valida exigindo um vertex tag EE00../1B02..69 logo em seguida.
     return [m.start() for m in re.finditer(rb"(\x98\x00\x02.|\xc5\x01\x02.)", d, re.DOTALL)
             if re.search(rb"(\xee\x00|\x1b\x02).\x69", d[m.start():m.start()+0x30], re.DOTALL)]
 
@@ -223,12 +223,12 @@ def _tris_from_blocks(blocks_data):
 
 
 def _name_before(d, off):
-    # MC3 node names are lower case (body, whl0, headlight2, bndbone, glow_*).
+    # nomes de no MC3 sao minusculos (body, whl0, headlight2, bndbone, glow_*).
     win = d[max(0, off-0x600):off]
     ns = re.findall(rb"[a-z_][a-z0-9_]{2,}", win)
     for s in reversed(ns):
         t = s.decode("latin1")
-        if len(set(t)) > 1 and not t.endswith("bone"):  # skip repeats and the generic "bndbone"
+        if len(set(t)) > 1 and not t.endswith("bone"):  # ignora repetidos e o "bndbone" generico
             return t
     for s in reversed(ns):
         t = s.decode("latin1")
@@ -258,12 +258,12 @@ def parse_ps2_container(path):
     def is_mesh(fo):
         return 0 <= fo <= N-4 and d[fo+2:fo+4] in (b"\x7a\x00", b"\xbc\x00")
 
-    # (1) directory: vehicle (name_list) -> mesh pointers.
-    # name_list_pointers @ file 0xB0; follow audio[i] +0x2a4 -> root
-    # +0x10 -> mesh_group (num u16@+2, array_ptr u32@+8) -> the mesh pointers.
+    # (1) diretorio: veiculo (name_list) -> ponteiros de mesh.
+    # name_list_pointers @ file 0xB0; segue audio[i] +0x2a4 -> root
+    # +0x10 -> mesh_group (num u16@+2, array_ptr u32@+8) -> ponteiros dos meshes.
     header_name = {}
     try:
-        nlp = 0xB0          # the directory sits in the header, at a fixed file offset
+        nlp = 0xB0          # o diretorio fica no header, offset de arquivo fixo
         p_lop = U(nlp); n = U16(nlp+4); p_names = U(nlp+8)
         audio = [U(F(p_lop)+4*i) for i in range(n)]
         names = [d[F(p_names)+i*104+4:F(p_names)+i*104+64].split(b"\x00")[0].decode("latin1")
@@ -288,7 +288,7 @@ def parse_ps2_container(path):
     except Exception:
         pass
 
-    # (2) also detect headers by structure (catches the unmapped ones, e.g. tram)
+    # (2) tambem detecta headers pela estrutura (pega os nao-mapeados, ex.: tram)
     headers = set(header_name)
     for o in range(0x80, N-0x14, 4):
         if not is_mesh(o):
@@ -298,10 +298,10 @@ def parse_ps2_container(path):
             headers.add(o)
     hs = sorted(headers)
 
-    # (3) each mesh's blocks: follow the mesh header's own pointers
-    #     (main pointers -> block pointers -> region with concatenated blocks).
-    #     Each block pointer = u32 ptr + u16 size-in-qwords + u16 num verts.
-    #     Only fall back to the tag scan if the pointers do not resolve.
+    # (3) blocos de cada mesh: seguir os ponteiros do proprio mesh header
+    #     (main pointers -> block pointers -> regiao com blocos concatenados).
+    #     Cada block pointer = u32 ptr + u16 tamanho-em-qwords + u16 num verts.
+    #     So cai no scan por tag se os ponteiros nao resolverem.
     bymesh = {}
     for o in hs:
         n_g = U(o + 8)
@@ -329,14 +329,14 @@ def parse_ps2_container(path):
         if found:
             bymesh[o] = sorted(set(found))
 
-    if not bymesh:      # fallback: tag scan + nearest header
+    if not bymesh:      # fallback: varredura por tag + header mais proximo
         import bisect
         for b in _find_blocks(d):
             i = bisect.bisect_right(hs, b) - 1
             if i >= 0:
                 bymesh.setdefault(hs[i], []).append(b)
 
-    # (4) build the groups
+    # (4) monta grupos
     groups = []
     for o in hs:
         if o not in bymesh:
@@ -555,18 +555,18 @@ def _vif_batches(d, base, size, nv):
     vertex count the block list declared, which keeps the parser working on
     anything that does not follow the city layout.
     """
-    batches_ = _vif_walk(d, base, size)
+    lotes = _vif_walk(d, base, size)
     got = []
-    for batch in batches_:
+    for lote in lotes:
         pos = adc = None
-        for rel, cmd, off, n in batch:
+        for rel, cmd, off, n in lote:
             if (cmd & 0x6F) in (0x68, 0x69) and pos is None:
                 pos = (off, n)
             elif rel == 2 and (cmd & 0x6F) in (0x6A, 0x6E):
-                # the ITOP+2 stream is the normal in s8, and bit 0 of the x byte is the
-                # ADC: suppresses the triangle ending at that vertex. Only 7.3%
-                # of city blocks have that stream, but in those that do the game
-                # draws less than the strip suggests.
+                # o stream de ITOP+2 e a normal em s8, e o bit 0 do byte x e o
+                # ADC: suprime o triangulo que termina naquele vertice. So 7.3%
+                # dos blocos da cidade tem esse stream, mas nos que tem o jogo
+                # desenha menos do que a tira sugere.
                 adc = (off, 3 if (cmd & 0x6F) == 0x6A else 4)
         if pos:
             got.append(pos + (adc,))
@@ -735,7 +735,7 @@ def parse_ps2_city(path, limit=0):
                         if ok(mp) and mp not in info:
                             info[mp] = (nm if bslot == 0 else "%s#%d" % (nm, bslot), mat)
 
-    groups, orphans = [], []
+    groups, orfaos = [], []
     for mo in range(0x80, N - 0x20, 4):
         if U(mo) != MESH_TAG:
             continue
@@ -769,9 +769,9 @@ def parse_ps2_city(path, limit=0):
                     continue
                 walked = _vif_walk(d, b, qw * 16)
                 adcs = []
-                for batch in walked:
+                for lote in walked:
                     adc = None
-                    for rel, cmd, off, n in batch:
+                    for rel, cmd, off, n in lote:
                         if rel == 2 and (cmd & 0x6F) in (0x6A, 0x6E):
                             adc = (off, 3 if (cmd & 0x6F) == 0x6A else 4)
                             break
@@ -785,12 +785,12 @@ def parse_ps2_city(path, limit=0):
                     adc = adcs[li] if li < len(adcs) else None
                     base = len(verts)
                     verts.extend([_place(M, p[0], p[1], p[2]) for p in positions])
-                    skip_ = [False] * vn
+                    pula = [False] * vn
                     if adc and adc[0] + adc[1] * vn <= N:
                         no, st = adc
-                        skip_ = [(d[no + st * i] & 1) == 1 for i in range(vn)]
+                        pula = [(d[no + st * i] & 1) == 1 for i in range(vn)]
                     for i in range(2, vn):
-                        if skip_[i]:
+                        if pula[i]:
                             continue
                         a, bb, c = (i - 2, i - 1, i) if i % 2 == 0 else (i - 1, i - 2, i)
                         A, B, C = verts[base + a], verts[base + bb], verts[base + c]
@@ -799,7 +799,7 @@ def parse_ps2_city(path, limit=0):
                         tris.append([base + a, base + bb, base + c])
         if tris:
             if nm is None:
-                orphans.append(len(groups))
+                orfaos.append(len(groups))
             groups.append({"name": nm or ("mesh@%06X" % mo),
                            "voff": mo + BASE, "material": mat,
                            "verts": verts, "tris": tris})
@@ -815,11 +815,11 @@ def parse_ps2_city(path, limit=0):
     # out, not something to trust for anything else.
     placed = [(g["voff"], g) for g in groups
               if g["voff"] in info and any(info[g["voff"]][1])]
-    if placed and orphans:
+    if placed and orfaos:
         placed.sort()
         import bisect
         keys = [k for k, _g in placed]
-        for gi in orphans:
+        for gi in orfaos:
             g = groups[gi]
             j = bisect.bisect_left(keys, g["voff"])
             best = None
@@ -879,7 +879,7 @@ def parse_any(path):
 
 
 # ---------------------------------------------------------------------------
-# HTML generator (self-contained WebGL2)
+# Gerador do HTML (WebGL2 autocontido)
 # ---------------------------------------------------------------------------
 
 def _hsv(h, s, v):
@@ -888,10 +888,10 @@ def _hsv(h, s, v):
 
 
 def build_html(groups, title, platform):
-    # global bounding box -> centre and scale to fit in ~2 units
+    # bounding box global -> centraliza e escala pra caber em ~2 unidades
     allv = [v for g in groups for v in g["verts"]]
     if not allv:
-        raise ValueError("empty mesh")
+        raise ValueError("mesh vazio")
     mn = [min(v[i] for v in allv) for i in range(3)]
     mx = [max(v[i] for v in allv) for i in range(3)]
     cen = [(mn[i]+mx[i])/2 for i in range(3)]
@@ -899,7 +899,7 @@ def build_html(groups, title, platform):
     sc = 2.0/ext
 
     ng = len(groups)
-    data = []  # pos3 + color3 + bary3 per vertex, non-indexed triangles
+    data = []  # pos3 + color3 + bary3 por vertice, triangulos nao-indexados
     bary = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
     group_info = []
     for gi, g in enumerate(groups):
@@ -1037,7 +1037,7 @@ ${P.groups.length} groups  ${P.ntri} triangles
 [W] wireframe: ${wire?'ON':'off'}
 [G] color by group: ${colorGroup?'ON':'off'}
 drag=rotate  scroll=zoom  right=pan`;}
-// legend + mesh selector
+// legenda + seletor de mesh
 function lbl(g,i){
  const off = g.voff!=null ? ('@0x'+(g.voff>>>0).toString(16)) : (g.name||('mesh'+i));
  const nm  = (g.voff!=null && g.name) ? (' '+g.name) : '';
@@ -1065,18 +1065,18 @@ loop();
 def write_html(path):
     groups, plat = parse_any(path)
     html = build_html(groups, os.path.basename(path), plat)
-    out = _out_path.path(os.path.basename(path) + ".html")
+    out = _saida.caminho(os.path.basename(path) + ".html")
     open(out, "w", encoding="utf-8").write(html)
     return out, groups, plat
 
 
 # ---------------------------------------------------------------------------
-# Native viewer (matplotlib) - opens a window directly, no HTML
+# Viewer nativo (matplotlib) - abre janela direto, sem HTML
 # ---------------------------------------------------------------------------
 
 def _group_faces(g):
-    """Precompute per face: the 3 vertices, the geometric normal and whether it
-    is FLIPPED (winding disagrees with the smooth normal = a 'see-through' face)."""
+    """Pre-calcula por face: os 3 vertices, a normal geometrica e se esta
+    INVERTIDA (winding discorda da normal suave = face 'vendo atraves')."""
     import numpy as np
     V = np.asarray(g["verts"], dtype=float)
     T = np.asarray(g["tris"], dtype=int)
@@ -1087,7 +1087,7 @@ def _group_faces(g):
     ln = np.linalg.norm(fn, axis=1, keepdims=True)
     ln[ln == 0] = 1.0
     fn_unit = fn / ln
-    # smooth per-vertex normal (average of the face normals)
+    # normal suave por vertice (media das normais de face)
     vn = np.zeros_like(V)
     for k in range(3):
         np.add.at(vn, T[:, k], fn_unit)
@@ -1106,8 +1106,8 @@ def show_native(groups, title, platform):
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-    # remove the viewer's keys from matplotlib's default shortcuts
-    # (q=quit, g=grid, arrows=back/forward, s=save, etc.) so they do not clash
+    # tira as teclas do viewer dos atalhos padrao do matplotlib
+    # (q=quit, g=grid, setas=voltar/avancar, s=save, etc.) pra nao conflitarem
     mine = {"left", "right", "a", "b", "g", "w", "q", "e"}
     for km in [k for k in mpl.rcParams if k.startswith("keymap.")]:
         try:
@@ -1131,7 +1131,7 @@ def show_native(groups, title, platform):
     def _apply_view(el, az, roll):
         try:
             ax.view_init(elev=el, azim=az, roll=roll)
-        except TypeError:      # matplotlib < 3.6 has no roll
+        except TypeError:      # matplotlib < 3.6 nao tem roll
             ax.view_init(elev=el, azim=az)
 
     def redraw():
@@ -1212,7 +1212,7 @@ def show_native(groups, title, platform):
 
 # ---------------------------------------------------------------------------
 def _open_html(p, groups, plat):
-    out = _out_path.path(os.path.basename(p) + ".html")
+    out = _saida.caminho(os.path.basename(p) + ".html")
     open(out, "w", encoding="utf-8").write(build_html(groups, os.path.basename(p), plat))
     import webbrowser
     webbrowser.open("file:///" + os.path.abspath(out).replace("\\", "/"))

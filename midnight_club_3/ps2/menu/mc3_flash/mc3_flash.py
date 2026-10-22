@@ -173,11 +173,11 @@ class Pck(object):
           - code hung off CLIPEVENT commands (+0x20)
         """
         out = []
-        loop = [(-1, self.root_frames())]
+        laco = [(-1, self.root_frames())]
         for i, va, t in self.objects():
             if OBJ_TYPES.get(t) == 'SPRITE':
-                loop.append((i, self.sprite_frames(va)))
-        for owner, frames in loop:
+                laco.append((i, self.sprite_frames(va)))
+        for owner, frames in laco:
             for _fi, cva in frames:
                 for c, k in self.commands(cva):
                     kind = CMD_TYPES.get(k)
@@ -354,16 +354,16 @@ class Elf(object):
         po = struct.unpack_from('<I', self.d, 0x1C)[0]
         pn = struct.unpack_from('<H', self.d, 0x2C)[0]
         ps = struct.unpack_from('<H', self.d, 0x2A)[0]
-        load = []
+        carga = []
         for i in range(pn):
             t, off, va, _pa, fsz, _msz, _fl, _al = struct.unpack_from(
                 '<IIIIIIII', self.d, po + i * ps)
             if t == 1:
-                load.append((off, va, fsz))
-        if len(load) != 1:
+                carga.append((off, va, fsz))
+        if len(carga) != 1:
             raise SystemExit('%s: expected one PT_LOAD, found %d'
-                             % (os.path.basename(path), len(load)))
-        self.off, self.va, self.size = load[0]
+                             % (os.path.basename(path), len(carga)))
+        self.off, self.va, self.size = carga[0]
 
     def word(self, va):
         return struct.unpack_from('<I', self.d, va - self.va + self.off)[0]
@@ -384,9 +384,9 @@ class Elf(object):
             return None
         return s.decode('latin1')
 
-    def func_start(self, va, max_n=4000):
+    def func_start(self, va, limite=4000):
         """Walk back to the `addiu $sp, $sp, -N` that opens the frame."""
-        for k in range(max_n):
+        for k in range(limite):
             a = va - 4 * k
             if a < self.va:
                 return None
@@ -397,7 +397,7 @@ class Elf(object):
         return None
 
 
-def _write(w):
+def _escreve(w):
     """Which register this instruction writes, or -1."""
     op = w >> 26
     if op in (0x0F, 0x09, 0x0D, 0x23, 0x24, 0x25, 0x21):
@@ -407,7 +407,7 @@ def _write(w):
     return -1
 
 
-def arg_string(elf, jal_va, reg=5, reach=24):
+def arg_string(elf, jal_va, reg=5, alcance=24):
     """Resolve the static string in `reg` at a call site, or None.
 
     Deliberately conservative. The value is accepted only when the instruction
@@ -419,8 +419,8 @@ def arg_string(elf, jal_va, reg=5, reach=24):
     The delay slot is read first, because on MIPS it runs BEFORE the call and is
     where the compiler usually parks the last argument.
     """
-    order = [jal_va + 4] + [jal_va - 4 * k for k in range(1, reach)]
-    for a in order:
+    ordem = [jal_va + 4] + [jal_va - 4 * k for k in range(1, alcance)]
+    for a in ordem:
         if a < elf.va or a >= elf.va + elf.size:
             continue
         w = elf.word(a)
@@ -428,7 +428,7 @@ def arg_string(elf, jal_va, reg=5, reach=24):
         # a branch or another call ends the straight-line run we can trust
         if a != jal_va + 4 and (op == 0x01 or 0x02 <= op <= 0x07):
             return None
-        if _write(w) != reg:
+        if _escreve(w) != reg:
             continue
         if op != 0x09:                    # written, but not by addiu -> unknown
             return None
@@ -445,26 +445,26 @@ def arg_string(elf, jal_va, reg=5, reach=24):
             w2 = elf.word(b)
             if (w2 >> 26) == 0x0F and ((w2 >> 16) & 0x1F) == base:
                 return elf.cstr((((w2 & 0xFFFF) << 16) + imm) & 0xFFFFFFFF)
-            if _write(w2) == base:
+            if _escreve(w2) == base:
                 return None
         return None
     return None
 
 
-def _symbols():
-    """The name tables from symbols/, most trusted layer first."""
-    this_dir = os.path.dirname(os.path.abspath(__file__))
+def _simbolos():
+    """The name tables from simbolos/, most trusted layer first."""
+    aqui = os.path.dirname(os.path.abspath(__file__))
     tab = {}
-    for item_name in ('names_manual.tsv', 'names.tsv', 'names_graph.tsv',
-                 'names_neighbours.tsv', 'names_token.tsv'):
-        p = os.path.join(this_dir, 'symbols', item_name)
+    for nome in ('nomes_manuais.tsv', 'nomes.tsv', 'nomes_grafo.tsv',
+                 'nomes_vizinhos.tsv', 'nomes_token.tsv'):
+        p = os.path.join(aqui, 'simbolos', nome)
         if not os.path.exists(p):
             continue
         for ln in io.open(p, encoding='utf-8', errors='ignore'):
-            field = ln.rstrip('\n').split('\t')
-            if len(field) >= 2:
+            campo = ln.rstrip('\n').split('\t')
+            if len(campo) >= 2:
                 try:
-                    tab.setdefault(int(field[0], 16), field[1])
+                    tab.setdefault(int(campo[0], 16), campo[1])
                 except ValueError:
                     pass
     return tab
@@ -473,16 +473,16 @@ def _symbols():
 def flash_api(sym):
     """Addresses of the mcFlash context API, taken from the symbol tables.
 
-    Read from symbols/ rather than pasted here, so a better name table
+    Read from simbolos/ rather than pasted here, so a better name table
     improves this command instead of silently disagreeing with it.
     """
-    short = (('GetContextVariableString', 'getstr'),
+    curto = (('GetContextVariableString', 'getstr'),
              ('SetContextVariable', 'set'),
              ('GetContextVariable', 'get'),
              ('GetArrayLength', 'arraylen'))
     # the demangled argument list, shortened to what a reader needs: whether
     # this site writes a scalar or one slot of an array, and of what type
-    type_code = [('char_const__ptr__int_char_const__ptr', 'name,i,str'),
+    tipo = [('char_const__ptr__int_char_const__ptr', 'name,i,str'),
             ('char_const__ptr__int_int', 'name,i,int'),
             ('char_const__ptr__int_swfVARIANT__ref', 'name,i,&var'),
             ('char_const__ptr__char__ptr__int', 'name,buf,n'),
@@ -491,54 +491,54 @@ def flash_api(sym):
             ('char_const__ptr__int', 'name,int'),
             ('char_const__ptr', 'name')]
     api = {}
-    for va, item_name in sym.items():
-        if not item_name.startswith('mcFlash__'):
+    for va, nome in sym.items():
+        if not nome.startswith('mcFlash__'):
             continue
-        payload = item_name[len('mcFlash__'):]
-        for k, v in short:
-            if not payload.startswith(k):
+        corpo = nome[len('mcFlash__'):]
+        for k, v in curto:
+            if not corpo.startswith(k):
                 continue
-            rest = payload[len(k):].strip('_')
-            args = next((c for m, c in type_code if rest == m), rest or 'name')
+            resto = corpo[len(k):].strip('_')
+            args = next((c for m, c in tipo if resto == m), resto or 'name')
             api[va] = '%s(%s)' % (v, args)
             break
     return api
 
 
 def cmd_vars(a):
-    sym = _symbols()
+    sym = _simbolos()
     api = flash_api(sym)
     if not api:
-        print('   no mcFlash symbols in symbols/ - nothing to scan for')
+        print('   no mcFlash symbols in simbolos/ - nothing to scan for')
         return 1
     elf = Elf(a.elf)
-    found = []
+    achados = []
     for va, w in elf.words():
         if (w >> 26) != 0x03:                          # jal
             continue
-        target = (va & 0xF0000000) | ((w & 0x3FFFFFF) << 2)
-        if target in api:
-            found.append((va, api[target], arg_string(elf, va)))
+        alvo = (va & 0xF0000000) | ((w & 0x3FFFFFF) << 2)
+        if alvo in api:
+            achados.append((va, api[alvo], arg_string(elf, va)))
 
-    total = len(found)
+    total = len(achados)
     if a.grep:
         rx = re.compile(a.grep, re.I)
-        found = [x for x in found if x[2] and rx.search(x[2])]
+        achados = [x for x in achados if x[2] and rx.search(x[2])]
     elif not a.all:
-        found = [x for x in found if x[2]]
+        achados = [x for x in achados if x[2]]
 
-    by_name = collections.Counter(x[2] for x in found if x[2])
+    por_nome = collections.Counter(x[2] for x in achados if x[2])
     if a.list:
-        for item_name, n in sorted(by_name.items()):
-            print('   %-38s %d' % (item_name, n))
+        for nome, n in sorted(por_nome.items()):
+            print('   %-38s %d' % (nome, n))
     else:
-        for va, kind, item_name in found:
+        for va, kind, nome in achados:
             f = elf.func_start(va)
             print('   %08X  %-26s %-34s %s'
-                  % (va, kind, repr(item_name) if item_name else '<not a static string>',
+                  % (va, kind, repr(nome) if nome else '<not a static string>',
                      sym.get(f, '%08X' % f if f else '?')))
     print('   -- %d shown, %d distinct names, %d call sites in the ELF'
-          % (len(found), len(by_name), total))
+          % (len(achados), len(por_nome), total))
     return 0
 
 
@@ -566,14 +566,14 @@ def cmd_objects(a):
     p = Pck(a.file)
     want = a.type.upper() if a.type else None
     for i, va, t in p.objects():
-        item_name = OBJ_TYPES.get(t, '?%s' % t)
-        if want and item_name != want:
+        nome = OBJ_TYPES.get(t, '?%s' % t)
+        if want and nome != want:
             continue
         extra = ''
-        if item_name == 'SPRITE':
+        if nome == 'SPRITE':
             fr = p.sprite_frames(va)
             extra = '%d frames' % len(fr)
-        print('   %4d  %08X  %-9s %s' % (i, va, item_name, extra))
+        print('   %4d  %08X  %-9s %s' % (i, va, nome, extra))
 
 
 def cmd_sprites(a):
@@ -594,14 +594,14 @@ def cmd_sprites(a):
                      ' '.join('%s=%d' % kv for kv in sorted(kinds.items()))))
             continue
         # the names are what make a sprite identifiable from outside
-        names = []
+        nomes = []
         for cva, k in cmds:
             if CMD_TYPES.get(k) == 'CLIPEVENT':
                 s = p.cstr(p.u32(p.off(cva) + 0x24))
                 if s:
-                    names.append(s)
-        if names:
-            print('   %4d  %08X  %s' % (i, va, ', '.join(sorted(set(names)))))
+                    nomes.append(s)
+        if nomes:
+            print('   %4d  %08X  %s' % (i, va, ', '.join(sorted(set(nomes)))))
     print('   -- %d commands walked' % total_cmds)
 
 
@@ -621,22 +621,22 @@ def cmd_strings(a):
 
 def cmd_actions(a):
     p = Pck(a.file)
-    blocks = p.action_blocks()
+    blocos = p.action_blocks()
     if a.grep:
         rx = re.compile(a.grep, re.I)
-        blocks = [b for b in blocks if any(rx.search(s) for s in prologue(p, b[3])[1])]
-    print('   %d action blocks%s' % (len(blocks), ' matching' if a.grep else ''))
-    for n, (owner, c, kind, code) in enumerate(blocks):
+        blocos = [b for b in blocos if any(rx.search(s) for s in prologue(p, b[3])[1])]
+    print('   %d action blocks%s' % (len(blocos), ' matching' if a.grep else ''))
+    for n, (owner, c, kind, code) in enumerate(blocos):
         if n >= a.limit:
             print('   ... stopping at --limit %d' % a.limit)
             break
         ins = avm1(p, code)
         _o, pool = prologue(p, code)
-        owner_ = 'root' if owner < 0 else 'object %d' % owner
+        dono = 'root' if owner < 0 else 'object %d' % owner
         print('   %s, %s at %08X -> code %08X, %d ops, %d pooled strings'
-              % (owner_, kind, c, code, len(ins), len(pool)))
-        for off, item_name, det in ins[:a.ops]:
-            print('      %4d  %-14s %s' % (off, item_name, det))
+              % (dono, kind, c, code, len(ins), len(pool)))
+        for off, nome, det in ins[:a.ops]:
+            print('      %4d  %-14s %s' % (off, nome, det))
         if len(ins) > a.ops:
             print('      ... %d more' % (len(ins) - a.ops))
         print()
@@ -645,11 +645,11 @@ def cmd_actions(a):
 def cmd_diff(a):
     x, y = Pck(a.a), Pck(a.b)
     print('%-28s %-28s' % (os.path.basename(x.path), os.path.basename(y.path)))
-    for item_name, va, vb in (('objectCount', x.object_count, y.object_count),
+    for nome, va, vb in (('objectCount', x.object_count, y.object_count),
                          ('body size', x.body, y.body),
                          ('frames', x.frame_count, y.frame_count)):
         print('   %-14s %-14s %-14s %s'
-              % (item_name, va, vb, '' if va == vb else '<-- differ'))
+              % (nome, va, vb, '' if va == vb else '<-- differ'))
     hx = collections.Counter(OBJ_TYPES.get(t, '?') for _i, _v, t in x.objects())
     hy = collections.Counter(OBJ_TYPES.get(t, '?') for _i, _v, t in y.objects())
     print('   objects by type:')
@@ -666,19 +666,19 @@ def cmd_diff(a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0],
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    sub = ap.add_subparsers(dest='action')
-    for item_name in ('info', 'objects', 'sprites', 'strings', 'actions'):
-        s = sub.add_parser(item_name)
+    sub = ap.add_subparsers(dest='acao')
+    for nome in ('info', 'objects', 'sprites', 'strings', 'actions'):
+        s = sub.add_parser(nome)
         s.add_argument('file')
-        if item_name == 'objects':
+        if nome == 'objects':
             s.add_argument('--type')
-        if item_name == 'sprites':
+        if nome == 'sprites':
             s.add_argument('--clips', action='store_true')
-        if item_name == 'strings':
+        if nome == 'strings':
             s.add_argument('--min', type=int, default=4)
             s.add_argument('--grep')
             s.add_argument('--limit', type=int, default=60)
-        if item_name == 'actions':
+        if nome == 'actions':
             s.add_argument('--limit', type=int, default=20)
             s.add_argument('--ops', type=int, default=40)
             s.add_argument('--grep')
@@ -695,12 +695,12 @@ def main():
                    help='include sites whose name is not a static string')
 
     a = ap.parse_args()
-    if not a.action:
+    if not a.acao:
         ap.print_help()
         return 1
     return {'info': cmd_info, 'objects': cmd_objects, 'sprites': cmd_sprites,
             'strings': cmd_strings, 'actions': cmd_actions,
-            'diff': cmd_diff, 'vars': cmd_vars}[a.action](a) or 0
+            'diff': cmd_diff, 'vars': cmd_vars}[a.acao](a) or 0
 
 
 if __name__ == '__main__':

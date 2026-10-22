@@ -21,7 +21,7 @@ def recv_exact(sock: socket.socket, size: int) -> bytes:
     while len(data) < size:
         chunk = sock.recv(size - len(data))
         if not chunk:
-            raise ConnectionError("PCSX2 closed the PINE connection")
+            raise ConnectionError("PCSX2 fechou a conexao PINE")
         data.extend(chunk)
     return bytes(data)
 
@@ -40,14 +40,14 @@ class Pine:
         self.sock.sendall(struct.pack("<I", len(body) + 4) + body)
         reply_size = struct.unpack("<I", recv_exact(self.sock, 4))[0]
         if reply_size < 5:
-            raise RuntimeError(f"short PINE reply: {reply_size}")
+            raise RuntimeError(f"resposta PINE curta: {reply_size}")
         reply = recv_exact(self.sock, reply_size - 4)
         if reply[0] != 0:
-            raise RuntimeError(f"PCSX2 refused the PINE read: {reply[0]:02X}")
+            raise RuntimeError(f"PCSX2 recusou leitura PINE: {reply[0]:02X}")
         expected = 1 + 4 * len(addresses)
         if len(reply) != expected:
             raise RuntimeError(
-                f"PINE reply has {len(reply)} bytes, expected {expected}")
+                f"resposta PINE tem {len(reply)} bytes, esperado {expected}")
         return list(struct.unpack("<%dI" % len(addresses), reply[1:]))
 
     def telemetry(self) -> dict[str, object] | None:
@@ -63,12 +63,12 @@ class Pine:
             return None
         if words[0] != MAGIC:
             raise RuntimeError(
-                f"mailbox without the MC3T magic: {words[0]:08X}; "
-                "are the game and mc3_telemetry.mod running?")
+                f"mailbox sem magic MC3T: {words[0]:08X}; "
+                "o jogo e mc3_telemetry.mod estao rodando?")
         version = words[1] & 0xFFFF
         size = words[1] >> 16
         if version != 1 or size != 48:
-            raise RuntimeError(f"incompatible ABI: v{version}, {size} bytes")
+            raise RuntimeError(f"ABI incompativel: v{version}, {size} bytes")
         def as_float(word: int) -> float:
             return struct.unpack("<f", struct.pack("<I", word))[0]
         gear = struct.unpack("<i", struct.pack("<I", words[6]))[0]
@@ -89,21 +89,21 @@ def gear_name(gear: int) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Read the telemetry published by mc3_telemetry.mod through PINE")
+        description="Le a telemetria publicada por mc3_telemetry.mod via PINE")
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--once", action="store_true",
-                        help="read one sample and exit")
+                        help="le uma amostra e termina")
     parser.add_argument("--hz", type=float, default=20.0,
-                        help="display rate in continuous mode (default: 20)")
+                        help="frequencia visual no modo continuo (padrao: 20)")
     args = parser.parse_args()
 
     try:
         pine = Pine(args.host, args.port)
     except OSError as exc:
         parser.error(
-            f"could not connect to PINE {args.host}:{args.port}: {exc}. "
-            "Turn on Settings > Advanced > Enable PINE Server and restart PCSX2")
+            f"nao conectou em PINE {args.host}:{args.port}: {exc}. "
+            "Ative Settings > Advanced > Enable PINE Server e reinicie PCSX2")
 
     try:
         while True:

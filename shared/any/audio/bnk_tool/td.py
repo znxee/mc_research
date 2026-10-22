@@ -32,18 +32,18 @@ def parse_td(path: str) -> dict:
         lines = [ln.strip() for ln in f if ln.strip()]
 
     if not lines or not lines[0].startswith("TD_FILE"):
-        raise TdError("does not look like a .td file (expected 'TD_FILE' on the first line)")
+        raise TdError("nao parece um arquivo .td (esperava 'TD_FILE' na primeira linha)")
     version = lines[0].split(None, 1)[1] if " " in lines[0] else ""
 
     if len(lines) < 2 or not lines[1].startswith("NUMSOUNDS"):
-        raise TdError("expected 'NUMSOUNDS N' on the second line")
+        raise TdError("esperava 'NUMSOUNDS N' na segunda linha")
     num_sounds = int(lines[1].split()[1])
 
     sounds = []
     pos = 2
     for _ in range(num_sounds):
         if pos + 2 >= len(lines) + 1 or pos + 1 >= len(lines):
-            raise TdError("truncated .td file (fewer entries than NUMSOUNDS declares)")
+            raise TdError("arquivo .td truncado (menos entradas do que NUMSOUNDS declara)")
         name = lines[pos]
         index = int(lines[pos + 1])
         flag = int(lines[pos + 2])

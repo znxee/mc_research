@@ -18,7 +18,7 @@ def _ask(prompt, default=None):
             return default
         if val:
             return val
-        print("  (required)")
+        print("  (obrigatorio)")
 
 
 def _ask_path(prompt, default=None, must_exist=True):
@@ -26,18 +26,18 @@ def _ask_path(prompt, default=None, must_exist=True):
         val = _ask(prompt, default)
         if not must_exist or os.path.exists(val):
             return val
-        print(f"  file/folder not found: {val}")
+        print(f"  arquivo/pasta nao encontrado: {val}")
 
 
 def _ask_yesno(prompt, default=True):
-    d = "Y/n" if default else "y/N"
+    d = "S/n" if default else "s/N"
     while True:
         val = input(f"{prompt} ({d}): ").strip().lower()
         if not val:
             return default
-        if val in ("y", "yes"):
+        if val in ("s", "sim", "y", "yes"):
             return True
-        if val in ("n", "no"):
+        if val in ("n", "nao", "não", "no"):
             return False
 
 
@@ -45,31 +45,31 @@ def _print_support_note(sblk_version, support_tier):
     if support_tier == "full":
         return
     if support_tier == "demux_only":
-        print(f"  warning: SBlk version 0x{sblk_version:02x} only supports reading/extraction (DEMUX). "
-              f"Rebuilding (MUX) this stream is not safely possible (there is no size field).")
+        print(f"  aviso: versao SBlk 0x{sblk_version:02x} so tem suporte a leitura/extracao (DEMUX). "
+              f"Reconstrucao (MUX) desse stream nao e viavel com seguranca (nao ha campo de tamanho).")
     elif support_tier == "experimental":
-        print(f"  warning: SBlk version 0x{sblk_version:02x} has experimental support (not tested against "
-              f"real files). Check the result carefully before using it in the game.")
+        print(f"  aviso: versao SBlk 0x{sblk_version:02x} tem suporte experimental (nao testado contra "
+              f"arquivos reais). Confira o resultado com cuidado antes de usar no jogo.")
     else:
-        print(f"  warning: SBlk version 0x{sblk_version:02x} is not recognised by this table support; "
-              f"extraction may fail.")
+        print(f"  aviso: versao SBlk 0x{sblk_version:02x} nao e reconhecida por este suporte de tabela; "
+              f"a extracao pode falhar.")
 
 
 def cmd_info(path=None):
-    path = path or _ask_path("Path of the .bnk file")
+    path = path or _ask_path("Caminho do arquivo .bnk")
     try:
         h = parse_bnk(path)
     except BnkParseError as e:
-        print(f"Error parsing the file: {e}")
+        print(f"Erro ao interpretar o arquivo: {e}")
         return
     print()
     for line in h.summary_lines():
         print(line)
     _print_support_note(h.sblk_version, h.support_tier)
     print()
-    print(f"{'#':>4} {'name':<24} {'codec':<8} {'ch':>2} {'sample_rate':>11} {'loop':<6} {'size':>10}")
+    print(f"{'#':>4} {'nome':<24} {'codec':<8} {'ch':>2} {'sample_rate':>11} {'loop':<6} {'tamanho':>10}")
     for s in h.streams:
-        loop = f"{s.loop_start}-{s.loop_end}" if s.loop_flag else "no"
+        loop = f"{s.loop_start}-{s.loop_end}" if s.loop_flag else "nao"
         print(f"{s.index:>4} {s.name[:24]:<24} {s.codec:<8} {s.channels:>2} {s.sample_rate:>11} "
               f"{loop:<6} {s.stream_size:>10}")
         for w in s.warnings:
@@ -78,27 +78,27 @@ def cmd_info(path=None):
 
 
 def cmd_demux():
-    path = _ask_path("Path of the .bnk file to extract")
+    path = _ask_path("Caminho do arquivo .bnk a extrair")
     default_out = os.path.splitext(path)[0] + "_extracted"
-    out_dir = _ask("Output folder", default_out)
+    out_dir = _ask("Pasta de saida", default_out)
     use_genh = _ask_yesno(
-        "Extract as .genh (with header, editable/playable in any player with vgmstream)?", default=True)
+        "Extrair como .genh (com cabecalho, editavel/tocavel em qualquer player com vgmstream)?", default=True)
     td_path = None
     default_td = os.path.splitext(path)[0] + ".td"
     if os.path.exists(default_td):
-        if _ask_yesno(f"Found {os.path.basename(default_td)} - use it to name the streams?", default=True):
+        if _ask_yesno(f"Encontrado {os.path.basename(default_td)} - usar para nomear as streams?", default=True):
             td_path = default_td
-    elif _ask_yesno("Do you have a .td file to name the streams?", default=False):
-        td_path = _ask_path("Path of the .td")
+    elif _ask_yesno("Tem um arquivo .td para nomear as streams?", default=False):
+        td_path = _ask_path("Caminho do .td")
     try:
         manifest_path = demux(path, out_dir, use_genh=use_genh, td_path=td_path)
     except BnkParseError as e:
-        print(f"Error parsing the file: {e}")
+        print(f"Erro ao interpretar o arquivo: {e}")
         return
     with open(manifest_path, encoding="utf-8") as f:
         manifest = json.load(f)
     print()
-    print(f"OK: {len(manifest['streams'])} streams extracted to: {out_dir}")
+    print(f"OK: {len(manifest['streams'])} streams extraidos para: {out_dir}")
     print(f"Manifest: {manifest_path}")
     tier = manifest["support_tier"]
     if tier != "full":
@@ -106,53 +106,53 @@ def cmd_demux():
     n_genh = sum(1 for s in manifest["streams"] if s["container"] == "genh")
     n_raw = sum(1 for s in manifest["streams"] if s["container"] == "raw")
     if n_genh:
-        print(f"{n_genh} stream(s) extracted as .genh")
+        print(f"{n_genh} stream(s) extraidos como .genh")
     if n_raw:
-        print(f"{n_raw} stream(s) extracted as raw (codec with no GENH equivalent)")
+        print(f"{n_raw} stream(s) extraidos como raw (codec sem equivalente GENH)")
     any_warn = [s for s in manifest["streams"] if s["warnings"]]
     if any_warn:
-        print(f"({len(any_warn)} streams with warnings - see manifest.json or run the Info option for details)")
+        print(f"({len(any_warn)} streams com avisos - veja o manifest.json ou rode a opcao Info para detalhes)")
 
 
 def cmd_mux():
-    print("MUX needs: the ORIGINAL .bnk (used as a template) + the folder generated by DEMUX (with "
-          "manifest.json and the streams, original or replaced).")
-    original = _ask_path("Path of the ORIGINAL .bnk file (template)")
-    folder = _ask_path("Folder with manifest.json (generated by DEMUX)")
+    print("MUX precisa de: o .bnk ORIGINAL (usado como modelo/template) + a pasta gerada pelo DEMUX (com "
+          "manifest.json e os streams, originais ou substituidos).")
+    original = _ask_path("Caminho do arquivo .bnk ORIGINAL (template)")
+    folder = _ask_path("Pasta com o manifest.json (gerada pelo DEMUX)")
     manifest_path = folder if folder.lower().endswith(".json") else os.path.join(folder, "manifest.json")
     if not os.path.exists(manifest_path):
-        print(f"manifest.json not found at: {manifest_path}")
+        print(f"manifest.json nao encontrado em: {manifest_path}")
         return
 
     with open(manifest_path, encoding="utf-8") as f:
         manifest = json.load(f)
 
-    print(f"\n{len(manifest['streams'])} streams in this bank:")
+    print(f"\n{len(manifest['streams'])} streams neste banco:")
     for s in manifest["streams"]:
         zlsd = " [ZLSD]" if s.get("is_zlsd") else ""
-        print(f"  #{s['index']:<3} {s['name'][:24]:<24} {s['codec']:<8} current file: {s['file']}{zlsd}")
+        print(f"  #{s['index']:<3} {s['name'][:24]:<24} {s['codec']:<8} arquivo atual: {s['file']}{zlsd}")
 
     overrides = {}
-    print("\nType a stream number to replace its audio (or ENTER to finish the selection).")
-    print("The replacement file must be in the SAME CODEC (already encoded correctly) - "
-          "this tool does no re-encoding. It can be a .genh (the header is removed "
-          "automatically and loop/channels edited in the .genh are applied when possible) or plain raw.")
+    print("\nDigite o numero de um stream para substituir o audio (ou ENTER para terminar a selecao).")
+    print("O arquivo de substituicao deve estar no MESMO CODEC (ja codificado corretamente) - "
+          "nenhum reencode e feito por esta ferramenta. Pode ser um .genh (o cabecalho e removido "
+          "automaticamente e loop/canais editados no .genh sao aplicados quando possivel) ou o raw puro.")
     while True:
-        idx_s = input("Stream # to replace (ENTER to stop): ").strip()
+        idx_s = input("Stream # a substituir (ENTER para parar): ").strip()
         if not idx_s:
             break
         if not idx_s.isdigit() or int(idx_s) not in [s["index"] for s in manifest["streams"]]:
-            print("  invalid number")
+            print("  numero invalido")
             continue
         idx = int(idx_s)
-        new_file = _ask_path(f"  new audio file for stream #{idx}")
+        new_file = _ask_path(f"  novo arquivo de audio para stream #{idx}")
         ov = {"file": new_file}
-        if _ask_yesno("  also adjust the loop flag of this stream?", default=False):
-            ov["loop_flag"] = _ask_yesno("  should the stream loop?", default=True)
+        if _ask_yesno("  ajustar tambem a flag de loop deste stream?", default=False):
+            ov["loop_flag"] = _ask_yesno("  stream deve fazer loop?", default=True)
         overrides[idx] = ov
 
     td_renames = {}
-    if manifest.get("td") and _ask_yesno("\nRename any sound (affects only the .td, not the .bnk)?", default=False):
+    if manifest.get("td") and _ask_yesno("\nRenomear algum sound (afeta so o .td, nao o .bnk)?", default=False):
         by_index = {}
         for s in manifest["streams"]:
             if s.get("sound_index") is not None:
@@ -160,46 +160,46 @@ def cmd_mux():
         for i in sorted(by_index):
             print(f"  sound #{i}: {by_index[i]}")
         while True:
-            idx_s = input("Sound # to rename (ENTER to stop): ").strip()
+            idx_s = input("Sound # para renomear (ENTER para parar): ").strip()
             if not idx_s:
                 break
             if not idx_s.isdigit() or int(idx_s) not in by_index:
-                print("  invalid number")
+                print("  numero invalido")
                 continue
-            new_name = _ask(f"  new name for sound #{idx_s}")
+            new_name = _ask(f"  novo nome para sound #{idx_s}")
             td_renames[int(idx_s)] = new_name
 
     default_out = os.path.splitext(original)[0] + "_new.bnk"
-    out_path = _ask("Path of the output .bnk", default_out)
+    out_path = _ask("Caminho do .bnk de saida", default_out)
     if os.path.abspath(out_path) == os.path.abspath(original):
-        print("For safety, the output file cannot be the same as the original.")
+        print("Por seguranca, o arquivo de saida nao pode ser igual ao original.")
         return
 
     try:
         path, report = mux(original, manifest_path, out_path, overrides=overrides, td_renames=td_renames)
     except BnkMuxError as e:
-        print(f"Error rebuilding the file: {e}")
+        print(f"Erro ao remontar o arquivo: {e}")
         return
 
-    print(f"\nOK: file rebuilt at: {path}")
+    print(f"\nOK: arquivo remontado em: {path}")
     for line in report:
         print(f"  - {line}")
 
 
 def _cmd_build_folder():
-    folder = _ask_path("Folder with the .genh files")
+    folder = _ask_path("Pasta com os arquivos .genh")
     try:
         sounds = sounds_from_genh_folder(folder)
     except BuildError as e:
-        print(f"Error: {e}")
+        print(f"Erro: {e}")
         return None
 
-    print(f"\n{len(sounds)} sound(s) detected from the file names:")
+    print(f"\n{len(sounds)} sound(s) detectado(s) pelo nome dos arquivos:")
     for snd in sounds:
         grain_info = ", ".join(f"{g.sample_rate}Hz" for g in snd.grains)
         print(f"  {snd.name}  ({len(snd.grains)} grain(s): {grain_info})")
 
-    if not _ask_yesno("\nUse these names/groupings?", default=True):
+    if not _ask_yesno("\nUsar esses nomes/agrupamentos?", default=True):
         return None
     return sounds
 
@@ -207,47 +207,47 @@ def _cmd_build_folder():
 def _cmd_build_manual():
     sounds = []
     while True:
-        name = input("\nSound name (ENTER to finish): ").strip()
+        name = input("\nNome do sound (ENTER para terminar): ").strip()
         if not name:
             break
         grains = []
         while True:
             genh_path = input(
-                f"  .genh file for '{name}' (ENTER to stop adding audio to this sound): "
+                f"  arquivo .genh para '{name}' (ENTER para parar de adicionar audio a este sound): "
             ).strip().strip('"')
             if not genh_path:
                 break
             if not os.path.exists(genh_path):
-                print("  file not found")
+                print("  arquivo nao encontrado")
                 continue
             try:
                 g = grain_from_genh(genh_path)
             except BuildError as e:
-                print(f"  error: {e}")
+                print(f"  erro: {e}")
                 continue
-            if _ask_yesno(f"  current sample_rate: {g.sample_rate} Hz - change it?", default=False):
-                g.sample_rate = int(_ask("  new sample_rate (Hz)"))
+            if _ask_yesno(f"  sample_rate atual: {g.sample_rate} Hz - trocar?", default=False):
+                g.sample_rate = int(_ask("  novo sample_rate (Hz)"))
             grains.append(g)
         if not grains:
-            print(f"  sound '{name}' has no audio, ignored")
+            print(f"  sound '{name}' sem audio, ignorado")
             continue
         sounds.append(SoundSpec(name=name, grains=grains))
     return sounds
 
 
 def cmd_build():
-    print("BUILD creates a NEW .bnk from scratch, without needing an original file as a template.")
-    print("Warning: some table fields (not read by vgmstream) were filled with values")
-    print("observed in real banks - validated in vgmstream, but not in the game engine itself.")
-    print("Test in the game before using it for real.")
-    print("Each 'sound' (the name the game uses) can have 1+ audio variations (grains), each one a")
-    print("mono .genh in PSX (PS-ADPCM) or PCM16.")
+    print("BUILD cria um .bnk NOVO do zero, sem precisar de um arquivo original como modelo.")
+    print("Aviso: alguns campos da tabela (nao lidos pelo vgmstream) foram preenchidos com valores")
+    print("observados em bancos reais - validado no vgmstream, mas nao no motor do jogo em si.")
+    print("Teste no jogo antes de usar em producao.")
+    print("Cada 'sound' (nome que o jogo usa) pode ter 1+ variacoes de audio (grains), cada uma um")
+    print(".genh mono em PSX (PS-ADPCM) ou PCM16.")
 
-    print("\n1) Folder with several .genh at once (names the sounds after the file names)")
-    print("2) Add one sound at a time, by hand")
-    mode = input("> ").strip()
+    print("\n1) Pasta com varios .genh de uma vez (nomeia os sounds pelo nome dos arquivos)")
+    print("2) Adicionar um sound de cada vez, manualmente")
+    modo = input("> ").strip()
 
-    if mode == "1":
+    if modo == "1":
         sounds = _cmd_build_folder()
         if sounds is None:
             return
@@ -255,14 +255,14 @@ def cmd_build():
         sounds = _cmd_build_manual()
 
     if not sounds:
-        print("no sound defined, cancelled")
+        print("nenhum sound definido, cancelado")
         return
 
-    out_path = _ask("Path of the output .bnk", "new.bnk")
+    out_path = _ask("Caminho do .bnk de saida", "novo.bnk")
     try:
         bnk_bytes, manifest, td_text = build_bnk_v3(sounds)
     except BuildError as e:
-        print(f"Error while building: {e}")
+        print(f"Erro ao construir: {e}")
         return
 
     with open(out_path, "wb") as f:
@@ -274,7 +274,7 @@ def cmd_build():
     print(f"\nOK: {len(sounds)} sound(s) / {len(manifest['streams'])} stream(s)")
     print(f".bnk: {out_path}")
     print(f".td:  {td_path}")
-    print("Reminder: test in the game before using it for real.")
+    print("Lembrete: teste no jogo antes de usar em producao.")
 
 
 def main(argv=None):
@@ -285,14 +285,14 @@ def main(argv=None):
 
     print("=" * 60)
     print(" BNK MUX/DEMUX - Sony 989SND/SCREAM (.bnk/.mus/.sbk)")
-    print(" based on VGMStream's bnk_sony.c reader")
+    print(" baseado no leitor bnk_sony.c do VGMStream")
     print("=" * 60)
     while True:
-        print("\n1) DEMUX  - extract streams from a .bnk")
-        print("2) MUX    - rebuild a .bnk from streams (uses an original .bnk as a template)")
-        print("3) BUILD  - create a new .bnk from scratch (no template)")
-        print("4) Info   - show information/streams of a .bnk")
-        print("5) Quit")
+        print("\n1) DEMUX  - extrair streams de um .bnk")
+        print("2) MUX    - remontar um .bnk a partir de streams (usa um .bnk original como modelo)")
+        print("3) BUILD  - criar um .bnk novo do zero (sem modelo)")
+        print("4) Info   - mostrar informacoes/streams de um .bnk")
+        print("5) Sair")
         choice = input("> ").strip()
         try:
             if choice == "1":
@@ -306,43 +306,43 @@ def main(argv=None):
             elif choice == "5":
                 break
             else:
-                print("invalid option")
+                print("opcao invalida")
         except KeyboardInterrupt:
-            print("\ncancelled")
+            print("\ncancelado")
         except Exception as e:
-            print(f"Unexpected error: {e}")
+            print(f"Erro inesperado: {e}")
 
 
 def _main_args(argv):
     import argparse
-    p = argparse.ArgumentParser(prog="bnkmux", description="MUX/DEMUX of Sony .bnk files (989SND/SCREAM)")
+    p = argparse.ArgumentParser(prog="bnkmux", description="MUX/DEMUX de arquivos .bnk Sony (989SND/SCREAM)")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    p_demux = sub.add_parser("demux", help="extract streams from a .bnk")
+    p_demux = sub.add_parser("demux", help="extrai streams de um .bnk")
     p_demux.add_argument("bnk")
     p_demux.add_argument("out_dir")
     p_demux.add_argument("--raw", action="store_true",
-                          help="extract plain raw instead of .genh (no header)")
-    p_demux.add_argument("--td", help=".td file to name the streams")
+                          help="extrai raw puro em vez de .genh (sem cabecalho)")
+    p_demux.add_argument("--td", help="arquivo .td para nomear as streams")
 
-    p_mux = sub.add_parser("mux", help="rebuild a .bnk from a manifest (uses a template)")
+    p_mux = sub.add_parser("mux", help="remonta um .bnk a partir de um manifest (usa modelo)")
     p_mux.add_argument("original_bnk")
     p_mux.add_argument("manifest")
     p_mux.add_argument("out_bnk")
     p_mux.add_argument("--replace", action="append", default=[],
-                        help="INDEX=file, can be repeated to replace several streams")
+                        help="INDEX=arquivo, pode ser repetido para substituir varios streams")
     p_mux.add_argument("--rename", action="append", default=[],
-                        help="SOUND_INDEX=new_name, renames a sound in the generated .td")
+                        help="SOUND_INDEX=novo_nome, renomeia um sound no .td gerado")
 
-    p_build = sub.add_parser("build", help="create a new .bnk from scratch, without a template")
+    p_build = sub.add_parser("build", help="cria um .bnk novo do zero, sem modelo")
     p_build.add_argument("out_bnk")
     build_src = p_build.add_mutually_exclusive_group(required=True)
-    build_src.add_argument("--dir", help="folder with several .genh; one sound per file name "
-                            "(grouping 001_NAME.genh + 002_NAME.genh into the same sound)")
+    build_src.add_argument("--dir", help="pasta com varios .genh; um sound por nome de arquivo "
+                            "(agrupando 001_NOME.genh + 002_NOME.genh no mesmo sound)")
     build_src.add_argument("--spec", help='JSON: {"sounds":[{"name":.., '
                             '"grains":[{"file":"x.genh","sample_rate":40000}]}]}')
 
-    p_info = sub.add_parser("info", help="show information about a .bnk")
+    p_info = sub.add_parser("info", help="mostra informacoes de um .bnk")
     p_info.add_argument("bnk")
 
     args = p.parse_args(argv)

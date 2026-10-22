@@ -2,8 +2,8 @@
 """Photograph a list of places of Los Angeles in one boot, with the renderer's
 camera tour ([boot] mc2t, city_mc2_rsc_draw_test).
 
-    python mc3_cam_tour.py --out out/camtour --clusters out/coverage/clusters.tsv --top 12
-    python mc3_cam_tour.py --out out/camtour --at=-339,0,425 --at=538,0,-512
+    python mc3_cam_tour.py --out Y:/temp/camtour --clusters Y:/temp/coverage/clusters.tsv --top 12
+    python mc3_cam_tour.py --out Y:/temp/camtour --at=-339,0,425 --at=538,0,-512
 
 Each place is looked at from straight above (--height metres) - or from
 --oblique metres south of it, 45 degrees down - for --seconds. The points go to
@@ -24,7 +24,7 @@ import time
 
 import mc3_race_tour as T
 
-HOSTFS = os.environ.get('MC3_HOSTFS', 'MC3HostFS')
+HOSTFS = os.environ.get('MC3_HOSTFS', '')
 TOUR = os.path.join(HOSTFS, 'mc2_camtour.txt')
 HERE = os.path.dirname(os.path.abspath(__file__))
 

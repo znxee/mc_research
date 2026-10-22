@@ -555,7 +555,7 @@ class Pck:
         """
         if self._data_regions is not None:
             return self._data_regions
-        regions = []
+        regs = []
         for lod_va in self.lods().values():
             for (_i, mp, _nm, _id, _off) in self.slots(lod_va):
                 if not mp:
@@ -569,12 +569,12 @@ class Pck:
                     md = self.F(self.U(o + 0x10))
                     nv = self.U16(o + 0x24)
                     if self.inside(md) and nv:
-                        regions.append((md, min(len(self.data), md + nv*14)))
+                        regs.append((md, min(len(self.data), md + nv*14)))
                     ml = self.F(self.U(o + 0x04))
                     mt = self.F(self.U(o + 0x08))
                     npsp = self.data[o + 0x1B]
                     if self.inside(mt) and npsp:
-                        regions.append((mt, min(len(self.data), mt + 2*npsp)))
+                        regs.append((mt, min(len(self.data), mt + 2*npsp)))
                     for g in range(npsp):
                         e = ml + g*0xC
                         if not self.inside(e):
@@ -582,7 +582,7 @@ class Pck:
                         sp = self.F(self.U(e))
                         cnt = self.U16(e + 4)
                         if self.inside(sp) and 1 <= cnt <= 4096:
-                            regions.append((sp, min(len(self.data), sp + 4*cnt)))
+                            regs.append((sp, min(len(self.data), sp + 4*cnt)))
                     continue
                 if not self.inside(o) or self.data[o+2:o+4] not in MESH_TAG_HI:
                     continue
@@ -600,10 +600,10 @@ class Pck:
                         bp = self.F(self.U(e))
                         qw = self.U16(e + 4)
                         if self.inside(bp) and qw:
-                            regions.append((bp, min(len(self.data), bp + qw*16)))
-        regions.sort()
+                            regs.append((bp, min(len(self.data), bp + qw*16)))
+        regs.sort()
         merged = []
-        for a, b in regions:
+        for a, b in regs:
             if merged and a <= merged[-1][1]:
                 merged[-1][1] = max(merged[-1][1], b)
             else:
@@ -612,9 +612,9 @@ class Pck:
         return self._data_regions
 
     def in_data(self, off):
-        regions = self.data_regions()
-        i = bisect.bisect_right(regions, (off, float("inf"))) - 1
-        return i >= 0 and regions[i][0] <= off < regions[i][1]
+        regs = self.data_regions()
+        i = bisect.bisect_right(regs, (off, float("inf"))) - 1
+        return i >= 0 and regs[i][0] <= off < regs[i][1]
 
     def graph(self):
         """PointerGraph over the current state of the file. Not cached: the

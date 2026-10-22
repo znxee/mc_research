@@ -12,13 +12,21 @@ The track a train runs on is built at load time from the city's .aib: every
 road of type 3 (mcTrainBuilder::BuildTrainTracks 0x232D48). An MC2 city's
 original .aib uses type 3 for other roads, so a traffic pack copied from San
 Diego put its two red trams (va_tram_sd) on ordinary Los Angeles and Paris
-streets. Setting the count to 0 is enough: the resource then constructs no
-train and the game treats the city as it treats Atlanta.
+streets. Removing them means making the manager look like Atlanta's: its
+first seven words - train array pointer, u16 count, u16 capacity, and the
+train builder's arrays after them - all zero. Setting the count alone is NOT
+enough (2026-10-01): the load constructs no train, but the manager's Release
+(0x22F2C8, from aiAmbientTrafficData's destructor whenever the ambients
+unload - next race, back to the front end) walks the array by the count in
+its allocation header 16 bytes before the pointer (still 2) and calls each
+train's virtual destructor: unconstructed objects, vtable 0xCDCDCDCD, the
+game jumps there.
 
     python mc3_traffic_trains.py losangeles_traffic.pck
     python mc3_traffic_trains.py losangeles_traffic.pck paris_traffic.pck --remove
 """
 import argparse
+import os
 import shutil
 import struct
 import sys
@@ -26,6 +34,7 @@ import sys
 TRAFFIC_TYPE = 0x3C
 ROOT = 0x80
 TRAIN_MANAGER = 0x11C
+CLEARED_WORDS = 7          # array ptr, count|capacity, builder arrays (zero in atlanta)
 
 
 def train_array(data):
@@ -56,12 +65,16 @@ def main():
             bad += 1
             continue
         count, cap = struct.unpack_from('<HH', data, off + 4)
-        print('%s: %d train(s), capacity %d (atArray at file 0x%X)' % (path, count, cap, off))
-        if a.remove and count:
-            shutil.copy2(path, path + '.with_trains')
-            struct.pack_into('<H', data, off + 4, 0)
+        words = struct.unpack_from('<%dI' % CLEARED_WORDS, data, off)
+        print('%s: %d train(s), capacity %d (atArray at file 0x%X)%s' % (
+            path, count, cap, off, '' if any(words) else ' - cleared like atlanta'))
+        if a.remove and any(words):
+            keep = path + '.with_trains'
+            if not os.path.exists(keep):
+                shutil.copy2(path, keep)
+            struct.pack_into('<%dI' % CLEARED_WORDS, data, off, *([0] * CLEARED_WORDS))
             open(path, 'wb').write(data)
-            print('  removed; original kept as %s.with_trains' % path)
+            print('  removed; original kept as %s' % keep)
     return 1 if bad else 0
 
 

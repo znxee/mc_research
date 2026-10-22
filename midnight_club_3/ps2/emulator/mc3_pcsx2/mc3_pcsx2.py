@@ -1,35 +1,27 @@
-"""Run PCSX2 from the command line and return what the EE/IOP console said.
+"""Roda o PCSX2 pela linha de comando e devolve o que o console do EE/IOP disse.
 
-Closes the iteration loop without a savestate: build the file, run, read the
-log, fix, repeat. Before this every round cost the user a manual boot.
+Fecha o laço de iteração sem savestate: monta o arquivo, roda, le o log,
+corrige, repete. Antes disso cada rodada custava um boot manual do usuario.
 
-WHAT WAS NEEDED, and both things were measured, not assumed:
+O QUE FOI PRECISO, e as duas coisas foram medidas e nao supostas:
 
-  * THE PATH NEEDS BACKSLASHES. With 'D:/MC3HostFS/mc3boot.elf' PCSX2 answers
-    "Requested filename does not exist" even with the file there; with
-    'D:\\MC3HostFS\\mc3boot.elf' it loads.
-  * THE EE CONSOLE STARTS OFF. In PCSX2.ini, EnableEEConsole and
-    EnableIOPConsole start as false and EnableFileLogging is already true -
-    turning both on, everything the EE and the IOP print lands in the log file.
+  * O CAMINHO PRECISA DE BARRA INVERTIDA. Com 'Y:/MC3HostFS/mc3boot.elf' o
+    PCSX2 responde "Requested filename does not exist" mesmo com o arquivo la;
+    com 'Y:\\MC3HostFS\\mc3boot.elf' ele carrega.
+  * O CONSOLE DO EE VEM DESLIGADO. No PCSX2.ini, EnableEEConsole e
+    EnableIOPConsole nascem false e EnableFileLogging ja e true - ligando os
+    dois, tudo que o EE e o IOP imprimem cai no arquivo de log.
 
-What that gives for free, and it is the most valuable finding: the IOP console
-logs EVERY `open`. A modloader boot produces the eight lines in order -
-mc3mod.bin, the game ELF, mc3boot.ini and each .mod marked '= 1'. You can see
-what the loader opened, with which flag and in which order, without taking a
-savestate.
+O que isso da de graca, e e o achado que mais vale: o console do IOP loga CADA
+`open`. Num boot do modloader saem as oito linhas na ordem - mc3mod.bin, o ELF
+do jogo, mc3boot.ini e cada .mod marcado '= 1'. Da para ver o que o carregador
+abriu, com que flag e em que ordem, sem tirar savestate.
 
-CAVEAT: mc3boot's own report does NOT show up here. It uses scr_printf, which
-writes to the screen framebuffer, not printf, which goes to the console. A mod
-that wants to be read by this tool has to use the console.
+RESSALVA: o relatorio do proprio mc3boot NAO aparece aqui. Ele usa scr_printf,
+que escreve no framebuffer da tela, e nao printf, que vai para o console. Um
+mod que queira ser lido por esta ferramenta tem que usar o console.
 
-Paths come from environment variables, so nothing personal is baked in:
-
-    MC3_PCSX2        path to pcsx2-qt.exe            (default: pcsx2-qt.exe on PATH)
-    MC3_PCSX2_INI    path to PCSX2.ini               (optional; only for the console check)
-    MC3_HOSTFS       the HostFS folder with mc3boot.elf
-    MC3_PCSX2_DEBUG  data folder of a debug profile  (used by --debug)
-
-    python mc3_pcsx2.py --elf C:\\MC3HostFS\\mc3boot.elf --seconds 40
+    python mc3_pcsx2.py --elf Y:\\MC3HostFS\\mc3boot.elf --segundos 40
 """
 import argparse
 import os
@@ -38,79 +30,76 @@ import subprocess
 import sys
 import time
 
-PCSX2 = os.environ.get('MC3_PCSX2', 'pcsx2-qt.exe')
-INI = os.environ.get('MC3_PCSX2_INI', '')
-LOG = os.path.abspath('pcsx2_cli_log.txt')
-HOSTFS = os.environ.get('MC3_HOSTFS', 'MC3HostFS')
+PCSX2 = os.path.join(os.environ.get('MC3_PCSX2_DIR', ''), 'pcsx2-qt.exe')
+INI = os.path.join(os.environ.get('MC3_PCSX2_DATA', ''), 'inis/PCSX2.ini')
+LOG = os.path.join(os.environ.get('MC3_PCSX2_DATA', ''), 'logs/cli_teste.txt')
 
-# What is worth showing out of a 600-line log.
-INTERESTING = re.compile(
+# O que vale a pena mostrar de um log de 600 linhas.
+INTERESSE = re.compile(
     r'open name|ELF Loading|Disc override|Error|error|EE DECI2|'
     r'is executing|Loaded,|failed|Exception|assert', re.I)
 
 
-def console_on(path):
-    """(ee, iop) - both toggles start false in a fresh PCSX2."""
-    if not os.path.isfile(path):
+def console_ligado(caminho):
+    """(ee, iop) - os dois toggles nascem false num PCSX2 novo."""
+    if not os.path.isfile(caminho):
         return None, None
-    s = open(path, encoding='utf-8', errors='replace').read()
+    s = open(caminho, encoding='utf-8', errors='replace').read()
     return ('EnableEEConsole = true' in s, 'EnableIOPConsole = true' in s)
 
 
-DEBUG_PROFILE = os.environ.get('MC3_PCSX2_DEBUG', '')
+PERFIL_DEBUG = r'Y:	emp\pcsx2_debug'
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
-    ap.add_argument('--elf', default=os.path.join(HOSTFS, 'mc3boot.elf'),
-                    help='path of the ELF; it NEEDS backslashes')
-    ap.add_argument('--seconds', type=float, default=40.0)
+    ap.add_argument('--elf', default=os.path.join(os.environ.get('MC3_HOSTFS', ''), 'mc3boot.elf'),
+                    help='caminho do ELF; PRECISA de barra invertida')
+    ap.add_argument('--segundos', type=float, default=40.0)
     ap.add_argument('--log', default=LOG)
-    ap.add_argument('--all', dest='all_', action='store_true', help='print the whole log')
+    ap.add_argument('--tudo', action='store_true', help='imprime o log inteiro')
     ap.add_argument('--debug', action='store_true',
-                    help='use the MC3_PCSX2_DEBUG profile: pause on the first '
-                         'TLB Miss, open the debugger and load the symbols of '
-                         'the debug ELF. NOT suitable for measuring exceptions - '
-                         'with PauseOnTLBMiss PCSX2 pauses the VM and does NOT '
-                         'write the line to the log (Console.Error sits in the '
-                         'else branch of vtlb.cpp), so the count comes out zero.')
+                    help='usa o perfil Y:/temp/pcsx2_debug: pausa no primeiro '
+                         'TLB Miss, abre o debugger e carrega os simbolos do '
+                         'ELF de debug. NAO serve para medir excecoes - com '
+                         'PauseOnTLBMiss o PCSX2 pausa a VM e NAO escreve a '
+                         'linha no log (o Console.Error fica no ramo else de '
+                         'vtlb.cpp), entao a contagem sai zerada.')
     a = ap.parse_args()
 
-    ee, iop = console_on(INI)
+    ee, iop = console_ligado(INI)
     if ee is False or iop is False:
-        print('  WARNING: %s console off in PCSX2.ini - the log will come out silent'
-              % (' and '.join([n for n, v in (('EE', ee), ('IOP', iop)) if not v])))
+        print('  AVISO: console do %s desligado no PCSX2.ini - o log vai sair mudo'
+              % (' e '.join([n for n, v in (('EE', ee), ('IOP', iop)) if not v])))
 
     if os.path.exists(a.log):
         os.remove(a.log)
     cmd = [PCSX2]
     if a.debug:
-        if not DEBUG_PROFILE:
-            raise SystemExit('--debug needs MC3_PCSX2_DEBUG pointing to a data folder')
-        # -datapath swaps the whole data directory, so the debug profile has its
-        # own PCSX2.ini without contaminating the normal one. BIOS and memory
-        # cards are already absolute paths and the savestates point to the same.
-        cmd += ['-datapath', DEBUG_PROFILE, '-debugger']
+        # -datapath troca o diretorio de dados inteiro, entao o perfil de debug
+        # tem o proprio PCSX2.ini sem contaminar o normal. BIOS e memory cards
+        # ja sao caminhos absolutos e os savestates apontam para os mesmos.
+        cmd += ['-datapath', PERFIL_DEBUG, '-debugger']
     else:
         cmd += ['-batch', '-nogui']
     cmd += ['-logfile', a.log, '--', a.elf]
     t0 = time.time()
     p = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
-        p.wait(timeout=a.seconds)
-        reason = 'exited by itself'
+        p.wait(timeout=a.segundos)
+        motivo = 'saiu sozinho'
     except subprocess.TimeoutExpired:
         p.kill()
         p.wait()
-        reason = 'stopped on the timeout'
-    print('  %s after %.1fs' % (reason, time.time() - t0))
+        motivo = 'encerrado no tempo'
+    print('  %s em %.1fs' % (motivo, time.time() - t0))
 
     if not os.path.isfile(a.log):
-        raise SystemExit('no log produced at %s' % a.log)
-    lines = open(a.log, encoding='utf-8', errors='replace').read().splitlines()
-    print('  log: %d lines' % len(lines))
-    for l in lines:
-        if a.all_ or INTERESTING.search(l):
+        raise SystemExit('nao gerou log em %s' % a.log)
+    linhas = open(a.log, encoding='utf-8', errors='replace').read().splitlines()
+    print('  log: %d linhas' % len(linhas))
+    for l in linhas:
+        if a.tudo or INTERESSE.search(l):
             print('   ' + l[:160])
 
 

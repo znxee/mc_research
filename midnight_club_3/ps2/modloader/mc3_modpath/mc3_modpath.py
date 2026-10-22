@@ -1379,12 +1379,12 @@ def quantisation_overflow(positions, exponent):
     the failure is silent: the file is structurally perfect and the geometry is
     somewhere else.
     """
-    limit = 1 << exponent
+    lim = 1 << exponent
     bad = 0
     worst = 0.0
     for p in positions:
         for c in p[:3]:
-            v = c * limit
+            v = c * lim
             if v < -32768.0 or v > 32767.0:
                 bad += 1
                 if abs(v) > worst:
@@ -1536,7 +1536,7 @@ def main(argv):
         base = argv[2]
         ok = bad = tri_bad = pack_bad = rt_bad = ovf = 0
         npk = nwords = 0
-        failures = []
+        falhas = []
         for dirpath, _, files in os.walk(base):
             for f in sorted(files):
                 if not f.lower().endswith('.mod'):
@@ -1555,7 +1555,7 @@ def main(argv):
                                for pr in m.primitives)
                     if tris != mesh.declared['primitives']:
                         tri_bad += 1
-                        failures.append((rel, 'header says %d triangles, walk got %d'
+                        falhas.append((rel, 'header says %d triangles, walk got %d'
                                        % (mesh.declared['primitives'], tris)))
                         continue
                     # Packetize must not invent or lose geometry, and no packet
@@ -1565,7 +1565,7 @@ def main(argv):
                                  for pk in m.packets for pr in pk.primitives)
                     if packed != tris:
                         pack_bad += 1
-                        failures.append((rel, 'Packetize changed the triangles: '
+                        falhas.append((rel, 'Packetize changed the triangles: '
                                             '%d -> %d' % (tris, packed)))
                         continue
                     over = [len(pk.primitives) for m in geom.geometries
@@ -1573,19 +1573,19 @@ def main(argv):
                             if sum(len(pr.indices) for pr in pk.primitives) > 42]
                     if over:
                         pack_bad += 1
-                        failures.append((rel, '%d packets over the 42 cap' % len(over)))
+                        falhas.append((rel, '%d packets over the 42 cap' % len(over)))
                         continue
                     npk += sum(len(m.packets) for m in geom.geometries)
                     # The quantisation check. Fork Alpha 2004 traced a broken
                     # city to exactly this and the engine never complains, so
                     # the walk has to.
-                    nb, worst_ = quantisation_overflow(mesh.positions(),
+                    nb, pior = quantisation_overflow(mesh.positions(),
                                                      geom.exponent)
                     if nb:
                         ovf += 1
-                        failures.append((rel, '%d components overflow the s16 '
-                                            '(worst %.0f, exponent %d)'
-                                            % (nb, worst_, geom.exponent)))
+                        falhas.append((rel, '%d componentes estouram o s16 '
+                                            '(pior %.0f, expoente %d)'
+                                            % (nb, pior, geom.exponent)))
                     # Round-trip the packer. The positions become s16 the way
                     # Packet::Init makes them - scaled by the fitted exponent -
                     # then pack_data emits a VIF chain and unpack_data reads it
@@ -1597,7 +1597,7 @@ def main(argv):
                     # feeds it: NUM in a VIFcode is EIGHT BITS, so a single
                     # unpack cannot carry more than 255 rows, and a packet never
                     # holds more than the cap anyway.
-                    broke_at = -1
+                    quebrou = -1
                     for b in range(0, len(rows), 42):
                         blk = rows[b:b + 42]
                         chain = VifChain()
@@ -1605,26 +1605,26 @@ def main(argv):
                         back = unpack_data(chain, len(blk), 3)
                         nwords += len(chain.words)
                         if back != blk:
-                            broke_at = b + next((i for i, (x, y) in
+                            quebrou = b + next((i for i, (x, y) in
                                                 enumerate(zip(back, blk))
                                                 if x != y), 0)
                             break
-                    if broke_at >= 0:
+                    if quebrou >= 0:
                         rt_bad += 1
-                        failures.append((rel, 'pack round-trip broke at row %d '
-                                            'of %d' % (broke_at, len(rows))))
+                        falhas.append((rel, 'pack round-trip broke at row %d '
+                                            'of %d' % (quebrou, len(rows))))
                 except (ModError, ValueError) as e:
                     bad += 1
-                    failures.append((rel, str(e)))
-        print('%d files walked' % (ok + bad))
-        print('  %d failed to walk' % bad)
-        print('  %d walked but disagreed on the triangle count' % tri_bad)
-        print('  %d failed the Packetize invariants' % pack_bad)
-        print('  %d failed the PackData round trip' % rt_bad)
-        print('  %d with a quantisation OVERFLOW' % ovf)
-        print('  %d match on everything  (%d packets, %d VIF words)'
+                    falhas.append((rel, str(e)))
+        print('%d arquivos percorridos' % (ok + bad))
+        print('  %d falharam ao percorrer' % bad)
+        print('  %d percorreram mas divergiram na contagem de triangulos' % tri_bad)
+        print('  %d falharam nas invariantes do Packetize' % pack_bad)
+        print('  %d falharam no ida-e-volta do PackData' % rt_bad)
+        print('  %d com OVERFLOW de quantizacao' % ovf)
+        print('  %d conferem em tudo  (%d pacotes, %d palavras de VIF)'
               % (ok - tri_bad - pack_bad - rt_bad, npk, nwords))
-        for rel, why in failures[:12]:
+        for rel, why in falhas[:12]:
             print('    %-40s %s' % (rel, why))
         return 1 if (bad or tri_bad or pack_bad or rt_bad) else 0
 

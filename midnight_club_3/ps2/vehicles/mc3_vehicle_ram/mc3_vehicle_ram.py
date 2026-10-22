@@ -543,7 +543,7 @@ def main(argv=None):
                     help="EE address corresponding to PCK file offset 0x80")
     own_dir = os.path.dirname(os.path.abspath(__file__))
     default_tools = (own_dir if os.path.isfile(os.path.join(own_dir, "mc3_pck_embed.py"))
-                     else os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools'))
+                     else os.environ.get('MC_RESEARCH_ROOT', ''))
     ap.add_argument("--tool-dir", default=default_tools)
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--details", action="store_true",

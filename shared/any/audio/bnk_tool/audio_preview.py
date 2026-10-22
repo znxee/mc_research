@@ -79,7 +79,7 @@ class BankSamples:
 def sample_wav(bank: BankSamples, name: str) -> bytes:
     entry = bank.get_pcm(name)
     if entry is None:
-        raise PreviewError(f"sample '{name}' not found in the bank")
+        raise PreviewError(f"sample '{name}' nao encontrado no banco")
     return build_wav_bytes(entry["pcm"], entry["rate"])
 
 
@@ -158,12 +158,12 @@ class EngineMixer:
 
     def render(self, rpm_fn, duration: float, out_rate: int = PREVIEW_RATE,
                vol_fn=None) -> bytes:
-        """rpm_fn(t_seconds) -> rpm; vol_fn(t) -> extra volume multiplier (optional,
-        used by the gear simulator for the throttle cut during a shift).
+        """rpm_fn(t_seconds) -> rpm; vol_fn(t) -> extra volume multiplier (opcional,
+        usado pelo simulador de marchas para o corte de aceleracao na troca).
         Returns WAV bytes at out_rate."""
         actives = self._active_ranges()
         if not actives:
-            raise PreviewError("no active range with a sample found in the bank")
+            raise PreviewError("nenhum range ativo com sample encontrado no banco")
 
         n_out = int(duration * out_rate)
         out = [0.0] * n_out

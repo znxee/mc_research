@@ -5,18 +5,18 @@
   "platform": "ps2",
   "type": "cities",
   "entry": "mc2_roads_to_mc3.py",
-  "summary": "Replace only the type10 quadtree of a ``*_bnd.pck`` with MC2's streets.",
+  "summary": "Substitui apenas a quadtree type10 de um ``*_bnd.pck`` pelas ruas do MC2.",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

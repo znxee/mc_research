@@ -5,18 +5,18 @@
   "platform": "ps2",
   "type": "geometry",
   "entry": "mc3_vifparse.py",
-  "summary": "A real VIF parser: STCYCL/STROW/UNPACK with masking.",
+  "summary": "Parser de VIF de verdade: STCYCL/STROW/UNPACK com mascara.",
+  "os": [
+    "windows"
+  ],
   "requires": [
     "python>=3.10"
   ],
-  "origin": "mc3-znx-tools @ e6fb603",
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",
   "status": "unverified",
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null,
-  "os": [
-    "windows"
-  ]
+  "last_verified": null
 }

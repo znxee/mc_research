@@ -2,7 +2,7 @@
 """Drive the game through its menus: boot PCSX2 and play a script of waits,
 button presses, screenshots and savestates.
 
-    python mc3_pcsx2_drive.py --out out/drive "wait 30" "shot title" \
+    python mc3_pcsx2_drive.py --out Y:/temp/drive "wait 30" "shot title" \
         "press start" "wait 3" "press down 2" "press cross" "shot menu"
 
 Steps (seconds are wall-clock):
@@ -68,7 +68,7 @@ import time
 import mc3_pcsx2_shots as S
 import mc3_menu_state as MS
 
-INI = os.path.join(os.environ.get('MC3_PCSX2_DATA', os.path.expanduser('~/Documents/PCSX2')), 'inis/PCSX2.ini')
+INI = os.path.join(os.environ.get('MC3_PCSX2_DATA', ''), 'inis/PCSX2.ini')
 # pad button -> (PCSX2 key name, Windows virtual key, extended)
 KEYS = {
     'up': ('Up', 0x26, True), 'down': ('Down', 0x28, True),
@@ -168,7 +168,7 @@ def focus(pid):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
-    ap.add_argument('--elf', default=os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'mc3boot.elf'))
+    ap.add_argument('--elf', default=os.path.join(os.environ.get('MC3_HOSTFS', ''), 'mc3boot.elf'))
     ap.add_argument('--out', required=True)
     ap.add_argument('--datapath', help='private PCSX2 profile root (INI at PCSX2/inis/PCSX2.ini)')
     ap.add_argument('--probe-module', help='local diagnostic module exposing read(pine); used by probe NAME')

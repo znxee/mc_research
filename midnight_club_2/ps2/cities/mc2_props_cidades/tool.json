@@ -1,0 +1,22 @@
+{
+  "name": "mc2_props_cidades",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "cities",
+  "entry": "mc2_props_cidades.py",
+  "summary": "mc2_props_cidades.py - inventory of the props of EVERY Midnight Club 2 city",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

@@ -49,6 +49,15 @@ serves your local job stays local.
 
 Create it only after step 1 found nothing that does the job, even partly.
 
+Use the command, do not write the folder by hand:
+
+```bash
+python scripts/mc_research.py new <name> --title <title> --platform <platform> --type <type> --summary "..."
+```
+
+When the tool is ready and `check` passes, send it with
+`python scripts/mc_research.py contribute <name> --message "..."`. Read `CONTRIBUTING.md` for the whole flow.
+
 - Put it in the folder the convention names (`CONVENTION.md`). Pick the title,
   platform and type; use `shared` if it crosses titles.
 - Write a `tool.json` with `status: "unverified"`. Write the header of the code:

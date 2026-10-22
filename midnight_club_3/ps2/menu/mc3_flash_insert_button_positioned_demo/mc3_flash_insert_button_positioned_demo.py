@@ -45,8 +45,8 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mc3allin'))
 import mc3pck as M
 
-SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools', 'output', 'flash/controller.pck.orig_backup')
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools', 'output', 'flash/controller_button_positioned.pck')
+SRC = os.path.join(os.environ.get('MC_OUTPUT_DIR', ''), 'flash/controller.pck.orig_backup')
+OUT = os.path.join(os.environ.get('MC_OUTPUT_DIR', ''), 'flash/controller_button_positioned.pck')
 
 CLONE_BUTTON_IDX = 18
 TEMPLATE_CMD = 0x26B0      # a real PlaceObject2ClipEvent, root frame's own

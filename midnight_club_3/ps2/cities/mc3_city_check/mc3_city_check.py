@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Check every city shell of an install against the city convention
-(docs/CITY_CONVENTION.md) - what can be checked without booting.
+(Documentation/CITY_CONVENTION.md) - what can be checked without booting.
 
-    python mc3_city_check.py "$MC3_HOSTFS"
+    python mc3_city_check.py Y:/mc3.2_alpha_hostfs
 
 For each resources/city/<city>_<time>_<weather>.pck (type 0x43):
   - the new[] cookie before the hood array (MapRoot +0x18): mcCity's

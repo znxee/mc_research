@@ -459,10 +459,10 @@ def report(elf, progs):
         # 0x18 the registered address assumes. The three rv1_* blocks are not
         # chains and carry only the VIFcode, so they sit 8 bytes in.
         c0 = p.chunks[0][1]
-        item_name = (MICROCODE_NAMES.get(c0 - HEADER_BYTES)
+        nome = (MICROCODE_NAMES.get(c0 - HEADER_BYTES)
                 or MICROCODE_NAMES.get(c0 - 8) or '-')
         print('  %-12s %-24s %6d %6d %7d  %s'
-              % (pid, item_name, len(p.body), len(p), len(e),
+              % (pid, nome, len(p.body), len(p), len(e),
                  'contiguous' if p.contiguous() else 'SPLIT'))
 
 

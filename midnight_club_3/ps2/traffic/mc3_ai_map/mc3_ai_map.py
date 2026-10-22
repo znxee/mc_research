@@ -4,7 +4,7 @@ walls of ONE level, the aib lane lines, the race's shortcut nodes, and where the
 AI cars went and what they aimed at (from a mc3_ai_trace log).
 
     python mc3_ai_map.py --city paris --race paris_ian_checkpoint_one --center 313 -259 --radius 80 \\
-        --log out/ia_ian1/paris_ian_checkpoint_one/pcsx2.log --y -6.8 --out out/ian1_map.png
+        --log Y:/temp/ia_ian1/paris_ian_checkpoint_one/pcsx2.log --y -6.8 --out Y:/temp/ian1_map.png
 
 Colours: floor of the level = dark grey, other levels = not drawn; walls
 (polygons with |normal y| < 0.5 whose vertical span reaches the level) = red;
@@ -24,8 +24,8 @@ from PIL import Image, ImageDraw
 import mc2_rsc as R
 import mc3_ai_trace as TR
 
-MC2 = os.environ.get('MC2_PS2_ASSETS', 'mc2_ps2/assets')
-RACES = os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'ASSETS/tune/race')
+MC2 = os.path.join(os.environ.get('MC2_PS2_RESEARCH', ''), 'assets')
+RACES = os.path.join(os.environ.get('MC3_HOSTFS', ''), 'ASSETS/tune/race')
 PX = 0.5
 
 
@@ -63,7 +63,7 @@ def collision(rsc, box, level, band):
 
 def aib(city):
     folder = 'losangeles' if city == 'losangeles' else city
-    path = os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'ASSETS/city/%s/%s_city.aib') % (folder, folder)
+    path = os.path.join(os.environ.get('MC3_HOSTFS', ''), 'ASSETS/city/%s/%s_city.aib') % (folder, folder)
     d = open(path, 'rb').read()
     p, nodes, rails = 4, [], []
     while p + 6 <= len(d):

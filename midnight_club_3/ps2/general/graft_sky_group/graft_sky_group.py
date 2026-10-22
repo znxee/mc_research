@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Append a retail donor's embedded sky group to a generated PCK.
+"""Anexa a um PCK gerado o grupo de ceu embutido de um doador retail.
 
-The historical builder wrote MapRoot+0x10 as an empty array to satisfy Place,
-so mcSkyHatClass existed but received zero shaders. This graft is deliberately
-small: it copies only rmcShaderBasic slots with an inline rmcTexturePS2 and
-inline MipBuffer pixels. Special/animated shaders are left null instead of
-copying a graph that is not understood yet.
+O builder historico escrevia MapRoot+0x10 como um array vazio para satisfazer
+o Place, portanto mcSkyHatClass existia mas recebia zero shaders. Este enxerto
+e deliberadamente pequeno: copia apenas slots rmcShaderBasic com uma
+rmcTexturePS2 inline e pixels MipBuffer inline. Shaders especiais/animados sao
+deixados nulos em vez de copiar um grafo ainda nao entendido.
 """
 
 import argparse
@@ -29,12 +29,12 @@ class Pck:
         self.data = bytearray(open(path, 'rb').read())
         self.base = u32(self.data, 0) - 0x80
         if u32(self.data, 0x0C) != len(self.data) - 0x80:
-            raise ValueError('%s: header size does not add up' % path)
+            raise ValueError('%s: tamanho do header nao fecha' % path)
 
     def off(self, pointer):
         offset = pointer - self.base
         if not 0x80 <= offset < len(self.data) - 3:
-            raise ValueError('%s: pointer outside %#x' % (self.path, pointer))
+            raise ValueError('%s: ponteiro fora %#x' % (self.path, pointer))
         return offset
 
     def virtual(self, offset):
@@ -46,15 +46,15 @@ def build(target_path, donor_path, output_path, audit_path=None):
     donor = Pck(donor_path)
     before = bytes(target.data)
     if target.base != donor.base:
-        raise ValueError('different bases')
+        raise ValueError('bases diferentes')
     if u32(target.data, 0x80) != u32(donor.data, 0x80):
-        raise ValueError('different MapRoot token space')
+        raise ValueError('espaco de tokens MapRoot diferente')
 
     donor_desc = donor.off(u32(donor.data, 0x80 + 0x10))
     donor_slots = donor.off(u32(donor.data, donor_desc + 4))
     donor_count = u16(donor.data, donor_desc + 8)
     if donor_count == 0 or donor_count > 64:
-        raise ValueError('suspicious sky count: %d' % donor_count)
+        raise ValueError('contagem de ceu suspeita: %d' % donor_count)
 
     data = target.data
 
@@ -82,7 +82,7 @@ def build(target_path, donor_path, output_path, audit_path=None):
             skipped.append({'slot': index, 'reason': 'outside'})
             continue
 
-        # Proven shape of rmcShaderBasic + rmcTexturePS2.
+        # Forma comprovada do rmcShaderBasic + rmcTexturePS2.
         if u32(donor.data, shader + 4) != 0 or donor.data[texture + 4] != 0:
             slot_values.append(0)
             skipped.append({'slot': index, 'reason': 'non-basic-or-non-texture0'})
@@ -106,8 +106,8 @@ def build(target_path, donor_path, output_path, audit_path=None):
         mip_out = append(mip_blob)
 
         texture_blob = bytearray(donor.data[texture:texture + 0xA0])
-        # Only level 0 is inline in this group; runtime/name pointers cannot
-        # keep pointing into the donor file.
+        # Somente nivel 0 e inline neste grupo; ponteiros runtime/nome nao
+        # podem continuar apontando para o arquivo doador.
         for field in (0x48, 0x54, 0x60, 0x6C, 0x78):
             struct.pack_into('<I', texture_blob, field, 0)
         struct.pack_into('<I', texture_blob, 0x48, target.virtual(mip_out))
@@ -126,7 +126,7 @@ def build(target_path, donor_path, output_path, audit_path=None):
                        'mip_offset': mip_out})
 
     if not copied:
-        raise ValueError('no copyable sky slot')
+        raise ValueError('nenhum slot de ceu copiavel')
     slots_out = append(b''.join(struct.pack('<I', item)
                                for item in slot_values))
     desc_blob = bytearray(donor.data[donor_desc:donor_desc + 0x10])
@@ -142,7 +142,7 @@ def build(target_path, donor_path, output_path, audit_path=None):
     allowed = set(range(0x0C, 0x10)) | set(range(0x90, 0x94))
     unexpected = [index for index in changed_before_append if index not in allowed]
     if unexpected:
-        raise ValueError('unexpected change before the append: %s' % unexpected[:20])
+        raise ValueError('mudanca inesperada antes do append: %s' % unexpected[:20])
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     with open(output_path, 'wb') as stream:
@@ -163,10 +163,10 @@ def build(target_path, donor_path, output_path, audit_path=None):
         texture = check.off(u32(check.data, shader + 8))
         mip = check.off(u32(check.data, texture + 0x48))
         if u32(check.data, mip + 8) != check.virtual(texture):
-            raise ValueError('MipBuffer owner does not point to a texture')
+            raise ValueError('owner do MipBuffer nao aponta para textura')
         valid += 1
     if counts != [donor_count, donor_count, 0] or valid != len(copied):
-        raise ValueError('sky count validation failed')
+        raise ValueError('validacao de contagem do ceu falhou')
 
     result = {
         'target': os.path.abspath(target_path),
@@ -192,9 +192,9 @@ def build(target_path, donor_path, output_path, audit_path=None):
         with open(audit_path, 'w', encoding='utf-8') as stream:
             json.dump(result, stream, indent=2, ensure_ascii=False)
             stream.write('\n')
-    print('sky: %d/%d Basic+TexturePS2 slots copied; %d special ones null' %
+    print('ceu: %d/%d slots Basic+TexturePS2 copiados; %d especiais nulos' %
           (valid, donor_count, len(skipped)))
-    print('written:', output_path, len(data), 'bytes')
+    print('gravado:', output_path, len(data), 'bytes')
     print('SHA256:', result['output_sha256'])
     return result
 

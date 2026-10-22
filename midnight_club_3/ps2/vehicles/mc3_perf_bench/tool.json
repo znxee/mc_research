@@ -1,0 +1,22 @@
+{
+  "name": "mc3_perf_bench",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "vehicles",
+  "entry": "mc3_perf_bench.py",
+  "summary": "Benchmark the game under PCSX2: host frames per second, with the frame",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

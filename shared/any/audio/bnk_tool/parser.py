@@ -50,12 +50,12 @@ def parse_bnk_bytes(data: bytes, path: str = "") -> BnkFile:
 
     version = br.u32(0x00)
     if version not in (1, 3):
-        raise BnkParseError(f"Unknown header (version={version}), does not look like a Sony/SCREAM .bnk")
+        raise BnkParseError(f"Cabecalho desconhecido (version={version}), nao parece ser um .bnk Sony/SCREAM")
     h.version = version
 
     sections = br.u32(0x04)
     if sections < 2 or sections > 3:
-        raise BnkParseError(f"invalid number of sections ({sections})")
+        raise BnkParseError(f"numero de secoes invalido ({sections})")
     h.sections = sections
 
     h.sblk_offset = br.u32(0x08)
@@ -66,7 +66,7 @@ def parse_bnk_bytes(data: bytes, path: str = "") -> BnkFile:
         h.zlsd_size = br.u32(0x1c)
 
     if h.sblk_offset > 0x20:
-        raise BnkParseError(f"invalid sblk_offset (0x{h.sblk_offset:x})")
+        raise BnkParseError(f"sblk_offset invalido (0x{h.sblk_offset:x})")
 
     if version == 1:
         _parse_bnk_v1(br, h)
@@ -82,16 +82,16 @@ def parse_bnk_bytes(data: bytes, path: str = "") -> BnkFile:
 # ------------------------------------------------------------------------
 def _parse_bnk_v1(br: BinaryReader, h: BnkFile):
     if h.big_endian:
-        raise BnkParseError("big-endian SBv2 (.bnk v1) is not supported")
+        raise BnkParseError("SBv2 (.bnk v1) em big endian nao e suportado")
 
     if not br.is_id32be(h.sblk_offset + 0x00, "SBv2"):
-        raise BnkParseError("expected the 'SBv2' tag at sblk_offset")
+        raise BnkParseError("esperava tag 'SBv2' no sblk_offset")
 
     sblk_version = br.u32(h.sblk_offset + 0x04)  # always read as LE here (matches C's read_u32le)
     if sblk_version == 0x02000000:
         sblk_version = 0x02
     elif sblk_version != 0x02:
-        raise BnkParseError(f"unexpected SBv2 version (0x{sblk_version:x})")
+        raise BnkParseError(f"versao SBv2 inesperada (0x{sblk_version:x})")
     h.sblk_version = sblk_version
 
     _process_tables(br, h)
@@ -105,7 +105,7 @@ def _parse_bnk_v1(br: BinaryReader, h: BnkFile):
 def _parse_bnk_v3(br: BinaryReader, h: BnkFile):
     read_u32 = br.u32
     if read_u32(h.sblk_offset + 0x00) != get_id32le("SBlk"):
-        raise BnkParseError("expected the 'SBlk' tag at sblk_offset")
+        raise BnkParseError("esperava tag 'SBlk' no sblk_offset")
 
     h.sblk_version = read_u32(h.sblk_offset + 0x04)
 
@@ -190,7 +190,7 @@ def _process_tables(br: BinaryReader, h: BnkFile):
         h.table2_suboffset = 0
 
     else:
-        raise BnkParseError(f"unknown SBlk version: 0x{v:x}")
+        raise BnkParseError(f"versao SBlk desconhecida: 0x{v:x}")
 
 
 # ------------------------------------------------------------------------
@@ -238,7 +238,7 @@ def _collect_table3_entries(br: BinaryReader, h: BnkFile) -> List[Tuple[int, int
             out.append((i + 1, i * 0x08, None))
 
     else:
-        raise BnkParseError(f"unknown SBlk version: 0x{v:x}")
+        raise BnkParseError(f"versao SBlk desconhecida: 0x{v:x}")
 
     return out
 
@@ -336,7 +336,7 @@ def _process_headers_and_data(br: BinaryReader, h: BnkFile, entries):
             s.embedded_header = True
 
         else:
-            raise BnkParseError(f"unknown SBlk version: 0x{v:x}")
+            raise BnkParseError(f"versao SBlk desconhecida: 0x{v:x}")
 
         _process_stream_data(br, h, s)
         h.streams.append(s)
@@ -361,7 +361,7 @@ def _process_extradata_0x14_atrac9(br, s, info_offset):
     read_u32 = br.u32
     read_s32 = br.s32
     if read_u32(info_offset + 0x08) != 0x14:
-        s.warnings.append("unexpected ATRAC9 extradata size")
+        s.warnings.append("tamanho de extradata ATRAC9 inesperado")
         return
     s.atrac9_info = br.u32(info_offset + 0x0c) if not br.big_endian else br.u32(info_offset + 0x0c)
     s._loop_length = read_s32(info_offset + 0x14)
@@ -372,7 +372,7 @@ def _process_extradata_0x80_atrac9(br, s, info_offset):
     read_u32 = br.u32
     read_s32 = br.s32
     if read_u32(info_offset + 0x10) != 0x80:
-        s.warnings.append("unexpected ATRAC9 extradata size")
+        s.warnings.append("tamanho de extradata ATRAC9 inesperado")
         return
     s.atrac9_info = br.u32(info_offset + 0x14)
     s.channels = read_u32(info_offset + 0x1c)
@@ -414,9 +414,9 @@ def _process_stream_data(br: BinaryReader, h: BnkFile, s: StreamEntry):
                 offset += 0x10
             s._stream_size_table = size
             s.warnings.append(
-                "size found by scanning (the size field in the table is 0 in this bank); "
-                "when replacing this stream, the new audio has to end with a silence/end frame "
-                "that is valid so the size keeps being detected correctly")
+                "tamanho descoberto por varredura (o campo de tamanho na tabela e 0 neste banco); "
+                "ao substituir este stream, o novo audio precisa terminar com um frame de silencio/fim "
+                "valido para o tamanho continuar sendo detectado corretamente")
 
         s.stream_size = s._stream_size_table
         s.interleave = s.stream_size // max(s.channels, 1)
@@ -457,7 +457,7 @@ def _process_stream_data(br: BinaryReader, h: BnkFile, s: StreamEntry):
                 _process_extradata_0x14_atrac9(br, s, s.start_offset)
                 s.codec = "ATRAC9"
         else:
-            raise BnkParseError(f"unknown BNK subtype: 0x{subtype:08x}")
+            raise BnkParseError(f"subtype BNK desconhecido: 0x{subtype:08x}")
 
     elif v == 0x0c:
         s.stream_size = s._stream_size_table
@@ -474,7 +474,7 @@ def _process_stream_data(br: BinaryReader, h: BnkFile, s: StreamEntry):
                 s.channels = 2
                 s.codec = "MPEG"
             else:
-                raise BnkParseError(f"unknown v0c (BE) subtype: 0x{s.subtype:08x}")
+                raise BnkParseError(f"subtype v0c (BE) desconhecido: 0x{s.subtype:08x}")
         else:
             if s.subtype in (0x00000000, 0x00000001):
                 _process_extradata_0x10_pcm_psx(br, s, s.start_offset)
@@ -483,7 +483,7 @@ def _process_stream_data(br: BinaryReader, h: BnkFile, s: StreamEntry):
                 _process_extradata_0x10_pcm_psx(br, s, s.start_offset)
                 s.codec = "PSX"
             else:
-                raise BnkParseError(f"unknown v0c (LE) subtype: 0x{s.subtype:08x}")
+                raise BnkParseError(f"subtype v0c (LE) desconhecido: 0x{s.subtype:08x}")
 
     elif v in (0x0d, 0x0e, 0x0f, 0x10):
         s.stream_size = s._stream_size_table
@@ -501,7 +501,7 @@ def _process_stream_data(br: BinaryReader, h: BnkFile, s: StreamEntry):
             _process_extradata_0x80_atrac9(br, s, s.start_offset)
             s.codec = "RIFF_ATRAC9"
         else:
-            raise BnkParseError(f"unknown v0d+ subtype: 0x{s.subtype:08x}")
+            raise BnkParseError(f"subtype v0d+ desconhecido: 0x{s.subtype:08x}")
 
     elif v in (0x1a, 0x1c, 0x23):
         if s._stream_offset == 0xFFFFFFFF:
@@ -540,10 +540,10 @@ def _process_stream_data(br: BinaryReader, h: BnkFile, s: StreamEntry):
                 _process_extradata_0x80_atrac9(br, s, info_offset)
                 s.codec = "RIFF_ATRAC9"
             else:
-                raise BnkParseError(f"unknown v1a+ subtype: 0x{s.subtype:08x}")
+                raise BnkParseError(f"subtype v1a+ desconhecido: 0x{s.subtype:08x}")
 
     else:
-        raise BnkParseError(f"unknown SBlk version: 0x{v:x}")
+        raise BnkParseError(f"versao SBlk desconhecida: 0x{v:x}")
 
     s.start_offset += s.extradata_size
     s.stream_size -= s.extradata_size
@@ -659,7 +659,7 @@ def _process_names(br: BinaryReader, h: BnkFile):
                 s.bank_name = h.bank_name
     except (IndexError, struct.error):
         for s in h.streams:
-            s.warnings.append("failed to read names (table4); names may be missing")
+            s.warnings.append("falha ao ler nomes (table4); nomes podem estar ausentes")
 
 
 # ------------------------------------------------------------------------
@@ -671,7 +671,7 @@ def _process_zlsd(br: BinaryReader, h: BnkFile):
     read_u32 = br.u32
 
     if read_u32(h.zlsd_offset + 0x00) != get_id32le("ZLSD"):
-        h.streams and h.streams[-1].warnings.append("invalid ZLSD block, ignored")
+        h.streams and h.streams[-1].warnings.append("bloco ZLSD invalido, ignorado")
         return
 
     zlsd_subsongs = read_u32(h.zlsd_offset + 0x08)
@@ -696,6 +696,6 @@ def _process_zlsd(br: BinaryReader, h: BnkFile):
         s.stream_offset_field = FieldRef(entry_offset + 0x04, 4)
         s.stream_size_field = FieldRef(entry_offset + 0x0C, 4)
         if not br.is_id32be(s.start_offset, "XVAG"):
-            s.warnings.append("ZLSD stream does not start with 'XVAG', it may be wrong")
+            s.warnings.append("stream ZLSD nao comeca com 'XVAG', pode estar incorreto")
         h.streams.append(s)
     h.total_subsongs = len(h.streams)

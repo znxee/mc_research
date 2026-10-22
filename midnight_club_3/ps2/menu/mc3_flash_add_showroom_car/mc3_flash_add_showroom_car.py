@@ -20,9 +20,9 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mc3allin'))
 import mc3pck as M
 
-SRC = os.path.join(os.environ.get('MC3_HOSTFS', 'MC3HostFS'), 'ASSETS/flash/toplevel.pck')
-BACKUP = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools', 'output', 'flash/toplevel.pck.orig_backup')
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools', 'output', 'flash/toplevel_dlslot23.pck')
+SRC = os.path.join(os.environ.get('MC3_HOSTFS', ''), 'ASSETS/flash/toplevel.pck')
+BACKUP = os.path.join(os.environ.get('MC_OUTPUT_DIR', ''), 'flash/toplevel.pck.orig_backup')
+OUT = os.path.join(os.environ.get('MC_OUTPUT_DIR', ''), 'flash/toplevel_dlslot23.pck')
 ROOT_CODE = 0xE2
 
 NEW_NAME = 'vp_dlslot_23'

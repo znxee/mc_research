@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Pedestrian navigation graph (<city>.graph, MC3's mcBaGraph) for a MC2 city.
 
-    python mc2_ped_graph.py --city losangeles --out out/losangeles.graph
-    python mc2_ped_graph.py --city paris --out out/paris.graph --install
+    python mc2_ped_graph.py --city losangeles --out Y:/temp/losangeles.graph
+    python mc2_ped_graph.py --city paris --out Y:/temp/paris.graph --install
 
 SOURCE (default --source rails): the pedestrian rails of the MC2 city's own
 .aib - the rails with bit 3 (0x08) of the flag byte at +18, width 40 at +10.
@@ -41,7 +41,7 @@ import sys
 
 import mc2_rsc as R
 
-MC2 = os.environ.get('MC2_PS2_ASSETS', 'mc2_ps2/assets')
+MC2 = os.path.join(os.environ.get('MC2_PS2_RESEARCH', ''), 'assets')
 MATERIAL = 'l_physics:sidewalkSG'
 PED_RAIL = 0x08          # rail flag (+18) bit: pedestrian rail in MC2
 WIDTH = 3.5              # sidewalk strip width, metres
@@ -290,7 +290,7 @@ def main():
     ap.add_argument('--name', default=None, help='graph name written in the file (default <code>_graph)')
     ap.add_argument('--source', choices=('rails', 'collision'), default='rails')
     ap.add_argument('--width', type=float, default=WIDTH, help='sidewalk strip width (rails source)')
-    ap.add_argument('--hostfs', default=os.environ.get('MC3_HOSTFS', 'MC3HostFS'))
+    ap.add_argument('--hostfs', default=os.environ.get('MC3_HOSTFS', ''))
     ap.add_argument('--corner', type=float, default=35.0, help='max area of a corner node (m2)')
     ap.add_argument('--out', required=True)
     ap.add_argument('--install', action='store_true',

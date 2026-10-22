@@ -52,17 +52,22 @@ import sys
 # is what makes the loose tree work, and it also means any conclusion about how
 # the game finds files is a conclusion about the PATCHED build. The clean rip
 # (md5 3e141315...) goes first so that analysis defaults to retail.
-ELF_CANDIDATES = [os.environ.get('MC3_ELF', 'SLUS_213.55'), 'SLUS_213.55.ELF']
+ELF_CANDIDATES = [
+    os.path.join(os.environ.get('MC_WORK_DIR', ''), 'slus_213.55'),
+    os.path.join(os.environ.get('MC3_HOSTFS', ''), 'SLUS_213.55.ELF'),
+    os.path.join(os.environ.get('MC3_HOSTFS', ''), 'SLUS_213.55_EDITED.ELF'),
+    os.path.join(os.environ.get('MC3_HOSTFS', ''), 'SLUS_213.55_EDITEDc.ELF'),
+]
 DEFAULT_ELF = next((x for x in ELF_CANDIDATES if os.path.isfile(x)), ELF_CANDIDATES[0])
-# IDA 9.0 first: 16816 functions against 12538 for 7.5 on the same ELF, and it
-# is a 64-bit build, which finally opens Offlbruno's `.i64` (17035 functions,
-# 16943 with real names). It runs with Python 3.8, the SAME one 7.5 uses, so the
-# two coexist without fighting over the `Python3TargetDLL` registry key.
+# IDA 9.0 primeiro: 16816 funcoes contra 12538 do 7.5 no mesmo ELF, e e build
+# 64 bits, o que finalmente abre o `.i64` do Offlbruno (17035 funcoes, 16943 com
+# nome de verdade). Roda com Python 3.8, o MESMO que o 7.5 usa, entao os dois
+# convivem sem disputar a chave `Python3TargetDLL` do registro.
 #
-# Mind the install: in one IDA 9.0.240925 install the IDAPython was from a build
-# four months newer than the core and EVERY `_ida_*` module failed on a missing
-# symbol. A consistent install works. Set MC3_IDA to its folder.
-IDA_DIRS = [d for d in (os.environ.get('MC3_IDA', ''), r'C:/IDA Professional 9.0', r'C:/IDA 7.5') if d]
+# Cuidado com a instalacao: em `Y:/IDA Pro 9.0.240925` o IDAPython era de um build
+# quatro meses mais novo que o nucleo e TODO modulo `_ida_*` falhava por simbolo
+# ausente. A de `Y:/IDA Professional 9.0` esta consistente. Ver mc3-ida-headless.
+IDA_DIRS = [os.environ.get('IDA_DIR', ''), os.environ.get('IDA_DIR', ''), os.environ.get('IDA_DIR', '')]
 
 
 def find_ida():
@@ -94,9 +99,9 @@ def database(elf):
     d = workdir()
     stem = re.sub(r'[^A-Za-z0-9_.-]', '_', os.path.basename(elf))
     dst = os.path.join(d, stem)
-    # An `.i64`/`.idb` ALREADY is the database: copy and open it, without
-    # re-analysing anything. That is how Offlbruno's database comes in - 17035
-    # functions with 16943 real names, which no autoanalysis produces.
+    # Um `.i64`/`.idb` JA e o banco: copiar e abrir, sem re-analisar nada. E como
+    # a base do Offlbruno entra - 17035 funcoes com 16943 nomes de verdade, que
+    # nenhuma autoanalise produz.
     if elf.lower().endswith(('.i64', '.idb')):
         if not os.path.isfile(dst) or os.path.getmtime(elf) > os.path.getmtime(dst):
             shutil.copy2(elf, dst)
@@ -121,13 +126,12 @@ def run(script_src, elf=DEFAULT_ELF, suffix='.py'):
     """
     d = workdir()
     db = database(elf)
-    # ONE NAME PER PROCESS. The three artefacts (script, output and log) lived at
-    # FIXED paths inside the shared workdir, and `out.txt` was also deleted at
-    # the start - with two sessions running at the same time, one read the
-    # other's result or got "script produced nothing" with no explanation. There
-    # are several forks using IDA now; the per-target database was already
-    # right, only this pair was not. The pid is enough: the process is what
-    # serialises the calls.
+    # UM NOME POR PROCESSO. Os tres artefatos (script, saida e log) ficavam em
+    # caminhos FIXOS dentro do workdir compartilhado, e o `out.txt` ainda era
+    # apagado no comeco - com duas sessoes rodando ao mesmo tempo, uma lia o
+    # resultado da outra ou recebia "script produced nothing" sem explicacao.
+    # Somos varias forks usando IDA agora; o banco por alvo ja estava certo, so
+    # este par nao estava. O pid basta: o processo e quem serializa as chamadas.
     tag = 'p%d' % os.getpid()
     out = os.path.join(d, 'out_%s.txt' % tag)
     if os.path.exists(out):
@@ -144,9 +148,9 @@ def run(script_src, elf=DEFAULT_ELF, suffix='.py'):
         tail = open(log, errors='replace').read()[-1200:] if os.path.exists(log) else ''
         raise SystemExit('script produced nothing.\n--- ida.log ---\n' + tail)
     finally:
-        for garbage in (path,):
+        for lixo in (path,):
             try:
-                os.remove(garbage)
+                os.remove(lixo)
             except OSError:
                 pass
 

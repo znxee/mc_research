@@ -1,8 +1,8 @@
-"""Repack the modified root files into the tail of an ISO9660 image.
+"""Reempacota os arquivos modificados da raiz na cauda de uma ISO9660.
 
-Keeps every original file/directory outside the managed set, removes old .MOD
-leftovers and writes BANKS.DAT, ASSETS.DAT and the modloader package
-contiguously. Without --apply it only does a dry run.
+Mantem todos os arquivos/diretorios originais fora do conjunto gerenciado,
+remove sobras .MOD antigas e escreve BANKS.DAT, ASSETS.DAT e o pacote do
+modloader de forma contigua. Sem --aplicar faz somente o ensaio.
 """
 import argparse
 import hashlib
@@ -22,7 +22,7 @@ def records(data):
     while pos < len(data) and data[pos]:
         size = data[pos]
         if size < 34 or pos + size > len(data):
-            raise SystemExit(f'invalid ISO record at +0x{pos:X}')
+            raise SystemExit(f'registro ISO invalido em +0x{pos:X}')
         out.append(bytes(data[pos:pos + size]))
         pos += size
     return out
@@ -87,7 +87,7 @@ def sha256_extent(iso, lba, size):
     while left:
         block = iso.read(min(CHUNK, left))
         if not block:
-            raise SystemExit('unexpected end of the ISO during verification')
+            raise SystemExit('fim inesperado da ISO durante verificacao')
         h.update(block)
         left -= len(block)
     return h.hexdigest()
@@ -97,7 +97,7 @@ def managed(name):
     base = name.split(';')[0]
     return (base.endswith('.MOD') or base in {
         'BANKS.DAT', 'ASSETS.DAT', 'MC3BOOT.ELF', 'MC3BOOT.INI',
-        'MC3MOD.BIN', 'LEIAME.TXT', 'README.TXT', 'SLUS_213.55M', 'MC2.DAT', 'MCLA.DAT'
+        'MC3MOD.BIN', 'LEIAME.TXT', 'SLUS_213.55M', 'MC2.DAT', 'MCLA.DAT'
     })
 
 
@@ -105,14 +105,14 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('iso')
     ap.add_argument('--staging', required=True)
-    ap.add_argument('--apply', dest='apply_', action='store_true')
+    ap.add_argument('--aplicar', action='store_true')
     ap.add_argument('--first', action='append', default=[],
                     help='write this staged file (8.3 name, e.g. MC2.DAT) before the others')
-    ap.add_argument('--expand', dest='expand', action='store_true',
-                    help='grow the ISO volume up to DVD5 if the new tail does not fit')
-    ap.add_argument('--no-dvd-limit', action='store_true',
-                    help='accept a layer 0 larger than DVD5 (OPL/PCSX2; '
-                         'the image no longer fits a burned disc)')
+    ap.add_argument('--expandir', action='store_true',
+                    help='amplia o volume ISO ate DVD5 se a nova cauda nao couber')
+    ap.add_argument('--sem-limite-dvd', action='store_true',
+                    help='aceita camada 0 maior que DVD5 (OPL/PCSX2; '
+                         'a imagem deixa de caber num disco gravado)')
     args = ap.parse_args()
 
     staged = []
@@ -121,30 +121,30 @@ def main():
             staged.append((iso_name(item.name), item.path, item.stat().st_size))
     names = [name for name, _, _ in staged]
     if len(names) != len(set(names)):
-        raise SystemExit('8.3 names collide in the staging folder')
+        raise SystemExit('nomes 8.3 colidem no staging')
     for required in ('BANKS.DAT;1', 'ASSETS.DAT;1', 'MC3BOOT.ELF;1',
                      'MC3BOOT.INI;1', 'SLUS_213.55M;1', 'SYSTEM.CNF;1'):
         if required not in names:
-            raise SystemExit(f'{required} missing from the staging folder')
+            raise SystemExit(f'falta {required} no staging')
 
     files = {name: path for name, path, _ in staged}
     if sha256_path(files['SLUS_213.55M;1']) != sha256_path(files['MC3BOOT.ELF;1']):
-        raise SystemExit('SLUS_213.55M must be an identical copy of MC3BOOT.ELF')
+        raise SystemExit('SLUS_213.55M deve ser copia identica de MC3BOOT.ELF')
     with open(files['SYSTEM.CNF;1'], 'rb') as system_file:
         if rb'BOOT2 = cdrom0:\SLUS_213.55M;1' not in system_file.read():
-            raise SystemExit('SYSTEM.CNF must boot SLUS_213.55M')
+            raise SystemExit('SYSTEM.CNF deve iniciar SLUS_213.55M')
 
-    mode = 'r+b' if args.apply_ else 'rb'
+    mode = 'r+b' if args.aplicar else 'rb'
     with open(args.iso, mode) as iso:
         iso.seek(PVD_LBA * SECTOR)
         pvd = iso.read(SECTOR)
         if pvd[1:6] != b'CD001':
-            raise SystemExit('ISO9660 PVD not found')
+            raise SystemExit('PVD ISO9660 nao encontrado')
         total = struct.unpack_from('<I', pvd, 80)[0]
         root_lba = struct.unpack_from('<I', pvd, 158)[0]
         root_size = struct.unpack_from('<I', pvd, 166)[0]
         if root_size > SECTOR:
-            raise SystemExit('the root directory takes more than one sector')
+            raise SystemExit('diretorio raiz ocupa mais de um setor')
         iso.seek(root_lba * SECTOR)
         old_root = iso.read(SECTOR)
         old = records(old_root[:root_size])
@@ -153,7 +153,7 @@ def main():
         managed_records = [r for r in old
                            if isinstance(rec_name(r), str) and managed(rec_name(r))]
         if not managed_records:
-            raise SystemExit('no managed file found in the root')
+            raise SystemExit('nenhum arquivo gerenciado encontrado na raiz')
         tail_start = min(extent(r)[0] for r in managed_records)
 
         keep = []
@@ -167,23 +167,22 @@ def main():
                 lba, size = extent(rec)
                 end = lba + (size + SECTOR - 1) // SECTOR
                 if end > tail_start:
-                    raise SystemExit(f'kept file {name} occupies the managed tail')
+                    raise SystemExit(f'arquivo preservado {name} ocupa a cauda gerenciada')
                 keep.append(rec)
 
         system = next(x for x in staged if x[0] == 'SYSTEM.CNF;1')
         sys_rec = old_by_name.get('SYSTEM.CNF;1')
         if not sys_rec:
-            raise SystemExit('original SYSTEM.CNF not found')
+            raise SystemExit('SYSTEM.CNF original nao encontrado')
         sys_lba, sys_old_size = extent(sys_rec)
         if system[2] > ((sys_old_size + SECTOR - 1) // SECTOR) * SECTOR:
-            raise SystemExit('the new SYSTEM.CNF does not fit in the original extent')
+            raise SystemExit('SYSTEM.CNF novo nao cabe no extent original')
         keep = [make_record('SYSTEM.CNF;1', sys_lba, system[2])
                 if rec_name(r) == 'SYSTEM.CNF;1' else r for r in keep]
 
         tail_files = [x for x in staged if x[0] != 'SYSTEM.CNF;1']
         first = [f.upper() + ';1' for f in args.first]
-        tail_files.sort(key=lambda x: (x[0] not in first,
-                                       first.index(x[0]) if x[0] in first else 0))
+        tail_files.sort(key=lambda x: (x[0] not in first, first.index(x[0]) if x[0] in first else 0))
         cursor = tail_start
         layout = []
         for name, path, size in tail_files:
@@ -195,40 +194,40 @@ def main():
         old_slack = max(0, total - used_end)
         target_total = total
         if cursor > total:
-            if not args.expand:
+            if not args.expandir:
                 raise SystemExit(
-                    f'the tail needs {cursor-total} sectors past the volume; '
-                    'repeat with --expand')
+                    f'cauda precisa {cursor-total} setores alem do volume; '
+                    'repita com --expandir')
             target_total = cursor + old_slack
-            if target_total > DVD5_SECTORS and not args.no_dvd_limit:
+            if target_total > DVD5_SECTORS and not args.sem_limite_dvd:
                 raise SystemExit(
-                    f'the expanded volume would have {target_total * SECTOR} bytes, '
-                    f'above the DVD5 limit of {DVD5_BYTES}')
+                    f'volume expandido teria {target_total * SECTOR} bytes, '
+                    f'acima do limite DVD5 de {DVD5_BYTES}')
 
         new_records = keep + [make_record(n, lba, size)
                               for n, _, size, lba, _ in layout]
         new_records.sort(key=key)
         root_body = b''.join(new_records)
         if len(root_body) > SECTOR:
-            raise SystemExit(f'the root needs {len(root_body)} bytes, limit {SECTOR}')
+            raise SystemExit(f'raiz precisa {len(root_body)} bytes, limite {SECTOR}')
 
         print(f'ISO: {args.iso}')
         volume_text = (str(total) if target_total == total
                        else f'{total} -> {target_total}')
-        print(f'volume: {volume_text} sectors; tail: {tail_start}..{cursor} '
-              f'({cursor-tail_start} sectors); '
-              f'free at the end: {target_total-cursor}')
-        print(f'root: {len(old)} -> {len(new_records)} records; '
+        print(f'volume: {volume_text} setores; cauda: {tail_start}..{cursor} '
+              f'({cursor-tail_start} setores); '
+              f'livres no final: {target_total-cursor}')
+        print(f'raiz: {len(old)} -> {len(new_records)} registros; '
               f'{len(root_body)}/{SECTOR} bytes')
         for name, _, size, lba, sectors in layout:
-            print(f'  {name:<16} LBA {lba:>8}  {size:>10} bytes  {sectors:>7} sectors')
+            print(f'  {name:<16} LBA {lba:>8}  {size:>10} bytes  {sectors:>7} setores')
         stale = sorted(name for name in old_by_name
                        if managed(name) and name not in names)
         if stale:
-            print('removed from the root: ' + ', '.join(stale))
+            print('removidos da raiz: ' + ', '.join(stale))
 
-        if not args.apply_:
-            print('DRY RUN: nothing written')
+        if not args.aplicar:
+            print('ENSAIO: nada gravado')
             return
 
         # Rewrite the compact tail. Sources are outside the ISO, so overlapping
@@ -267,7 +266,7 @@ def main():
         # The PVD's own copy of the root record (offset 156) carries the root
         # size too, and the PS2 reads the directory by it: left at a retail
         # 732 bytes, every entry past that offset vanished for anything that
-        # trusts the PVD (found on a clean dump).
+        # trusts the PVD (found on a clean dump, 2026-10-01).
         iso.seek(PVD_LBA * SECTOR)
         pvd_now = bytearray(iso.read(SECTOR))
         struct.pack_into('<I', pvd_now, 166, SECTOR)
@@ -282,7 +281,7 @@ def main():
                 vd = bytearray(iso.read(SECTOR))
                 if len(vd) != SECTOR or vd[1:6] != b'CD001':
                     raise SystemExit(
-                        f'invalid ISO9660 descriptor at LBA {vd_lba}')
+                        f'descritor ISO9660 invalido no LBA {vd_lba}')
                 kind = vd[0]
                 if kind in (1, 2):
                     struct.pack_into('<I', vd, 80, target_total)
@@ -293,7 +292,7 @@ def main():
                     found_terminator = True
                     break
             if not found_terminator:
-                raise SystemExit('ISO9660 volume terminator not found')
+                raise SystemExit('terminador de volume ISO9660 nao encontrado')
             iso.truncate(target_total * SECTOR)
 
         iso.flush()
@@ -306,8 +305,8 @@ def main():
             expected = sha256_path(path)
             actual = sha256_extent(iso, lba, size)
             if actual != expected:
-                raise SystemExit(f'hash mismatch after writing {name}')
-        print(f'WRITTEN AND VERIFIED: {len(verify)} files')
+                raise SystemExit(f'falha de hash apos gravar {name}')
+        print(f'GRAVADO E VERIFICADO: {len(verify)} arquivos')
 
 
 if __name__ == '__main__':

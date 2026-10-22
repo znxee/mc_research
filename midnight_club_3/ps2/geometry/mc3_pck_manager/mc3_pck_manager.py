@@ -437,7 +437,7 @@ class App:
 
     def _on_tree_click(self, event):
         if self.tree.identify_region(event.x, event.y) != "tree":
-            return None                      # clicked on a data column
+            return None                      # clicou numa coluna de dados
         iid = self.tree.identify_row(event.y)
         if not iid:
             return None
@@ -676,8 +676,8 @@ class App:
         temporary PNG."""
         import tempfile
         w, h = im.width, im.height
-        src = im.to_rgba()               # already with alpha 0..255
-        if max(w, h) < box:              # small: scale up by an integer
+        src = im.to_rgba()               # ja com alfa 0..255
+        if max(w, h) < box:              # pequena: amplia inteiro
             k = box // max(w, h)
             tw, th = w * k, h * k
         elif w >= h:
@@ -902,6 +902,7 @@ class App:
     AUDIO_STUDIO_NAME = "mc3_audio_studio.py"
     AUDIO_STUDIO_CANDIDATES = [
         os.path.join(_HERE, AUDIO_STUDIO_NAME),
+        os.path.join(os.path.dirname(_HERE), "Claudio", AUDIO_STUDIO_NAME),
         os.path.join(os.path.dirname(_HERE), AUDIO_STUDIO_NAME),
     ]
 
@@ -978,9 +979,9 @@ class App:
         if not data:
             self.parts_lbl.configure(text="(this file has no category table)")
             return
-        used_set = sum(len(r) for _k, _c, r in data)
+        usados = sum(len(r) for _k, _c, r in data)
         self.parts_lbl.configure(text="%d slots filled across %d categories"
-                                      % (used_set, len(data)))
+                                      % (usados, len(data)))
         for k, cnt, rows in data:
             ok = "" if cnt == len(rows) else "   COUNT %d != %d FILLED" % (cnt, len(rows))
             top = self.parts.insert("", "end", open=bool(rows),

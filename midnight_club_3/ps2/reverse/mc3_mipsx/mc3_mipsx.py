@@ -1,16 +1,7 @@
-"""Tiny capstone helpers for the retail ELF, meant for an interactive session.
-
-    >>> from mc3_mipsx import callers, start, dump
-    >>> [hex(x) for x in callers(0x2A8FA0)]     # every jal to a function
-    >>> hex(start(0x2A9000))                     # walk back to the addiu sp,sp,-N
-    >>> dump(0x2A8FA0, 40)                       # disassemble 40 instructions
-
-The ELF comes from MC3_ELF. Needs `pip install capstone`.
-"""
 import os
 import struct
 from capstone import *
-D=open(os.environ.get("MC3_ELF", "SLUS_213.55"),"rb").read()
+D=open(os.path.join(os.environ.get('MC_WORK_DIR', ''), 'slus_213.55.analysis.ELF'),"rb").read()
 BASE=0x1a0000; OFF=0x80; SZ=0x4d7074
 def v2f(va): return OFF+(va-BASE)
 def f2v(o): return BASE+(o-OFF)
@@ -23,7 +14,7 @@ def callers(target):
             va=((f2v(o)+4)&0xf0000000)|((w&0x3ffffff)<<2)
             if va==target: out.append(f2v(o))
     return out
-def start(va,maxk=900):
+def inicio(va,maxk=900):
     o=v2f(va)
     for k in range(0,maxk):
         p=o-4*k

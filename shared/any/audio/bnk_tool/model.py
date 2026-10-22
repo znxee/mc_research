@@ -122,9 +122,9 @@ class BnkFile:
 
     def summary_lines(self):
         lines = []
-        lines.append(f"File: {self.path}")
-        lines.append(f"Size: {self.file_size} bytes | Endian: {'BE' if self.big_endian else 'LE'}")
-        lines.append(f"SBlk/SBv2 block version: {self.version} | sblk_version: 0x{self.sblk_version:02x} "
+        lines.append(f"Arquivo: {self.path}")
+        lines.append(f"Tamanho: {self.file_size} bytes | Endian: {'BE' if self.big_endian else 'LE'}")
+        lines.append(f"Bloco SBlk/SBv2 versao: {self.version} | sblk_version: 0x{self.sblk_version:02x} "
                      f"(suporte: {self.support_tier})")
         lines.append(f"data_offset=0x{self.data_offset:x} data_size=0x{self.data_size:x}")
         if self.zlsd_offset:

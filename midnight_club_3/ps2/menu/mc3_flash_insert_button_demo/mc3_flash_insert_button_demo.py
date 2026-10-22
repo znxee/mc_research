@@ -37,11 +37,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mc3
 import mc3pck as M
 
 # SRC needs a clean, unmodified controller.pck - copy one out of
-# $MC3_HOSTFS/ASSETS/flash/controller.pck before running if this path
+# Y:/MC3HostFS/ASSETS/flash/controller.pck before running if this path
 # is missing (the backup here is a leftover from the session that proved
 # this technique, not something the toolkit maintains on its own).
-SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools', 'output', 'flash/controller.pck.orig_backup')
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools', 'output', 'flash/controller_new_button.pck')
+SRC = os.path.join(os.environ.get('MC_OUTPUT_DIR', ''), 'flash/controller.pck.orig_backup')
+OUT = os.path.join(os.environ.get('MC_OUTPUT_DIR', ''), 'flash/controller_new_button.pck')
 
 CLONE_BUTTON_IDX = 18          # object index to duplicate
 TEMPLATE_CMD = 0x1FF8          # a real, working PlaceObject2 to copy

@@ -1,53 +1,53 @@
-"""mc3_cellindex.py - rebuild the per-cell index at MapRoot+0x1C
+"""mc3_cellindex.py - reconstruir o indice por celula em MapRoot+0x1C
 
-THIS IS THE CITY CULLING. Not the sphere, not the tile box: the tile box is only
-the INPUT. What the game walks is a per-cell table, and it comes READY in the
-`.pck`. Swapping the geometry without redoing the table leaves Los Angeles out
-of every list - it loads, it runs, and almost nothing shows.
+ESTE E O CULLING DA CIDADE. Nao a esfera, nao a tile box: a tile box e so a
+ENTRADA. O que o jogo percorre e uma tabela por celula, e ela vem PRONTA no
+`.pck`. Trocar a geometria sem refazer a tabela deixa Los Angeles fora de todas
+as listas - carrega, roda, e quase nada aparece.
 
-Measured on `atl_la_shader.pck`, the build that went into the game showing only
-the asphalt: the index kept 10087 uniques and 9794 instances (retail atlanta's
-numbers, untouched) while the real tile boxes asked for 18026 and 7347.
+Medido no `atl_la_shader.pck`, o build que entrou em jogo mostrando so o asfalto:
+o indice guardava 10087 uniques e 9794 instancias (os numeros do atlanta de
+varejo, intactos) enquanto as tile boxes reais pediam 18026 e 7347.
 
-STRUCTURE, with the object pointed to by `MapRoot+0x1C`:
+ESTRUTURA, com o objeto apontado por `MapRoot+0x1C`:
 
-    +0x00 u32  number of unique components   (651 in atlanta)
-    +0x04 u32  number of instances           (3608)
-    +0x08 ptr  u32[+0x00]  pointer to each UniqueComponent
-    +0x0C ptr  u32[+0x04]  pointer to each Instance
-    +0x10 ptr  record[cell_count] of 12 bytes:
-                 +0 s16 how many uniques cover this cell
-                 +2 s16 how many instances cover it
-                 +4 ptr u16[n0]  indices into the +0x08 array
-                 +8 ptr u16[n1]  indices into the +0x0C array
-    +0x14 ptr  u32[cell_count]   an extra list per cell (see below)
+    +0x00 u32  numero de componentes unique   (651 no atlanta)
+    +0x04 u32  numero de instancias           (3608)
+    +0x08 ptr  u32[+0x00]  ponteiro para cada UniqueComponent
+    +0x0C ptr  u32[+0x04]  ponteiro para cada Instance
+    +0x10 ptr  registro[cell_count] de 12 bytes:
+                 +0 s16 quantos uniques cobrem esta celula
+                 +2 s16 quantas instancias cobrem
+                 +4 ptr u16[n0]  indices no array de +0x08
+                 +8 ptr u16[n1]  indices no array de +0x0C
+    +0x14 ptr  u32[cell_count]   uma lista extra por celula (ver abaixo)
 
-`cell_count` is `MapRoot+0x268`, and the cell index is `rel_z * W + rel_x` with
-W at `+0x26C` - the same address `mcCity::CellIndexFromPos` (0x257BE8)
-computes. THAT IS WHY THE GRID IS NOT A FREE PARAMETER: the fixup at 0x25BAE8
-walks `cell_count` 12-byte records and 0x25BB40 walks `cell_count` pointers,
-both in arrays that came from the file. Raising `+0x268` without redoing the
-arrays makes the loop run past the end - that is how 91x82 hung the loading with
-a file whose arrays had 3968 entries.
+`cell_count` e `MapRoot+0x268`, e o indice da celula e `rel_z * W + rel_x` com
+W em `+0x26C` - o mesmo endereco que `mcCity::CellIndexFromPos` (0x257BE8)
+calcula. E POR ISSO QUE A GRADE NAO E UM PARAMETRO LIVRE: o fixup em 0x25BAE8
+percorre `cell_count` registros de 12 bytes e 0x25BB40 percorre `cell_count`
+ponteiros, os dois em arrays que vieram do arquivo. Aumentar `+0x268` sem
+refazer os arrays faz o laco andar alem do fim - foi assim que 91x82 travou o
+carregamento com um arquivo cujos arrays tinham 3968 entradas.
 
-THE RULE WAS VALIDATED AGAINST RETAIL, not deduced: rebuilding atlanta's index
-from its own tile boxes, the 3968 cells come out IDENTICAL, and the sums match
-in the three cities measured (atlanta 10087/9794, tokyo 15913/16485, detroit
-14484/11308). The lists come in DESCENDING index order - 2316 of 2316 lists
-with more than one entry.
+A REGRA FOI VALIDADA CONTRA O VAREJO, nao deduzida: reconstruindo o indice do
+atlanta a partir das proprias tile boxes dele, as 3968 celulas saem IDENTICAS,
+e as somas batem nas tres cidades medidas (atlanta 10087/9794, tokyo
+15913/16485, detroit 14484/11308). As listas vem em ordem DECRESCENTE de indice
+- 2316 de 2316 listas com mais de uma entrada.
 
-ABOUT `+0x14`: it is another per-cell list, with 14-bit indices plus two flag
-bits, and it is not deciphered (it looks like a PVS). Here it is re-emitted with
-ALL entries null, a state retail already exercises in 1810 of atlanta's 3968
-cells. Null draws more, not less - which is the right side to err on while the
-city is being ported.
+SOBRE `+0x14`: e outra lista por celula, com indices de 14 bits mais dois bits
+de flag, e nao esta decifrada (parece PVS). Aqui ela e reemitida com TODAS as
+entradas nulas, que e um estado que o varejo ja exercita em 1810 das 3968
+celulas do atlanta. Nulo desenha mais, nao menos - que e o lado certo pra errar
+enquanto a cidade esta sendo portada.
 """
 import struct
 import collections
 
 
-def _object(p):
-    """(object offset, [unique offsets], [instance offsets])."""
+def _objeto(p):
+    """(offset do objeto, [offsets dos uniques], [offsets das instancias])."""
     r = 0x80
     o = p.F(p.U(r + 0x1C))
     if not p.inside(o):
@@ -63,8 +63,8 @@ def _object(p):
     return o, us, ins
 
 
-def _per_cell(p, objs, w, h):
-    """{cell index: [object indices, descending]}."""
+def _por_celula(p, objs, w, h):
+    """{indice de celula: [indices de objeto, decrescente]}."""
     m = collections.defaultdict(list)
     for i, off in enumerate(objs):
         if not p.inside(off + 0x18):
@@ -75,77 +75,77 @@ def _per_cell(p, objs, w, h):
             for x in range(max(0, x0), min(w - 1, x1) + 1):
                 m[base + x].append(i)
     for k in m:
-        m[k].reverse()          # retail keeps them descending
+        m[k].reverse()          # o varejo guarda decrescente
     return m
 
 
-def check(p):
-    """(equal cells, total) between the stored index and the tile boxes.
+def confere(p):
+    """(celulas iguais, total) entre o indice gravado e as tile boxes.
 
-    It works both ways: it validates the rule on a retail file and exposes a
-    stale index in a ported file.
+    Serve pros dois lados: valida a regra num arquivo de varejo e denuncia um
+    indice velho num arquivo portado.
     """
     r = 0x80
     cc, w, h = struct.unpack_from('<3i', p.data, r + 0x268)
-    got = _object(p)
+    got = _objeto(p)
     if not got:
         return 0, 0
     o, us, ins = got
     a10 = p.F(p.U(o + 0x10))
     if not p.inside(a10):
         return 0, cc
-    mu, mi = _per_cell(p, us, w, h), _per_cell(p, ins, w, h)
-    equal_ones = 0
+    mu, mi = _por_celula(p, us, w, h), _por_celula(p, ins, w, h)
+    iguais = 0
     for k in range(cc):
         c0, c1 = struct.unpack_from('<2h', p.data, a10 + 12 * k)
         pa, pb = struct.unpack_from('<2I', p.data, a10 + 12 * k + 4)
-        read_n = []
+        lidos = []
         for cnt, ptr in ((c0, pa), (c1, pb)):
             if cnt > 0 and ptr and p.inside(p.F(ptr)):
-                read_n.append(list(struct.unpack_from('<%dH' % cnt, p.data, p.F(ptr))))
+                lidos.append(list(struct.unpack_from('<%dH' % cnt, p.data, p.F(ptr))))
             else:
-                read_n.append([])
-        if read_n == [mu.get(k, []), mi.get(k, [])]:
-            equal_ones += 1
-    return equal_ones, cc
+                lidos.append([])
+        if lidos == [mu.get(k, []), mi.get(k, [])]:
+            iguais += 1
+    return iguais, cc
 
 
-def rebuild(p):
-    """Rewrite +0x10 and +0x14 of the MapRoot+0x1C object. Returns a summary."""
+def reconstroi(p):
+    """Reescreve +0x10 e +0x14 do objeto de MapRoot+0x1C. Devolve um resumo."""
     r = 0x80
     cc, w, h = struct.unpack_from('<3i', p.data, r + 0x268)
-    got = _object(p)
+    got = _objeto(p)
     if not got or cc <= 0 or cc != w * h:
         return None
     o, us, ins = got
-    mu, mi = _per_cell(p, us, w, h), _per_cell(p, ins, w, h)
+    mu, mi = _por_celula(p, us, w, h), _por_celula(p, ins, w, h)
 
-    # The lists sit right after the records, packed and aligned to 2 bytes,
-    # which is how retail keeps them (cell 51 at ...CE0 and 52 at ...CE2).
-    records_ = bytearray(12 * cc)
-    lists = bytearray()
+    # As listas ficam logo depois dos registros, coladas e alinhadas a 2 bytes,
+    # que e como o varejo as guarda (celula 51 em ...CE0 e a 52 em ...CE2).
+    regs = bytearray(12 * cc)
+    listas = bytearray()
     n_u = n_i = 0
     for k in range(cc):
         lu, li = mu.get(k, ()), mi.get(k, ())
-        struct.pack_into('<2h', records_, 12 * k, len(lu), len(li))
+        struct.pack_into('<2h', regs, 12 * k, len(lu), len(li))
         for col, seq in ((4, lu), (8, li)):
             if not seq:
                 continue
-            struct.pack_into('<I', records_, 12 * k + col, len(lists))   # provisional
-            lists += struct.pack('<%dH' % len(seq), *seq)
+            struct.pack_into('<I', regs, 12 * k + col, len(listas))   # provisorio
+            listas += struct.pack('<%dH' % len(seq), *seq)
         n_u += len(lu)
         n_i += len(li)
 
-    ptrs = bytearray(4 * cc)                 # +0x14, all null on purpose
-    block = bytes(records_) + bytes(lists)
-    if len(block) % 4:
-        block += b'\0' * (4 - len(block) % 4)
-    shift_ptrs = len(block)
-    block += bytes(ptrs)
+    ptrs = bytearray(4 * cc)                 # +0x14, tudo nulo de proposito
+    bloco = bytes(regs) + bytes(listas)
+    if len(bloco) % 4:
+        bloco += b'\0' * (4 - len(bloco) % 4)
+    desloc_ptrs = len(bloco)
+    bloco += bytes(ptrs)
 
-    off = p.append(block)
-    lists_base = off + 12 * cc
-    # now that it is known where it landed, the provisional offsets become VAs
+    off = p.append(bloco)
+    base_listas = off + 12 * cc
+    # agora que se sabe onde caiu, os offsets provisorios viram VA
     for k in range(cc):
         c0, c1 = struct.unpack_from('<2h', p.data, off + 12 * k)
         for col, cnt in ((4, c0), (8, c1)):
@@ -153,10 +153,10 @@ def rebuild(p):
                 continue
             rel = struct.unpack_from('<I', p.data, off + 12 * k + col)[0]
             struct.pack_into('<I', p.data, off + 12 * k + col,
-                             p.V(lists_base + rel))
+                             p.V(base_listas + rel))
 
     struct.pack_into('<I', p.data, o + 0x10, p.V(off))
-    struct.pack_into('<I', p.data, o + 0x14, p.V(off + shift_ptrs))
-    return {'cells': cc, 'grid': (w, h), 'uniques': n_u, 'instances': n_i,
-            'bytes': len(block), 'occupied': sum(1 for k in range(cc)
+    struct.pack_into('<I', p.data, o + 0x14, p.V(off + desloc_ptrs))
+    return {'celulas': cc, 'grade': (w, h), 'uniques': n_u, 'instancias': n_i,
+            'bytes': len(bloco), 'ocupadas': sum(1 for k in range(cc)
                                                  if mu.get(k) or mi.get(k))}

@@ -1,0 +1,22 @@
+{
+  "name": "mc2_pillar_legs",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "general",
+  "entry": "mc2_pillar_legs.py",
+  "summary": "Pillar feet of an MC2 city: the ones MC2 left without a collision box, and",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3 dev tools (live) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

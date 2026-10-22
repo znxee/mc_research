@@ -1,33 +1,33 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Audit of a candidate ``*_bnd.pck`` whose ONLY change is the type10 quadtree.
+"""Auditoria de um ``*_bnd.pck`` candidato cuja mudanca e SO a quadtree type10.
 
-Checks, in this order:
+Checa, nesta ordem:
 
-  contract    numPolys <= 2000 and numVerts <= 2000 (the real ceiling of the
-              phQuadtreeCell class, proven in mcPhysics::InitStaticData 0x002C2644)
-  type9       byte for byte identical to the donor
-  diff        no old byte changed outside the size header and the known type10
-              fields; the rest can only be an appended block
-  structure   header/size, pointers inside the file, both trees present,
-              consistent root/node/payload counts,
-              node+0x7C == *(payload root slot), retail 16-byte header on the
-              child vectors, depth <= 20
-  leaves      partition the ref list exactly, with no gap or overlap
-  indices     refs and indices within range, every poly covered
-  containment each leaf's AABB contains its faces
-  geometry    unit normals, recomputed area, material byte, no
-              degenerate/NaN/Inf, reciprocal neighbours
-  SAFETY      the property the generator promises and that only a geometric
-              test can confirm: every type10 slab has a type9 floor ABOVE it,
-              that is, it is buried. A slab with no floor above is the top
-              surface at that point - an invisible platform in the air at the
-              edge of an elevated road, or a step over the road - and only that
-              fails. A slab buried deeper than band+sink happens on ramps and is
-              only reported: it still steals no contact.
+  contrato    numPolys <= 2000 e numVerts <= 2000 (o teto real da classe
+              phQuadtreeCell, provado em mcPhysics::InitStaticData 0x002C2644)
+  type9       byte a byte identico ao doador
+  diff        nenhum byte antigo mudou fora do header de tamanho e dos campos
+              conhecidos do type10; o resto so pode ser bloco anexado
+  estrutura   header/tamanho, ponteiros dentro do arquivo, as duas arvores
+              presentes, contagens root/node/payload coerentes,
+              node+0x7C == *(payload root slot), cabecalho retail de 16 bytes
+              nos vetores de filhos, profundidade <= 20
+  folhas      particionam exatamente a lista de refs, sem lacuna nem sobreposicao
+  indices     refs e indices dentro da faixa, todo poly coberto
+  contencao   a AABB de cada folha contem as faces dela
+  geometria   normais unitarias, area recalculada, byte de material, sem
+              degenerado/NaN/Inf, vizinhos reciprocos
+  SEGURANCA   a propriedade que o gerador promete e que so um teste geometrico
+              pode confirmar: toda laje do type10 tem piso do type9 ACIMA dela,
+              ou seja esta enterrada. Uma laje sem piso acima e a superficie de
+              cima naquele ponto - plataforma invisivel no ar na beira de via
+              elevada, ou degrau sobre a pista - e so isso reprova. Laje
+              enterrada mais fundo que band+sink acontece em rampa e e apenas
+              relatada: continua sem roubar contato.
 
-    python audit_type10_groundplane.py --donor v13.pck --candidate new.pck \\
-        --json audit.json
+    python audit_type10_groundplane.py --donor v13.pck --candidate novo.pck \\
+        --json auditoria.json
 """
 
 import argparse
@@ -45,7 +45,7 @@ CAP = 2000
 
 
 def tree_bytes(b, kind):
-    """Every byte that belongs to a tree: node, geometry, tree."""
+    """Todos os bytes que pertencem a uma arvore: node, geometria, arvore."""
     node = b.trees[kind]
     spans = [(node, 0xA0)]
     nv, npoly = b.u32(node + 0x4C), b.u32(node + 0x50)
@@ -98,7 +98,7 @@ def check_structure(b, kind, problems, info, note_only_headers=False):
         slot, depth = stack.pop()
         depth_max = max(depth_max, depth)
         if slot in seen:
-            problems.append('t%d slot %#x visited twice' % (kind, slot))
+            problems.append('t%d slot %#x visitado duas vezes' % (kind, slot))
             continue
         seen.add(slot)
         v = b.u32(slot)
@@ -106,30 +106,30 @@ def check_structure(b, kind, problems, info, note_only_headers=False):
             leaves.append((v >> 16, (v & 0xFFFF) >> 2))
             continue
         if not b.valid(v):
-            problems.append('t%d invalid block pointer %08x' % (kind, v))
+            problems.append('t%d ponteiro de bloco invalido %08x' % (kind, v))
             continue
         base = b.off(v)
         blocks += 1
-        # In the four retail cities EVERY child vector, in both trees, is
-        # preceded by the 16-byte array header (count followed by 0xCD): the
-        # blocks sit 48 bytes apart in type9 and 32 in type10. The losangeles type9
-        # has none - it is a divergence inherited from the converter, not
-        # something this candidate introduces, so it is reported and not failed
-        # when the donor has the same shape.
+        # Nas quatro cidades de varejo TODO vetor de filhos, nas duas arvores,
+        # e precedido pelo cabecalho de array de 16 bytes (count seguido de
+        # 0xCD): os blocos ficam 48 bytes apart no type9 e 32 no type10. O
+        # type9 do losangeles nao tem nenhum - e uma divergencia herdada do
+        # conversor, nao algo que este candidato introduza, e por isso ela e
+        # relatada e nao reprovada quando o doador tem a mesma forma.
         if b.u32(base - 16) != fan:
             no_header += 1
         stack.extend((base + 4 * i, depth + 1) for i in range(fan))
     if no_header and not note_only_headers:
-        problems.append('t%d %d of %d child vectors without an array header '
+        problems.append('t%d %d de %d vetores de filhos sem cabecalho de array '
                         'count=%d' % (kind, no_header, blocks, fan))
     if depth_max > 20:
-        problems.append('t%d depth %d exceeds the limit of 20 of the static '
-                        'stacks smBoxMinStack/smBoxMaxStack' % (kind, depth_max))
+        problems.append('t%d profundidade %d passa do limite 20 das pilhas '
+                        'estaticas smBoxMinStack/smBoxMaxStack' % (kind, depth_max))
 
     covered = [0] * nref
     for start, count in leaves:
         if start + count > nref:
-            problems.append('t%d leaf %d..%d outside the list of %d refs'
+            problems.append('t%d folha %d..%d fora da lista de %d refs'
                             % (kind, start, start + count, nref))
             continue
         for i in range(start, start + count):
@@ -137,7 +137,7 @@ def check_structure(b, kind, problems, info, note_only_headers=False):
     if any(c != 1 for c in covered):
         gaps = sum(1 for c in covered if c == 0)
         dups = sum(1 for c in covered if c > 1)
-        problems.append('t%d leaves do not partition the refs: %d gaps, %d repeated'
+        problems.append('t%d folhas nao particionam refs: %d lacunas, %d repetidos'
                         % (kind, gaps, dups))
 
     refs = [struct.unpack_from('<H', b.data, index_off + 2 * i)[0]
@@ -146,7 +146,7 @@ def check_structure(b, kind, problems, info, note_only_headers=False):
         problems.append('t%d ref %d >= poly count %d' % (kind, max(refs), npoly))
     missing = npoly - len(set(refs))
     if missing:
-        problems.append('t%d %d polygons do not appear in any leaf'
+        problems.append('t%d %d poligonos nao aparecem em folha nenhuma'
                         % (kind, missing))
 
     info['t%d' % kind] = dict(verts=nv, polys=npoly, refs=nref,
@@ -171,9 +171,9 @@ def check_geometry(b, kind, problems, info):
         if len(set(vi)) != len(vi):
             degenerate += 1
             continue
-        # The stored area has the material index in the low byte, so it never
-        # matches the recomputed area exactly: the low byte moves the mantissa.
-        # The relative tolerance covers that with room to spare.
+        # A area guardada tem o indice de material no byte baixo, entao ela
+        # nunca bate exatamente com a area recalculada: o byte baixo mexe na
+        # mantissa. A tolerancia relativa cobre isso com folga.
         want = real_area(pts)
         if want > 0 and abs(area - want) / max(want, 1.0) > 0.02:
             bad_area += 1
@@ -194,12 +194,12 @@ def check_geometry(b, kind, problems, info):
                 continue
             if pi not in polys[other][3]:
                 broken += 1
-    for label, count in (('non-unit normals', bad_normal),
-                         ('mismatched areas', bad_area),
-                         ('degenerate polygons', degenerate),
+    for label, count in (('normais nao unitarias', bad_normal),
+                         ('areas incompativeis', bad_area),
+                         ('poligonos degenerados', degenerate),
                          ('NaN/Inf', nonfinite),
-                         ('material index outside the palette', bad_material),
-                         ('non-reciprocal neighbours', broken)):
+                         ('indice de material fora da paleta', bad_material),
+                         ('vizinhos nao reciprocos', broken)):
         if count:
             problems.append('t%d %s: %d' % (kind, label, count))
     info['t%d' % kind].update(boundary_edges=boundary,
@@ -209,16 +209,15 @@ def check_geometry(b, kind, problems, info):
 
 
 def check_containment(b, kind, leaves, refs, problems, info):
-    """Each face is in the cell its leaf says.
+    """Cada face esta na celula que a folha dela diz.
 
-    A leaf keeps no AABB - it is just ``(start<<16)|(len<<2)|1``. The cell box
-    comes from the PATH in the tree: the root covers the whole grid and each
-    level splits the cell in half. So the check is only possible by walking down
-    the tree and carrying the box along, which is what this step does.
+    A folha nao guarda AABB - ela e so ``(start<<16)|(len<<2)|1``. A caixa da
+    celula vem do CAMINHO na arvore: a raiz cobre a grade inteira e cada nivel
+    parte a celula ao meio. Entao a checagem so e possivel descendo a arvore e
+    carregando a caixa junto, que e o que este passo faz.
 
-    Bit 0 of the child index is X and bit 1 is Z in the quadtree; in the octree
-    bit 2 is Y. Y is not subdivided in the quadtree, so the comparison is only
-    in X/Z.
+    Bit 0 do indice do filho e X e bit 1 e Z na quadtree; na octree o bit 2 e Y.
+    Y nao e subdividido na quadtree, e por isso a comparacao e so em X/Z.
     """
     node = b.trees[kind]
     verts, polys = b.geometry(node)
@@ -265,11 +264,11 @@ def check_containment(b, kind, leaves, refs, problems, info):
                 else:            chi[1] = mid[1]
             stack.append((base + 4 * c, clo, chi))
     if misplaced:
-        problems.append('t%d %d of %d leaf references point to a face '
-                        'outside the leaf cell' % (kind, misplaced, leaf_faces))
+        problems.append('t%d %d de %d referencias de folha apontam para face '
+                        'fora da celula da folha' % (kind, misplaced, leaf_faces))
 
     outside = 0
-    # the node's AABB has to contain all the geometry
+    # a AABB do node tem de conter toda a geometria
     lo, hi = b.aabb(node)
     for v in verts:
         for a in range(3):
@@ -277,28 +276,29 @@ def check_containment(b, kind, leaves, refs, problems, info):
                 outside += 1
                 break
     if outside:
-        problems.append('t%d %d vertices outside the node AABB' % (kind, outside))
+        problems.append('t%d %d vertices fora da AABB do node' % (kind, outside))
     info['t%d' % kind]['aabb'] = [[round(x, 3) for x in lo],
                                   [round(x, 3) for x in hi]]
     info['t%d' % kind]['leaf_refs_checked'] = leaf_faces
     info['t%d' % kind]['leaf_refs_misplaced'] = misplaced
 
 
-# ------------------------------------------------------- geometric safety
+# ------------------------------------------------------- seguranca geometrica
 
 def safety_vs_type9(donor, cand, problems, info, band, sink, samples, tol, near):
-    """The generator's two promises, measured in a single test.
+    """As duas promessas do gerador, medidas num teste so.
 
-    A type10 slab is safe at a point when there is a type9 floor JUST ABOVE it -
-    within ``band + sink + tol``. That covers both things at once:
+    Uma laje do type10 e segura num ponto quando existe piso do type9 LOGO
+    ACIMA dela - dentro de ``band + sink + tol``. Isso cobre as duas coisas de
+    uma vez:
 
-    (a) if there is a type9 floor above, the slab is buried and steals no contact;
-    (b) if there is a type9 floor above, the slab is not in the air.
+    (a) se ha piso type9 acima, a laje esta enterrada e nao rouba o contato;
+    (b) se ha piso type9 acima, a laje nao esta no ar.
 
-    The floor considered is ANY upward-facing type9 face, not only the ``road``
-    material: a slab buried under the sidewalk is correctly buried, and requiring
-    road there would flag as "in the air" something that is supported. That is
-    what the first version of this function got wrong.
+    O piso considerado e QUALQUER face do type9 virada para cima, nao so a de
+    material ``road``: uma laje enterrada sob a calcada esta corretamente
+    enterrada, e cobrar pista ali marcaria como "no ar" algo que esta apoiado.
+    Isso e o que a primeira versao desta funcao errou.
     """
     n9 = donor.trees[9]
     v9, p9 = donor.geometry(n9)
@@ -339,17 +339,18 @@ def safety_vs_type9(donor, cand, problems, info, band, sink, samples, tol, near)
             out.append(ay - (normal[0] * (x - ax) + normal[2] * (z - az)) / normal[1])
         return out
 
-    # Only ONE condition fails: the slab being EXPOSED, that is, having no
-    # type9 floor at all above it at that point. Then it becomes the top
-    # surface - an invisible platform in the air, or a step over the road.
+    # So UMA condicao reprova: a laje estar EXPOSTA, isto e, nao ter piso
+    # nenhum do type9 acima dela naquele ponto. Ai ela vira a superficie de
+    # cima - plataforma invisivel no ar, ou degrau por cima da pista.
     #
-    # Being buried DEEPER than band+sink does not fail. That happens on ramps,
-    # where the road rises inside the grid cell itself, and a flat slab does not
-    # follow it. It stays buried and still steals no contact; it only serves as
-    # a safety net further down. It is reported, not failed - treating it as a
-    # defect would demand from the coarse plane a fidelity it does not aim for.
+    # Ficar enterrada MAIS FUNDO que band+sink nao reprova. Isso acontece em
+    # rampa, onde a pista sobe dentro da propria celula da grade, e uma laje
+    # plana nao acompanha. Ela continua enterrada e continua sem roubar
+    # contato; so serve de rede de seguranca mais abaixo. E relatado, nao
+    # reprovado - tratar como defeito seria exigir do plano grosseiro uma
+    # fidelidade que ele nao se propoe a ter.
     def _floor_above_within(x, z, y, near):
-        """Is there a type9 floor face above `y` within `near` in X/Z?"""
+        """Existe face de piso do type9 acima de `y` a menos de `near` em X/Z?"""
         g = int(math.floor(x / CELL)), int(math.floor(z / CELL))
         span = int(math.ceil(near / CELL))
         for dx in range(-span, span + 1):
@@ -382,18 +383,18 @@ def safety_vs_type9(donor, cand, problems, info, band, sink, samples, tol, near)
                 checked += 1
                 hs = [h for h in floors_at(x, z) if h >= y - 1e-3]
                 if not hs:
-                    # No face CONTAINS the point. Two very different situations
-                    # hide here, and only one is dangerous:
+                    # Nenhuma face CONTEM o ponto. Duas situacoes muito
+                    # diferentes se escondem aqui, e so uma e perigosa:
                     #
-                    #  - the slab spilled into empty space  -> platform in the air;
-                    #  - the point fell into a GAP of type9 itself. LA's road is
-                    #    instanced geometry and is not watertight: there are thin
-                    #    gaps between neighbouring faces. There the slab is not in
-                    #    the air, it is plugging a hole type9 has - which is
-                    #    exactly the defect the user reports.
+                    #  - a laje transbordou para o vazio  -> plataforma no ar;
+                    #  - o ponto caiu numa FRESTA do proprio type9. A pista de
+                    #    LA e geometria instanciada e nao e estanque: ha vaos
+                    #    finos entre faces vizinhas. Ali a laje nao esta no ar,
+                    #    esta tapando um buraco que o type9 tem - que e
+                    #    exatamente o defeito que o usuario relata.
                     #
-                    # They are told apart by the neighbour: if there is a type9
-                    # floor face above the slab within `near` in X/Z, it is a gap.
+                    # Separa-se pelo vizinho: se existe face de piso do type9
+                    # acima da laje a menos de `near` em X/Z, e fresta.
                     if _floor_above_within(x, z, y, near):
                         seam += 1
                         continue
@@ -401,7 +402,7 @@ def safety_vs_type9(donor, cand, problems, info, band, sink, samples, tol, near)
                     if len(exposed_examples) < 12:
                         exposed_examples.append(
                             [k, round(x, 1), round(y, 2), round(z, 1),
-                             'no type9 floor within a radius of %.0f u' % near])
+                             'nenhum piso type9 num raio de %.0f u' % near])
                     continue
                 gap = min(hs) - y
                 worst = max(worst, gap)
@@ -417,9 +418,9 @@ def safety_vs_type9(donor, cand, problems, info, band, sink, samples, tol, near)
                           allowed_gap=ceiling, worst_gap=round(worst, 3),
                           exposed_examples=exposed_examples)
     if exposed:
-        problems.append('SAFETY: %d of %d samples (%.2f%%) have a type10 slab with NO '
-                        'type9 floor above - it is exposed as ground of its own '
-                        '(a platform in the air or a step over the road)'
+        problems.append('SEGURANCA: %d de %d amostras (%.2f%%) tem laje type10 SEM '
+                        'piso type9 acima - ela fica exposta como chao proprio '
+                        '(plataforma no ar ou degrau sobre a pista)'
                         % (exposed, checked, 100.0 * exposed / checked))
 
 
@@ -434,9 +435,9 @@ def main():
     ap.add_argument('--sink', type=float, default=0.05)
     ap.add_argument('--samples', type=int, default=4)
     ap.add_argument('--tol', type=float, default=0.75,
-                    help='extra slack when requiring a type9 floor above the slab')
+                    help='folga extra ao exigir piso type9 acima da laje')
     ap.add_argument('--near', type=float, default=6.0,
-                    help='radius to tell a type9 gap from real empty space')
+                    help='raio para separar fresta do type9 de vazio de verdade')
     args = ap.parse_args()
 
     donor = MB.Bound(args.donor)
@@ -447,7 +448,7 @@ def main():
     info['candidate'] = dict(path=args.candidate, size=len(cand.data),
                              sha256=hashlib.sha256(cand.data).hexdigest().upper())
 
-    # --- class contract -----------------------------------------------------
+    # --- contrato da classe -------------------------------------------------
     n10 = cand.trees[10]
     npoly, nvert = cand.u32(n10 + 0x50), cand.u32(n10 + 0x4C)
     info['contract'] = dict(cap=CAP, polys=npoly, verts=nvert,
@@ -456,18 +457,18 @@ def main():
                             poly_overflow=max(0, ((npoly + 7) >> 3) - ((CAP + 7) >> 3)),
                             vert_overflow=max(0, ((nvert + 7) >> 3) - ((CAP + 7) >> 3)))
     if npoly > CAP:
-        problems.append('CONTRACT: type10 has %d polys, the ceiling is %d' % (npoly, CAP))
+        problems.append('CONTRATO: type10 tem %d polys, teto e %d' % (npoly, CAP))
     if nvert > CAP:
-        problems.append('CONTRACT: type10 has %d verts, the ceiling is %d' % (nvert, CAP))
+        problems.append('CONTRATO: type10 tem %d verts, teto e %d' % (nvert, CAP))
 
-    # --- type9 intact -------------------------------------------------------
+    # --- type9 intacto ------------------------------------------------------
     d9, meta9 = tree_bytes(donor, 9)
     c9, meta9c = tree_bytes(cand, 9)
     info['type9_identical'] = (d9 == c9) and meta9 == meta9c
     if not info['type9_identical']:
-        problems.append('type9 is NOT byte for byte identical to the donor')
+        problems.append('type9 NAO e byte a byte identico ao doador')
 
-    # --- binary diff --------------------------------------------------------
+    # --- diff binario -------------------------------------------------------
     old, new = donor.data, cand.data
     common = min(len(old), len(new))
     pay = cand.off(cand.u32(n10 + 0x78))
@@ -482,73 +483,73 @@ def main():
                         first_unexpected=['%#x' % i for i in unexpected[:16]],
                         appended=len(new) - len(old))
     if unexpected:
-        problems.append('%d old bytes changed outside the known fields'
+        problems.append('%d bytes antigos mudaram fora dos campos conhecidos'
                         % len(unexpected))
 
-    # --- structure of both trees -------------------------------------------
+    # --- estrutura das duas arvores ----------------------------------------
     for kind in (9, 10):
         leaves, refs = check_structure(cand, kind, problems, info,
                                        note_only_headers=(kind == 9))
         check_geometry(cand, kind, problems, info)
         check_containment(cand, kind, leaves, refs, problems, info)
 
-    # --- shape vs retail ----------------------------------------------------
+    # --- forma vs varejo ----------------------------------------------------
     v10, p10 = cand.geometry(n10)
     horiz = sum(1 for (n, a, vi, nb) in p10 if n[1] >= 0.999)
     info['shape'] = dict(up_facing_pct=round(100.0 * horiz / len(p10), 2),
                          quads=sum(1 for (n, a, vi, nb) in p10 if len(vi) == 4),
                          tris=sum(1 for (n, a, vi, nb) in p10 if len(vi) == 3))
     if horiz != len(p10):
-        problems.append('%d type10 faces are not horizontal and facing up; '
-                        'in the four retail cities it is 604 of 604'
+        problems.append('%d faces do type10 nao sao horizontais viradas para cima; '
+                        'nas quatro cidades de varejo sao 604 de 604'
                         % (len(p10) - horiz))
 
-    # --- safety -------------------------------------------------------------
+    # --- seguranca ----------------------------------------------------------
     safety_vs_type9(donor, cand, problems, info, args.band, args.sink,
                     args.samples, args.tol, args.near)
 
     info['problems'] = problems
     info['verdict'] = 'PASS' if not problems else 'FAIL'
 
-    print('donor     %s  %d bytes' % (info['donor']['sha256'][:16], info['donor']['size']))
-    print('candidate %s  %d bytes' % (info['candidate']['sha256'][:16], info['candidate']['size']))
+    print('doador    %s  %d bytes' % (info['donor']['sha256'][:16], info['donor']['size']))
+    print('candidato %s  %d bytes' % (info['candidate']['sha256'][:16], info['candidate']['size']))
     print()
     c = info['contract']
-    print('contract 2000/2000 : %d polys (memset %d B), %d verts (memset %d B), '
-          'buffer %d B -> overflow %d/%d'
+    print('contrato 2000/2000 : %d polys (memset %d B), %d verts (memset %d B), '
+          'buffer %d B -> estouro %d/%d'
           % (c['polys'], c['poly_memset'], c['verts'], c['vert_memset'],
              c['buffer_bytes'], c['poly_overflow'], c['vert_overflow']))
-    print('type9 identical    : %s' % info['type9_identical'])
-    print('diff               : %d old bytes changed (%d unexpected), %d appended'
+    print('type9 identico     : %s' % info['type9_identical'])
+    print('diff               : %d bytes antigos mudados (%d inesperados), %d anexados'
           % (info['diff']['bytes_changed_in_common'], info['diff']['unexpected'],
              info['diff']['appended']))
     for kind in (9, 10):
         t = info['t%d' % kind]
-        print('type%-2d             : %d verts, %d polys, %d refs, %d leaves, '
-              'depth %d, dup %.2fx, %d boundary edges'
+        print('type%-2d             : %d verts, %d polys, %d refs, %d folhas, '
+              'depth %d, dup %.2fx, %d arestas boundary'
               % (kind, t['verts'], t['polys'], t['refs'], t['leaves'], t['depth'],
                  t['duplication'], t['boundary_edges']))
-    print('type10 shape       : %.1f%% horizontal facing up, %d quads, %d tris'
+    print('forma type10       : %.1f%% horizontais p/ cima, %d quads, %d tris'
           % (info['shape']['up_facing_pct'], info['shape']['quads'], info['shape']['tris']))
     s = info['safety']
-    print('safety             : %d samples; buried %d (<=%.2f u), deep %d '
-          '(%.2f%%, ramp), type9 gap %d (%.2f%%), EXPOSED %d (%.2f%%)'
+    print('seguranca          : %d amostras; enterradas %d (<=%.2f u), fundas %d '
+          '(%.2f%%, rampa), fresta do type9 %d (%.2f%%), EXPOSTAS %d (%.2f%%)'
           % (s['samples'], s['buried'], s['allowed_gap'], s['deeply_buried'],
              s['deep_pct'], s['seam'], s['seam_pct'], s['exposed'], s['exposed_pct']))
     for kind in (9, 10):
         t = info['t%d' % kind]
         if t['blocks_without_array_header']:
-            print('  note: type%d has %d of %d child vectors WITHOUT the 16-byte '
-                  'array header the four retail cities have%s'
+            print('  nota: type%d tem %d de %d vetores de filhos SEM o cabecalho de '
+                  'array de 16 bytes que as quatro cidades de varejo tem%s'
                   % (kind, t['blocks_without_array_header'], t['blocks'],
-                     ' (inherited from the donor, type9 identical)' if kind == 9 else ''))
+                     ' (herdado do doador, type9 identico)' if kind == 9 else ''))
     print()
     if problems:
-        print('VERDICT: FAIL')
+        print('VEREDITO: FAIL')
         for p in problems:
             print('  - %s' % p)
     else:
-        print('VERDICT: PASS')
+        print('VEREDITO: PASS')
     if args.json:
         with open(args.json, 'w', encoding='utf-8') as stream:
             json.dump(info, stream, indent=2, ensure_ascii=False)
