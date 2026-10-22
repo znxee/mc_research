@@ -1,0 +1,16 @@
+{
+  "name": "recomp_harness",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "recomp",
+  "type": "emulator",
+  "entry": "recomp_harness.py",
+  "summary": "Drive the XboxXBERecomp build of MC3 on Windows: start with fps and vsync settings, press keys, screenshot, hold accelerate, run the arcade race scenario and restore settings.",
+  "os": ["windows"],
+  "requires": ["python>=3.10", "Pillow"],
+  "origin": "written for the XboxXBERecomp work (fps and delta time, pedestrians and HUD, LA slot)",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": ["znxee"],
+  "last_verified": null
+}

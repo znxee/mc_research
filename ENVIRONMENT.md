@@ -30,10 +30,11 @@ folder or file it names. Empty means the tool looks in the current folder, so se
 | `MC3_PCSX2_DIR` | the folder with pcsx2-qt.exe | `midnight_club_3/ps2/emulator/mc3_pcsx2`, `midnight_club_3/ps2/emulator/mc3_pcsx2_shots`, `midnight_club_3/ps2/emulator/mc3_savestate`, `midnight_club_3/ps2/geometry/mc3_pck_forge` and 2 more |
 | `MC3_PCSX2_INI` | see the tools below | `midnight_club_3/ps2/vehicles/mc3_perf_bench` |
 | `MC3_RACES` | see the tools below | `midnight_club_2/ps2/traffic/mc2_race_shortcut` |
+| `MC3_RECOMP_DIR` | see the tools below | `midnight_club_3/recomp/emulator/recomp_harness` |
 | `MC3_STRTBL` | see the tools below | `midnight_club_2/ps2/races/mc2_race_names` |
 | `MC3_TRAFFIC_TEST_MANIFEST` | see the tools below | `midnight_club_3/ps2/traffic/test_traffic_opponents` |
 | `MC3_WORK` | see the tools below | `midnight_club_3/ps2/research/scripts/city` |
-| `MC_OUTPUT_DIR` | where tools write their results | `midnight_club_2/ps2/geometry/mc2_vu_blob`, `midnight_club_3/ps2/menu/mc3_flash_add_showroom_car`, `midnight_club_3/ps2/menu/mc3_flash_insert_button_demo`, `midnight_club_3/ps2/menu/mc3_flash_insert_button_positioned_demo` |
+| `MC_OUTPUT_DIR` | where tools write their results | `midnight_club_2/ps2/geometry/mc2_vu_blob`, `midnight_club_3/ps2/menu/mc3_flash_add_showroom_car`, `midnight_club_3/ps2/menu/mc3_flash_insert_button_demo`, `midnight_club_3/ps2/menu/mc3_flash_insert_button_positioned_demo` and 1 more |
 | `MC_RESEARCH_AGENT` | the agent and model you run with, written as the AI-Assisted-By trailer | `scripts` |
 | `MC_RESEARCH_ASSETS` | the research folder that holds the game builds and dumps | `midnight_club_3/ps2/reverse/mc3_alpha_map` |
 | `MC_RESEARCH_AUTHOR` | your name or handle, written into new tools and commits | `scripts` |

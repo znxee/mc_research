@@ -3330,6 +3330,21 @@
     "last_verified": null
   },
   {
+    "name": "recomp_harness",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "recomp",
+    "type": "emulator",
+    "entry": "recomp_harness.py",
+    "summary": "Drive the XboxXBERecomp build of MC3 on Windows: start with fps and vsync settings, press keys, screenshot, hold accelerate, run the arcade race scenario and restore settings.",
+    "status": "unverified",
+    "path": "midnight_club_3/recomp/emulator/recomp_harness",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_xbox_mod",
     "kind": "tool",
     "title": "midnight_club_3",
