@@ -1,0 +1,19 @@
+{
+  "name": "mc3_race_tour",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "races",
+  "entry": "mc3_race_tour.py",
+  "summary": "Run races of a city one after another with the camera on the AI opponents",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

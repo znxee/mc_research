@@ -1,0 +1,19 @@
+{
+  "name": "rebuild_type10_from_type9_road",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "collision",
+  "entry": "rebuild_type10_from_type9_road.py",
+  "summary": "Rebuild the type10 road quadtree from every type9 road floor.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

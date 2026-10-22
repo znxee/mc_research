@@ -1,0 +1,17 @@
+{
+  "name": "ghidra_scripts",
+  "kind": "module",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "reverse",
+  "entry": "",
+  "summary": "two Ghidra exporters (Java), run inside Ghidra, not from this runner",
+  "requires": [],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

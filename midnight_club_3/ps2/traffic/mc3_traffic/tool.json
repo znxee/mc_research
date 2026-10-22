@@ -1,0 +1,19 @@
+{
+  "name": "mc3_traffic",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "traffic",
+  "entry": "mc3_traffic.py",
+  "summary": "mc3_traffic.py - replace meshes inside a city *_traffic.pck without breaking it.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

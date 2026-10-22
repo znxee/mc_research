@@ -1,0 +1,19 @@
+{
+  "name": "mc3_shader_diff",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "shaders",
+  "entry": "mc3_shader_diff.py",
+  "summary": "Inspect and compare MC3 PS2 city shader slots.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

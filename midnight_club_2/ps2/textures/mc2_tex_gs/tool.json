@@ -1,0 +1,19 @@
+{
+  "name": "mc2_tex_gs",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "textures",
+  "entry": "mc2_tex_gs.py",
+  "summary": "mc2_tex_gs.py - MC2 PS2 textures (TEX0 + MIP0 + PAL0) as GS uploads",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

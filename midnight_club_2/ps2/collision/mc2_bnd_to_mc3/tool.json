@@ -1,0 +1,19 @@
+{
+  "name": "mc2_bnd_to_mc3",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "collision",
+  "entry": "mc2_bnd_to_mc3.py",
+  "summary": "Convert MC2's text collision (`otgrid`) into MC3's `_bnd.pck`.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

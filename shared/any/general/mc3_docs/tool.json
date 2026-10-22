@@ -1,0 +1,19 @@
+{
+  "name": "mc3_docs",
+  "kind": "tool",
+  "title": "shared",
+  "platform": "any",
+  "type": "general",
+  "entry": "mc3_docs.py",
+  "summary": "mc3_docs.py - builds the Midnight Club 3 format documentation as a PDF.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

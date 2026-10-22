@@ -1,0 +1,19 @@
+{
+  "name": "mc3_mipsx",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "reverse",
+  "entry": "mc3_mipsx.py",
+  "summary": "Tiny capstone helpers for the retail ELF, meant for an interactive session.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

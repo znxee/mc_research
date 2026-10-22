@@ -1,0 +1,19 @@
+{
+  "name": "mc3_citycode",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "cities",
+  "entry": "mc3_citycode.py",
+  "summary": "Clone the assets a city is found by, from one short code to another.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

@@ -1,0 +1,19 @@
+{
+  "name": "mc3_city_build",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "cities",
+  "entry": "mc3_city_build.py",
+  "summary": "mc3_city_build.py - build a Midnight Club 3 PS2 city .pck from nothing",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

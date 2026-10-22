@@ -1,0 +1,19 @@
+{
+  "name": "mc3_palette",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "textures",
+  "entry": "mc3_palette.py",
+  "summary": "Swap the two per-vertex colour palettes of an already built city .pck.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

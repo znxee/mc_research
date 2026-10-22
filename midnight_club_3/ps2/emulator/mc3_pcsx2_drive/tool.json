@@ -1,0 +1,19 @@
+{
+  "name": "mc3_pcsx2_drive",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "emulator",
+  "entry": "mc3_pcsx2_drive.py",
+  "summary": "Drive the game through its menus: boot PCSX2 and play a script of waits,",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

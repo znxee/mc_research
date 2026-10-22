@@ -1,0 +1,17 @@
+{
+  "name": "reshade_telemetry",
+  "kind": "module",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "emulator",
+  "entry": "",
+  "summary": "ReShade telemetry addon for the mc3_telemetry module (C++ and HLSL, built with build_addon.cmd)",
+  "requires": [],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

@@ -1,0 +1,19 @@
+{
+  "name": "graft_sky_group",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "general",
+  "entry": "graft_sky_group.py",
+  "summary": "Append a retail donor's embedded sky group to a generated PCK.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

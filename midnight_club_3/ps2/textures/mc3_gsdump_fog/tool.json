@@ -1,0 +1,19 @@
+{
+  "name": "mc3_gsdump_fog",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "textures",
+  "entry": "mc3_gsdump_fog.py",
+  "summary": "Fog factor per textured draw group in a PCSX2 GS dump.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

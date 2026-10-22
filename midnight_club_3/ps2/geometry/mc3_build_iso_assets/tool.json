@@ -1,0 +1,19 @@
+{
+  "name": "mc3_build_iso_assets",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "geometry",
+  "entry": "mc3_build_iso_assets.py",
+  "summary": "Build the console ASSETS.DAT without compressing the losangeles PCK/PPF files.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

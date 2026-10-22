@@ -1,0 +1,3107 @@
+[
+  {
+    "name": "mc2_city_install",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc2_city_install.py",
+    "summary": "Install the MC3 side of an MC2 city that the city mods draw from MC2's own",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/cities/mc2_city_install",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_cpv_probe",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc2_cpv_probe.py",
+    "summary": "What stands at a point of a MC2 city, and which of its pieces get MC2's",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/cities/mc2_cpv_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_inventory",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc2_inventory.py",
+    "summary": "Inventory of the Midnight Club 2 city assets.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/cities/mc2_inventory",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_props",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc2_props.py",
+    "summary": "mc2_props.py - inventory of the props of a Midnight Club 2 city.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/cities/mc2_props",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_props_cities",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc2_props_cities.py",
+    "summary": "mc2_props_cities.py - inventory of the props of EVERY Midnight Club 2 city",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/cities/mc2_props_cities",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_roads_to_mc3",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc2_roads_to_mc3.py",
+    "summary": "Replace only the type10 quadtree of a ``*_bnd.pck`` with MC2's streets.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/cities/mc2_roads_to_mc3",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_bnd_parse",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "mc2_bnd_parse.py",
+    "summary": "Read MC2's text `.bnd` (`type: otgrid`) and return ONE global mesh.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/collision/mc2_bnd_parse",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_bnd_to_mc3",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "mc2_bnd_to_mc3.py",
+    "summary": "Convert MC2's text collision (`otgrid`) into MC3's `_bnd.pck`.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/collision/mc2_bnd_to_mc3",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_ground_coverage",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "mc2_ground_coverage.py",
+    "summary": "Where a MC2 city's drivable ground is missing, or drawn without texture,",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/collision/mc2_ground_coverage",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_occluders",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "mc2_occluders.py",
+    "summary": "Box occluders (<city>.occlude, format 3) for a MC2 city, from MC2's own collision.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/collision/mc2_occluders",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_pillar_legs",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "mc2_pillar_legs.py",
+    "summary": "Pillar feet of an MC2 city: the ones MC2 left without a collision box, and",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/collision/mc2_pillar_legs",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_port",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "mc2_port.py",
+    "summary": "mc2_port.py - bring Midnight Club 2 geometry into Midnight Club 3",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/general/mc2_port",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_ps2_place",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "mc2_ps2_place.py",
+    "summary": "Bridge: MC2 PS2 city -> the place.tsv and .mod files mc3_city_build reads.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/general/mc2_ps2_place",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_rsc",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "mc2_rsc.py",
+    "summary": "mc2_rsc.py - read the PS2 build of Midnight Club 2's city resources",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/general/mc2_rsc",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_scene_blob",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc2_scene_blob.py",
+    "summary": "mc2_scene_blob.py - a whole patch of an MC2 PS2 city as one VIF1 DMA chain",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/geometry/mc2_scene_blob",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_to_pck",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc2_to_pck.py",
+    "summary": "mc2_to_pck.py - Midnight Club 2 (PS2) city geometry -> MC3 `.mesh.pck`",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/geometry/mc2_to_pck",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_vu_blob",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc2_vu_blob.py",
+    "summary": "mc2_vu_blob.py - turn one MC2 PS2 PMD0 into a DMA chain the MC3 VU1 can draw",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/geometry/mc2_vu_blob",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_map_fit",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "menu",
+    "entry": "mc2_map_fit.py",
+    "summary": "Which rectangle of the world a MC2 HUD map (assets/texture/hud_map_<x>.tex)",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/menu/mc2_map_fit",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_race_modes",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "races",
+    "entry": "mc2_race_modes.py",
+    "summary": "Build MC3-only race modes for an MC2 city from its converted MC2 races.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/races/mc2_race_modes",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_race_obstacles",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "races",
+    "entry": "mc2_race_obstacles.py",
+    "summary": "Route legs of converted MC2 races that run into an MC2 obstacle prop.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/races/mc2_race_obstacles",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_races_to_mc3",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "races",
+    "entry": "mc2_races_to_mc3.py",
+    "summary": "Install an MC2 city's races into its MC3 city slot (installer step).",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/races/mc2_races_to_mc3",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_tex_gs",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "textures",
+    "entry": "mc2_tex_gs.py",
+    "summary": "mc2_tex_gs.py - MC2 PS2 textures (TEX0 + MIP0 + PAL0) as GS uploads",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/textures/mc2_tex_gs",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_ped_graph",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc2_ped_graph.py",
+    "summary": "Pedestrian navigation graph (<city>.graph, MC3's mcBaGraph) for a MC2 city.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/traffic/mc2_ped_graph",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_race_ai_tune",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc2_race_ai_tune.py",
+    "summary": "Give the opponents of converted MC2 races MC3's own AI tuning.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/traffic/mc2_race_ai_tune",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_race_shortcut",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc2_race_shortcut.py",
+    "summary": "Add a car-lane shortcut to a converted MC2 race, for a leg the AI drives badly.",
+    "status": "unverified",
+    "path": "midnight_club_2/ps2/traffic/mc2_race_shortcut",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "audio",
+    "kind": "library",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "audio",
+    "entry": "",
+    "summary": "helper modules shared by the audio tools (RSTM convert, music core, curve GUIs)",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/audio/audio",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "bnkmux",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "audio",
+    "entry": "bnkmux.py",
+    "summary": "Entry point: interactive MUX/DEMUX tool for Sony .bnk (989SND/SCREAM) files.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/audio/bnkmux",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_audio_studio",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "audio",
+    "entry": "mc3_audio_studio.py",
+    "summary": "MC3 Audio Studio - unified vehicle audio editor for Midnight Club 3.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/audio/mc3_audio_studio",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "build_hood",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "build_hood.py",
+    "summary": "Build losangeles with a subset of LA's neighbourhoods, reproducing the v9 recipe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/build_hood",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_cellcount",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_cellcount.py",
+    "summary": "Extend the per-cell arrays of props and peds to fit the city's cell_count.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_cellcount",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_cellindex",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_cellindex.py",
+    "summary": "mc3_cellindex.py - rebuild the per-cell index at MapRoot+0x1C",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_cellindex",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_city_build",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_city_build.py",
+    "summary": "mc3_city_build.py - build a Midnight Club 3 PS2 city .pck from nothing",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_city_build",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_city_check",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_city_check.py",
+    "summary": "Check every city shell of an install against the city convention",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_city_check",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_city_classmask",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_city_classmask.py",
+    "summary": "Patch/verify the render-pass masks of the two MC3 city cullable classes.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_city_classmask",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_city_strip",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_city_strip.py",
+    "summary": "mc3_city_strip.py - empty a Midnight Club 3 PS2 city, keeping only what you ask for",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_city_strip",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_cityaudit",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_cityaudit.py",
+    "summary": "mc3_cityaudit.py - the instance -> kind association, checked one by one",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_cityaudit",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_citycode",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_citycode.py",
+    "summary": "Clone the assets a city is found by, from one short code to another.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_citycode",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_cityobj",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_cityobj.py",
+    "summary": "mc3_cityobj.py - put the generated city and the MC2 original side by side",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_cityobj",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_cityref",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_cityref.py",
+    "summary": "Where the executable treats one city differently from the others.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_cityref",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_hood_fill",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_hood_fill.py",
+    "summary": "mc3_hood_fill.py - replace every unique mesh of ONE hood of an MC3 PS2 city",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_hood_fill",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_install_city",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_install_city.py",
+    "summary": "Install a city .pck into the weather variants - and ONLY into them.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_install_city",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_prop_ptx",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_prop_ptx.py",
+    "summary": "Extract the prop particle rules compiled into a city's *_props.pck as text .ptx.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_prop_ptx",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_rename_city",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "cities",
+    "entry": "mc3_rename_city.py",
+    "summary": "Rename an added MC3 city everywhere in the HostFS tree (paths and text).",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/cities/mc3_rename_city",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "audit_collision_v18",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "audit_collision_v18.py",
+    "summary": "Audit of a candidate in which TYPE9 changed (and type10 with it).",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/collision/audit_collision_v18",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "audit_type10_groundplane",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "audit_type10_groundplane.py",
+    "summary": "Audit of a candidate ``*_bnd.pck`` whose ONLY change is the type10 quadtree.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/collision/audit_type10_groundplane",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "compact_bnd",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "compact_bnd.py",
+    "summary": "Rewrite a ``*_bnd.pck`` in a compact layout, without changing any content.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/collision/compact_bnd",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_bound",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "mc3_bound.py",
+    "summary": "mc3_bound.py - Midnight Club 3 PS2 collision and road network (*_bnd.pck)",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/collision/mc3_bound",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_occlude",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "mc3_occlude.py",
+    "summary": "mc3_occlude.py - the city culling that is NOT in the .pck",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/collision/mc3_occlude",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "rebuild_type10_from_type9_road",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "rebuild_type10_from_type9_road.py",
+    "summary": "Rebuild the type10 road quadtree from every type9 road floor.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/collision/rebuild_type10_from_type9_road",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "rebuild_type10_ground_plane",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "rebuild_type10_ground_plane.py",
+    "summary": "Rebuild the ``type10`` quadtree of a ``*_bnd.pck`` as a coarse ground plane,",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/collision/rebuild_type10_ground_plane",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "rebuild_type10_targeted_road",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "collision",
+    "entry": "rebuild_type10_targeted_road.py",
+    "summary": "Rebuild type10 from the global network and explicitly chosen type9 batches.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/collision/rebuild_type10_targeted_road",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "docs",
+    "kind": "docs",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "docs",
+    "entry": "",
+    "summary": "docs folder of the kit",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/docs/docs",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "freecam_input",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "freecam_input.py",
+    "summary": "freecam_input package",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/freecam_input",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_cam_tour",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "mc3_cam_tour.py",
+    "summary": "Photograph a list of places of Los Angeles in one boot, with the renderer's",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/mc3_cam_tour",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_heap_dump",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "mc3_heap_dump.py",
+    "summary": "Rebuild the heap block the `mesh_dump` mod dumped to the EE console.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/mc3_heap_dump",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_heap_to_pck",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "mc3_heap_to_pck.py",
+    "summary": "Turn the `mesh_dump` heap dump into a mesh `.pck`.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/mc3_heap_to_pck",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_pcsx2",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "mc3_pcsx2.py",
+    "summary": "Run PCSX2 from the command line and return what the EE/IOP console said.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/mc3_pcsx2",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_pcsx2_accurate",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "mc3_pcsx2_accurate.py",
+    "summary": "Switch PCSX2 to the profile closest to a real PS2, and back.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/mc3_pcsx2_accurate",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_pcsx2_drive",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "mc3_pcsx2_drive.py",
+    "summary": "Drive the game through its menus: boot PCSX2 and play a script of waits,",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/mc3_pcsx2_drive",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_pcsx2_shots",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "mc3_pcsx2_shots.py",
+    "summary": "Boot PCSX2 headless and screenshot its render window at fixed times.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/mc3_pcsx2_shots",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_pin_tour",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "mc3_pin_tour.py",
+    "summary": "Camera tour over a city's pins (+ extra views), through the menus.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/mc3_pin_tour",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_pins",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "mc3_pins.py",
+    "summary": "The pins marked in game (city_mc2_rsc_draw_test: keys 1/2/3, Shift = on",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/mc3_pins",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_savestate",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "mc3_savestate.py",
+    "summary": "Take a PCSX2 savestate unattended, through PINE.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/mc3_savestate",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "reshade_telemetry",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "emulator",
+    "entry": "",
+    "summary": "ReShade telemetry addon for the mc3_telemetry module (C++ and HLSL, built with build_addon.cmd)",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/emulator/reshade_telemetry",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "experimental",
+    "kind": "research",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "",
+    "summary": "experimental package",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/general/experimental",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "graft_sky_group",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "graft_sky_group.py",
+    "summary": "Append a retail donor's embedded sky group to a generated PCK.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/general/graft_sky_group",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_alpha_map",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "mc3_alpha_map.py",
+    "summary": "mc3_alpha_map.py - read the October 2004 alpha's linker map (MC.MAP)",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/general/mc3_alpha_map",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_coverage",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "mc3_coverage.py",
+    "summary": "mc3_coverage.py - how much of a city .pck we already know how to read",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/general/mc3_coverage",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_drop_test",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "mc3_drop_test.py",
+    "summary": "Collision drop test of Los Angeles in the running game: the player's car is",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/general/mc3_drop_test",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_extent_ab",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "mc3_extent_ab.py",
+    "summary": "mc3_extent_ab.py - why two decoders disagree about the extent",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/general/mc3_extent_ab",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_place",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "mc3_place.py",
+    "summary": "Turn the MC2 placement table into something a PS2 module can read.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/general/mc3_place",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_place_sim",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "mc3_place_sim.py",
+    "summary": "mc3_place_sim.py - run the city .pck loader's Place walk on the PC, before booting",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/general/mc3_place_sim",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_view",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "general",
+    "entry": "mc3_view.py",
+    "summary": "mc3_view.py - 3D viewer for MC3 meshes (PS2 .pck and PSP .psppck).",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/general/mc3_view",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_build_iso_assets",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_build_iso_assets.py",
+    "summary": "Build the console ASSETS.DAT without compressing the losangeles PCK/PPF files.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_build_iso_assets",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_compact",
+    "kind": "library",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_compact.py",
+    "summary": "mc3_compact.py - reclaim the dead geometry a hood fill leaves behind",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_compact",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_iso",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_iso.py",
+    "summary": "Put loose files into the root of a PS2 ISO without rebuilding it.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_iso",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_iso_layer1",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_iso_layer1.py",
+    "summary": "Put a DVD9's second layer back behind a rebuilt first layer.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_iso_layer1",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_iso_repack_root",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_iso_repack_root.py",
+    "summary": "Repack the modified root files into the tail of an ISO9660 image.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_iso_repack_root",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_mesh_convert",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_mesh_convert.py",
+    "summary": "mc3_mesh_convert.py - multi-directional mesh converter for Midnight Club.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_mesh_convert",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_mod_split",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_mod_split.py",
+    "summary": "Slice a text .mod into INTERNALLY CONSISTENT pieces.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_mod_split",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_pck_embed",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_pck_embed.py",
+    "summary": "mc3_pck_embed.py - embeds external meshes inside the main vp_*.pck.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_pck_embed",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_pck_forge",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_pck_forge.py",
+    "summary": "Turn .mesh files into .pck by letting the game compile them, with no game.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_pck_forge",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_pck_manager",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_pck_manager.py",
+    "summary": "mc3_pck_manager.py - GUI to manage the meshes of a vehicle container",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_pck_manager",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_pckbuild",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_pckbuild.py",
+    "summary": "mc3_pckbuild.py - build a .pck by letting the GAME do the packetizing",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_pckbuild",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_v7_to_current",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_v7_to_current.py",
+    "summary": "Port new VIF packets into a modern city without rebuilding its structure.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_v7_to_current",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_v7_to_current_v2",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_v7_to_current_v2.py",
+    "summary": "Conservative transplant of v7/forge VIF into the modern PCK.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_v7_to_current_v2",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_vifdis",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_vifdis.py",
+    "summary": "mc3_vifdis.py - read the VIF chains inside a .mesh.pck",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_vifdis",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_vifparse",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_vifparse.py",
+    "summary": "A real VIF parser: STCYCL/STROW/UNPACK with masking.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_vifparse",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_vifpos",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_vifpos.py",
+    "summary": "Strict position decoder for MC3 PS2 city VIF packets.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_vifpos",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_vu",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "geometry",
+    "entry": "mc3_vu.py",
+    "summary": "mc3_vu.py - Midnight Club 3 PS2 vector unit microcode",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/geometry/mc3_vu",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_flash",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "menu",
+    "entry": "mc3_flash.py",
+    "summary": "mc3_flash.py - reads the .pck files in ASSETS/flash.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/menu/mc3_flash",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_flash_add_showroom_car",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "menu",
+    "entry": "mc3_flash_add_showroom_car.py",
+    "summary": "Add a 24th car to toplevel.pck's Showroom catalog: vp_dlslot_23, appended",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/menu/mc3_flash_add_showroom_car",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_flash_insert_button_demo",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "menu",
+    "entry": "mc3_flash_insert_button_demo.py",
+    "summary": "Insert a genuinely NEW object (not just grow a script) into a .pck: clone",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/menu/mc3_flash_insert_button_demo",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_flash_insert_button_positioned_demo",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "menu",
+    "entry": "mc3_flash_insert_button_positioned_demo.py",
+    "summary": "Same object-insertion technique as insert_button.py, but the new BUTTON",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/menu/mc3_flash_insert_button_positioned_demo",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_hud_badge",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "menu",
+    "entry": "mc3_hud_badge.py",
+    "summary": "mc3_hud_badge.py - draw the digital speedometer's backing plate",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/menu/mc3_hud_badge",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_menu_state",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "menu",
+    "entry": "mc3_menu_state.py",
+    "summary": "Read what the MC3 front end shows, through PCSX2's PINE - the screen",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/menu/mc3_menu_state",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_elfpatch",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "modloader",
+    "entry": "mc3_elfpatch.py",
+    "summary": "mc3_elfpatch.py - apply word patches straight into the PS2 ELF, by virtual address",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/modloader/mc3_elfpatch",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_modloader",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "modloader",
+    "entry": "mc3_modloader.py",
+    "summary": "mc3_modloader.py - mod overlay for Midnight Club 3 PS2, using the engine's own",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/modloader/mc3_modloader",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_modpath",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "modloader",
+    "entry": "mc3_modpath.py",
+    "summary": "mc3_modpath.py - the game's own .mod path, re-walked in Python",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/modloader/mc3_modpath",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_output",
+    "kind": "library",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "modloader",
+    "entry": "mc3_output.py",
+    "summary": "mc3_output.py - where generated files go",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/modloader/mc3_output",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_required",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "modloader",
+    "entry": "mc3_required.py",
+    "summary": "mc3_required.py - which city .pck fields are NEVER null in retail",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/modloader/mc3_required",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_selftest",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "modloader",
+    "entry": "mc3_selftest.py",
+    "summary": "mc3_selftest.py - re-implement the patched game functions and test them",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/modloader/mc3_selftest",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3allin",
+    "kind": "library",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "modloader",
+    "entry": "",
+    "summary": "mc3allin package",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/modloader/mc3allin",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_boot_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_boot_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_boot_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_camera_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_camera_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_camera_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_capacity_test",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_capacity_test",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_capacity_test",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_frontend_2d",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_frontend_2d",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_frontend_2d",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_geom_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_geom_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_geom_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_index_watch",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_index_watch",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_index_watch",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_instance_matrix_align",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_instance_matrix_align",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_instance_matrix_align",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_mc2_inject",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_mc2_inject",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_mc2_inject",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_mc2_queue",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_mc2_queue",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_mc2_queue",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_mc2_rsc_draw_test",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_mc2_rsc_draw_test",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_mc2_rsc_draw_test",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_mc2_rsc_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_mc2_rsc_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_mc2_rsc_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_mc2_rsc_probe_v2",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_mc2_rsc_probe_v2",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_mc2_rsc_probe_v2",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_mc2_scene",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_mc2_scene",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_mc2_scene",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_no_cpv_test",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_no_cpv_test",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_no_cpv_test",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_no_instances_test",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_no_instances_test",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_no_instances_test",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_paris_slot7",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_paris_slot7",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_paris_slot7",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_pass_trace",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_pass_trace",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_pass_trace",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_place",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_place",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_place",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_slot6",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_slot6",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_slot6",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_texture_touch_test_v10",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_texture_touch_test_v10",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_texture_touch_test_v10",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_texture_touch_test_v11",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_texture_touch_test_v11",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_texture_touch_test_v11",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_texture_touch_test_v4",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_texture_touch_test_v4",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_texture_touch_test_v4",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_texture_touch_test_v5",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_texture_touch_test_v5",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_texture_touch_test_v5",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_texture_touch_test_v6",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_texture_touch_test_v6",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_texture_touch_test_v6",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_texture_touch_test_v7",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_texture_touch_test_v7",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_texture_touch_test_v7",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_texture_touch_test_v8",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_texture_touch_test_v8",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_texture_touch_test_v8",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_texture_touch_test_v9",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_texture_touch_test_v9",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_texture_touch_test_v9",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_world_shader_trace",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_world_shader_trace",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_world_shader_trace",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "city_world_shader_trace_v2",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module city_world_shader_trace_v2",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/city_world_shader_trace_v2",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "console_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module console_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/console_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "digital_speedometer",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module digital_speedometer",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/digital_speedometer",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "freecam",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module freecam",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/freecam",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "frontend_mip_sweep",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module frontend_mip_sweep",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/frontend_mip_sweep",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "frontend_mod_status",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module frontend_mod_status",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/frontend_mod_status",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "heap_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module heap_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/heap_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "losangeles_arcade",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module losangeles_arcade",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/losangeles_arcade",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "losangeles_bound",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module losangeles_bound",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/losangeles_bound",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "losangeles_minimap",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module losangeles_minimap",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/losangeles_minimap",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "losangeles_page_pool",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module losangeles_page_pool",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/losangeles_page_pool",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_aib_compat",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module mc2_aib_compat",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/mc2_aib_compat",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_draw_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module mc2_draw_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/mc2_draw_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module mc2_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/mc2_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc2_view",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module mc2_view",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/mc2_view",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_telemetry",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module mc3_telemetry",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/mc3_telemetry",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "menu_state",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module menu_state",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/menu_state",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mesh_dump",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module mesh_dump",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/mesh_dump",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mesh_pck_dump",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module mesh_pck_dump",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/mesh_pck_dump",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mesh_pck_ref",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module mesh_pck_ref",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/mesh_pck_ref",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "no_road_reflectors_test",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module no_road_reflectors_test",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/no_road_reflectors_test",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "optional_props",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module optional_props",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/optional_props",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "pagein_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module pagein_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/pagein_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "pck_forge",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module pck_forge",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/pck_forge",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "pck_tool",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module pck_tool",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/pck_tool",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "prop_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module prop_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/prop_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "prop_virtual_guard_test",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module prop_virtual_guard_test",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/prop_virtual_guard_test",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "proper_widescreen",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module proper_widescreen",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/proper_widescreen",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "proper_widescreen_menu",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module proper_widescreen_menu",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/proper_widescreen_menu",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "standalone_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module standalone_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/standalone_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "state_watch",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module state_watch",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/state_watch",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "tex_bind",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module tex_bind",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/tex_bind",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "tex_pck_dump",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module tex_pck_dump",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/tex_pck_dump",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "traffic_probe",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module traffic_probe",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/traffic_probe",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "undefined_syscall_trace",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "mods",
+    "entry": "",
+    "summary": "modloader module undefined_syscall_trace",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/mods/undefined_syscall_trace",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_race_tour",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "races",
+    "entry": "mc3_race_tour.py",
+    "summary": "Run races of a city one after another with the camera on the AI opponents",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/races/mc3_race_tour",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "research_scripts",
+    "kind": "research",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "research",
+    "entry": "",
+    "summary": "one-off analysis scripts, kept as a record",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/research/scripts",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "ghidra_scripts",
+    "kind": "module",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "reverse",
+    "entry": "",
+    "summary": "two Ghidra exporters (Java), run inside Ghidra, not from this runner",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/reverse/ghidra_scripts",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_fields",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "reverse",
+    "entry": "mc3_fields.py",
+    "summary": "mc3_fields.py - which offsets of a structure the game REALLY touches",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/reverse/mc3_fields",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_ida",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "reverse",
+    "entry": "mc3_ida.py",
+    "summary": "mc3_ida.py - drive IDA Pro headlessly against the Midnight Club 3 ELF",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/reverse/mc3_ida",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_mipsx",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "reverse",
+    "entry": "mc3_mipsx.py",
+    "summary": "Tiny capstone helpers for the retail ELF, meant for an interactive session.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/reverse/mc3_mipsx",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_parser",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "reverse",
+    "entry": "mc3_parser.py",
+    "summary": "mc3_parser.py - pull the field NAMES out of the FileIO(datParser&) functions",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/reverse/mc3_parser",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_pointers",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "reverse",
+    "entry": "mc3_pointers.py",
+    "summary": "mc3_pointers.py - reverse pointer lookup for Midnight Club 3 load-in-place",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/reverse/mc3_pointers",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_shadinggroup",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "reverse",
+    "entry": "mc3_shadinggroup.py",
+    "summary": "mc3_shadinggroup.py - extracts the index->shader table (shadinggroup) from an",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/reverse/mc3_shadinggroup",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_vtables",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "reverse",
+    "entry": "mc3_vtables.py",
+    "summary": "mc3_vtables.py - NAME the .pck structures without opening IDA",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/reverse/mc3_vtables",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "symbols",
+    "kind": "data",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "reverse",
+    "entry": "",
+    "summary": "symbols package",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/reverse/symbols",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_shader_diff",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "shaders",
+    "entry": "mc3_shader_diff.py",
+    "summary": "Inspect and compare MC3 PS2 city shader slots.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/shaders/mc3_shader_diff",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_shader_transplant",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "shaders",
+    "entry": "mc3_shader_transplant.py",
+    "summary": "Transplant selected PS2 vehicle shaders between vehicle containers.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/shaders/mc3_shader_transplant",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_shaderprog",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "shaders",
+    "entry": "mc3_shaderprog.py",
+    "summary": "mc3_shaderprog.py - read the byte program of an rmcShaderComplex",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/shaders/mc3_shaderprog",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_cpv_palette",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "textures",
+    "entry": "mc3_cpv_palette.py",
+    "summary": "Lift a city's colour-per-vertex palette out of its .pck.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/textures/mc3_cpv_palette",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_gsdump",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "textures",
+    "entry": "mc3_gsdump.py",
+    "summary": "Read a PCSX2 GS dump (.gs.zst / .gs.xz not supported: zstd only) and say",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/textures/mc3_gsdump",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_gsdump_fog",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "textures",
+    "entry": "mc3_gsdump_fog.py",
+    "summary": "Fog factor per textured draw group in a PCSX2 GS dump.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/textures/mc3_gsdump_fog",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_palette",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "textures",
+    "entry": "mc3_palette.py",
+    "summary": "Swap the two per-vertex colour palettes of an already built city .pck.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/textures/mc3_palette",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_tex",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "textures",
+    "entry": "mc3_tex.py",
+    "summary": "mc3_tex.py - Midnight Club 3 PS2 textures (.pck) and the .tex source format",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/textures/mc3_tex",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_vehicle_texture_port",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "textures",
+    "entry": "mc3_vehicle_texture_port.py",
+    "summary": "Port an MC:LA PSP vehicle texture into an MC3 PS2 vehicle PCK.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/textures/mc3_vehicle_texture_port",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_ai_map",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc3_ai_map.py",
+    "summary": "Top-down map of one spot of a MC2 city for AI debugging: collision floor and",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/mc3_ai_map",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_ai_speed",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc3_ai_speed.py",
+    "summary": "Opponent speeds from a PCSX2 log of a spectated MC2-city race.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/mc3_ai_speed",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_ai_trace",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc3_ai_trace.py",
+    "summary": "Per-opponent timeline of a race log made with the spectator renderer",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/mc3_ai_trace",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_city_aib",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc3_city_aib.py",
+    "summary": "mc3_city_aib.py - generate the .graph and the _pvs.aib of a new city.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/mc3_city_aib",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_graph",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc3_graph.py",
+    "summary": "Read and write MC3 pedestrian navigation graphs (<city>.graph, text;",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/mc3_graph",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_peds_graph",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc3_peds_graph.py",
+    "summary": "Put a pedestrian navigation graph into a city's *_peds.pck.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/mc3_peds_graph",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_traffic",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc3_traffic.py",
+    "summary": "mc3_traffic.py - replace meshes inside a city *_traffic.pck without breaking it.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/mc3_traffic",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_traffic_gui",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc3_traffic_gui.py",
+    "summary": "mc3_traffic_gui.py - replace the meshes inside a city *_traffic.pck.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/mc3_traffic_gui",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_traffic_mlod",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc3_traffic_mlod.py",
+    "summary": "mc3_traffic_mlod.py - put one vp_* vehicle's LOD in a traffic slot.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/mc3_traffic_mlod",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_traffic_trains",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "traffic",
+    "entry": "mc3_traffic_trains.py",
+    "summary": "List or remove the trains compiled into a city's *_traffic.pck.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/traffic/mc3_traffic_trains",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_perf",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "vehicles",
+    "entry": "mc3_perf.py",
+    "summary": "mc3_perf.py - read/write the performance parameters of a car PCK.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/vehicles/mc3_perf",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_speedo_state",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "vehicles",
+    "entry": "mc3_speedo_state.py",
+    "summary": "mc3_speedo_state.py - read digital_speedometer.mod's state out of a savestate",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/vehicles/mc3_speedo_state",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_vehicle_ram",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "ps2",
+    "type": "vehicles",
+    "entry": "mc3_vehicle_ram.py",
+    "summary": "Compare a serialized MC3 vehicle PCK with its load-in-place EE image.",
+    "status": "unverified",
+    "path": "midnight_club_3/ps2/vehicles/mc3_vehicle_ram",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_mcla_vehicle_port",
+    "kind": "tool",
+    "title": "midnight_club_la",
+    "platform": "psp",
+    "type": "vehicles",
+    "entry": "mc3_mcla_vehicle_port.py",
+    "summary": "Port the stock visual model of an MC:LA PSP car into an MC3 PS2 donor.",
+    "status": "unverified",
+    "path": "midnight_club_la/psp/vehicles/mc3_mcla_vehicle_port",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "bnk_tool",
+    "kind": "library",
+    "title": "shared",
+    "platform": "any",
+    "type": "audio",
+    "entry": "",
+    "summary": "bnk_tool package",
+    "status": "unverified",
+    "path": "shared/any/audio/bnk_tool",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_forks",
+    "kind": "tool",
+    "title": "shared",
+    "platform": "any",
+    "type": "docs",
+    "entry": "mc3_forks.py",
+    "summary": "FORKS.md - the log the parallel sessions keep for each other.",
+    "status": "unverified",
+    "path": "shared/any/docs/mc3_forks",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_docs",
+    "kind": "tool",
+    "title": "shared",
+    "platform": "any",
+    "type": "general",
+    "entry": "mc3_docs.py",
+    "summary": "mc3_docs.py - builds the Midnight Club 3 format documentation as a PDF.",
+    "status": "unverified",
+    "path": "shared/any/general/mc3_docs",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_hub",
+    "kind": "tool",
+    "title": "shared",
+    "platform": "any",
+    "type": "general",
+    "entry": "mc3_hub.py",
+    "summary": "mc3_hub.py - the front door of the MC3 toolkit.",
+    "status": "unverified",
+    "path": "shared/any/general/mc3_hub",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_schema",
+    "kind": "tool",
+    "title": "shared",
+    "platform": "any",
+    "type": "general",
+    "entry": "mc3_schema.py",
+    "summary": "mc3_schema.py - read the .pck layout out of the game's own constructors",
+    "status": "unverified",
+    "path": "shared/any/general/mc3_schema",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_symbols",
+    "kind": "tool",
+    "title": "shared",
+    "platform": "any",
+    "type": "general",
+    "entry": "mc3_symbols.py",
+    "summary": "mc3_symbols.py - carry the alpha build's function names over to the retail ELF",
+    "status": "unverified",
+    "path": "shared/any/general/mc3_symbols",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  }
+]

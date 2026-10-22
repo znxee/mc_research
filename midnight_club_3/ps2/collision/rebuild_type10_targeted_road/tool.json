@@ -1,0 +1,19 @@
+{
+  "name": "rebuild_type10_targeted_road",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "collision",
+  "entry": "rebuild_type10_targeted_road.py",
+  "summary": "Rebuild type10 from the global network and explicitly chosen type9 batches.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

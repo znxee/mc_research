@@ -1,0 +1,19 @@
+{
+  "name": "mc3_view",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "general",
+  "entry": "mc3_view.py",
+  "summary": "mc3_view.py - 3D viewer for MC3 meshes (PS2 .pck and PSP .psppck).",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

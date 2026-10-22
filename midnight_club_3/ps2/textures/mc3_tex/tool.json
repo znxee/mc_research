@@ -1,0 +1,19 @@
+{
+  "name": "mc3_tex",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "textures",
+  "entry": "mc3_tex.py",
+  "summary": "mc3_tex.py - Midnight Club 3 PS2 textures (.pck) and the .tex source format",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

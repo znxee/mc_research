@@ -1,0 +1,19 @@
+{
+  "name": "mc3_menu_state",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "menu",
+  "entry": "mc3_menu_state.py",
+  "summary": "Read what the MC3 front end shows, through PCSX2's PINE - the screen",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

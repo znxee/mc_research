@@ -1,0 +1,19 @@
+{
+  "name": "mc2_cpv_probe",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "cities",
+  "entry": "mc2_cpv_probe.py",
+  "summary": "What stands at a point of a MC2 city, and which of its pieces get MC2's",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

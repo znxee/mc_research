@@ -1,0 +1,19 @@
+{
+  "name": "mc3_vifparse",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "geometry",
+  "entry": "mc3_vifparse.py",
+  "summary": "A real VIF parser: STCYCL/STROW/UNPACK with masking.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

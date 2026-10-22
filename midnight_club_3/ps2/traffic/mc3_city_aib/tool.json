@@ -1,0 +1,19 @@
+{
+  "name": "mc3_city_aib",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "traffic",
+  "entry": "mc3_city_aib.py",
+  "summary": "mc3_city_aib.py - generate the .graph and the _pvs.aib of a new city.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

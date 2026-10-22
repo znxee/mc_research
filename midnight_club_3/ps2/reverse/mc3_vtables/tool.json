@@ -1,0 +1,19 @@
+{
+  "name": "mc3_vtables",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "reverse",
+  "entry": "mc3_vtables.py",
+  "summary": "mc3_vtables.py - NAME the .pck structures without opening IDA",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

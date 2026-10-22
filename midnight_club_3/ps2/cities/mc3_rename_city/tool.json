@@ -1,0 +1,19 @@
+{
+  "name": "mc3_rename_city",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "cities",
+  "entry": "mc3_rename_city.py",
+  "summary": "Rename an added MC3 city everywhere in the HostFS tree (paths and text).",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

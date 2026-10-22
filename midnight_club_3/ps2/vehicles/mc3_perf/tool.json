@@ -1,0 +1,19 @@
+{
+  "name": "mc3_perf",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "vehicles",
+  "entry": "mc3_perf.py",
+  "summary": "mc3_perf.py - read/write the performance parameters of a car PCK.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

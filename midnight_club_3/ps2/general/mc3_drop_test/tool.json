@@ -1,0 +1,19 @@
+{
+  "name": "mc3_drop_test",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "general",
+  "entry": "mc3_drop_test.py",
+  "summary": "Collision drop test of Los Angeles in the running game: the player's car is",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

@@ -1,0 +1,19 @@
+{
+  "name": "mc3_vehicle_ram",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "vehicles",
+  "entry": "mc3_vehicle_ram.py",
+  "summary": "Compare a serialized MC3 vehicle PCK with its load-in-place EE image.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

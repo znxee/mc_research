@@ -1,0 +1,17 @@
+{
+  "name": "undefined_syscall_trace",
+  "kind": "module",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "mods",
+  "entry": "",
+  "summary": "modloader module undefined_syscall_trace",
+  "requires": [],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

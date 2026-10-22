@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pck
+*.ppf
+*.bnd
+*.iso
+*.elf
+*.ELF
+*.p2s
+*.7z
+*.rar
+*.bin

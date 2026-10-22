@@ -1,0 +1,19 @@
+{
+  "name": "mc3_traffic_mlod",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "traffic",
+  "entry": "mc3_traffic_mlod.py",
+  "summary": "mc3_traffic_mlod.py - put one vp_* vehicle's LOD in a traffic slot.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

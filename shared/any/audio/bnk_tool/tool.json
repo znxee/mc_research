@@ -1,0 +1,17 @@
+{
+  "name": "bnk_tool",
+  "kind": "library",
+  "title": "shared",
+  "platform": "any",
+  "type": "audio",
+  "entry": "",
+  "summary": "bnk_tool package",
+  "requires": [],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

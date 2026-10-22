@@ -1,0 +1,19 @@
+{
+  "name": "bnkmux",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "audio",
+  "entry": "bnkmux.py",
+  "summary": "Entry point: interactive MUX/DEMUX tool for Sony .bnk (989SND/SCREAM) files.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

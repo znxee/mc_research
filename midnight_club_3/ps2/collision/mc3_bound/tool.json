@@ -1,0 +1,19 @@
+{
+  "name": "mc3_bound",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "collision",
+  "entry": "mc3_bound.py",
+  "summary": "mc3_bound.py - Midnight Club 3 PS2 collision and road network (*_bnd.pck)",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

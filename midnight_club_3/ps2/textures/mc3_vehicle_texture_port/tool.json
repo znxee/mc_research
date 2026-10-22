@@ -1,0 +1,19 @@
+{
+  "name": "mc3_vehicle_texture_port",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "textures",
+  "entry": "mc3_vehicle_texture_port.py",
+  "summary": "Port an MC:LA PSP vehicle texture into an MC3 PS2 vehicle PCK.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

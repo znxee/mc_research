@@ -1,0 +1,19 @@
+{
+  "name": "mc3_graph",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "traffic",
+  "entry": "mc3_graph.py",
+  "summary": "Read and write MC3 pedestrian navigation graphs (<city>.graph, text;",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

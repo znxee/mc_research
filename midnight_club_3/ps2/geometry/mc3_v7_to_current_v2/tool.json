@@ -1,0 +1,19 @@
+{
+  "name": "mc3_v7_to_current_v2",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "geometry",
+  "entry": "mc3_v7_to_current_v2.py",
+  "summary": "Conservative transplant of v7/forge VIF into the modern PCK.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

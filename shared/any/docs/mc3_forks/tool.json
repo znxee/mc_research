@@ -1,0 +1,19 @@
+{
+  "name": "mc3_forks",
+  "kind": "tool",
+  "title": "shared",
+  "platform": "any",
+  "type": "docs",
+  "entry": "mc3_forks.py",
+  "summary": "FORKS.md - the log the parallel sessions keep for each other.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

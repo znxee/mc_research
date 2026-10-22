@@ -1,0 +1,19 @@
+{
+  "name": "mc3_hub",
+  "kind": "tool",
+  "title": "shared",
+  "platform": "any",
+  "type": "general",
+  "entry": "mc3_hub.py",
+  "summary": "mc3_hub.py - the front door of the MC3 toolkit.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

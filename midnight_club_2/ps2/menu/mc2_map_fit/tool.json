@@ -1,0 +1,19 @@
+{
+  "name": "mc2_map_fit",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "menu",
+  "entry": "mc2_map_fit.py",
+  "summary": "Which rectangle of the world a MC2 HUD map (assets/texture/hud_map_<x>.tex)",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

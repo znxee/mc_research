@@ -1,0 +1,19 @@
+{
+  "name": "mc3_audio_studio",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "audio",
+  "entry": "mc3_audio_studio.py",
+  "summary": "MC3 Audio Studio - unified vehicle audio editor for Midnight Club 3.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

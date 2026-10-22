@@ -1,0 +1,19 @@
+{
+  "name": "mc2_scene_blob",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "geometry",
+  "entry": "mc2_scene_blob.py",
+  "summary": "mc2_scene_blob.py - a whole patch of an MC2 PS2 city as one VIF1 DMA chain",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

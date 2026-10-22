@@ -1,0 +1,19 @@
+{
+  "name": "mc3_alpha_map",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "general",
+  "entry": "mc3_alpha_map.py",
+  "summary": "mc3_alpha_map.py - read the October 2004 alpha's linker map (MC.MAP)",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

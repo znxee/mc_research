@@ -1,0 +1,19 @@
+{
+  "name": "mc3_hood_fill",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "cities",
+  "entry": "mc3_hood_fill.py",
+  "summary": "mc3_hood_fill.py - replace every unique mesh of ONE hood of an MC3 PS2 city",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

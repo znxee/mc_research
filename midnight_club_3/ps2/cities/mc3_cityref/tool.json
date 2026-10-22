@@ -1,0 +1,19 @@
+{
+  "name": "mc3_cityref",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "cities",
+  "entry": "mc3_cityref.py",
+  "summary": "Where the executable treats one city differently from the others.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

@@ -1,0 +1,17 @@
+{
+  "name": "research_scripts",
+  "kind": "research",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "research",
+  "entry": "",
+  "summary": "one-off analysis scripts, kept as a record",
+  "requires": [],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

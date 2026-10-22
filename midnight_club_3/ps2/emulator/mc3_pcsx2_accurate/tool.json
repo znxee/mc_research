@@ -1,0 +1,19 @@
+{
+  "name": "mc3_pcsx2_accurate",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "emulator",
+  "entry": "mc3_pcsx2_accurate.py",
+  "summary": "Switch PCSX2 to the profile closest to a real PS2, and back.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

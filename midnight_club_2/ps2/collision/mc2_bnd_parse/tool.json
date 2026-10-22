@@ -1,0 +1,19 @@
+{
+  "name": "mc2_bnd_parse",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "collision",
+  "entry": "mc2_bnd_parse.py",
+  "summary": "Read MC2's text `.bnd` (`type: otgrid`) and return ONE global mesh.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

@@ -1,0 +1,19 @@
+{
+  "name": "mc2_port",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "general",
+  "entry": "mc2_port.py",
+  "summary": "mc2_port.py - bring Midnight Club 2 geometry into Midnight Club 3",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

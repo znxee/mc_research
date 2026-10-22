@@ -1,0 +1,19 @@
+{
+  "name": "mc3_fields",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "reverse",
+  "entry": "mc3_fields.py",
+  "summary": "mc3_fields.py - which offsets of a structure the game REALLY touches",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

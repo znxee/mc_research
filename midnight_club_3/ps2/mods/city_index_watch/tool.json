@@ -1,0 +1,17 @@
+{
+  "name": "city_index_watch",
+  "kind": "module",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "mods",
+  "entry": "",
+  "summary": "modloader module city_index_watch",
+  "requires": [],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

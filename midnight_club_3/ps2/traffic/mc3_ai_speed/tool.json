@@ -1,0 +1,19 @@
+{
+  "name": "mc3_ai_speed",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "traffic",
+  "entry": "mc3_ai_speed.py",
+  "summary": "Opponent speeds from a PCSX2 log of a spectated MC2-city race.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

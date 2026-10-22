@@ -1,0 +1,19 @@
+{
+  "name": "audit_type10_groundplane",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "collision",
+  "entry": "audit_type10_groundplane.py",
+  "summary": "Audit of a candidate ``*_bnd.pck`` whose ONLY change is the type10 quadtree.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

@@ -1,0 +1,19 @@
+{
+  "name": "mc3_pin_tour",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "emulator",
+  "entry": "mc3_pin_tour.py",
+  "summary": "Camera tour over a city's pins (+ extra views), through the menus.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

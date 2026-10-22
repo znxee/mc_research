@@ -1,0 +1,19 @@
+{
+  "name": "mc2_rsc",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "general",
+  "entry": "mc2_rsc.py",
+  "summary": "mc2_rsc.py - read the PS2 build of Midnight Club 2's city resources",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

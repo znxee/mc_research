@@ -1,0 +1,19 @@
+{
+  "name": "mc2_ped_graph",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "traffic",
+  "entry": "mc2_ped_graph.py",
+  "summary": "Pedestrian navigation graph (<city>.graph, MC3's mcBaGraph) for a MC2 city.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

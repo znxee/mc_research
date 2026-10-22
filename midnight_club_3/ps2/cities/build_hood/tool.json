@@ -1,0 +1,19 @@
+{
+  "name": "build_hood",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "cities",
+  "entry": "build_hood.py",
+  "summary": "Build losangeles with a subset of LA's neighbourhoods, reproducing the v9 recipe",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

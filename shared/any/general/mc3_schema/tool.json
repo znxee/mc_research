@@ -1,0 +1,19 @@
+{
+  "name": "mc3_schema",
+  "kind": "tool",
+  "title": "shared",
+  "platform": "any",
+  "type": "general",
+  "entry": "mc3_schema.py",
+  "summary": "mc3_schema.py - read the .pck layout out of the game's own constructors",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

@@ -1,0 +1,19 @@
+{
+  "name": "mc2_ground_coverage",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "collision",
+  "entry": "mc2_ground_coverage.py",
+  "summary": "Where a MC2 city's drivable ground is missing, or drawn without texture,",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

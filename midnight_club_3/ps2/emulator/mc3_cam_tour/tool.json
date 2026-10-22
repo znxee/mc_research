@@ -1,0 +1,19 @@
+{
+  "name": "mc3_cam_tour",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "emulator",
+  "entry": "mc3_cam_tour.py",
+  "summary": "Photograph a list of places of Los Angeles in one boot, with the renderer's",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

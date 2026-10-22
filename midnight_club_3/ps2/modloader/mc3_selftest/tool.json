@@ -1,0 +1,19 @@
+{
+  "name": "mc3_selftest",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "modloader",
+  "entry": "mc3_selftest.py",
+  "summary": "mc3_selftest.py - re-implement the patched game functions and test them",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

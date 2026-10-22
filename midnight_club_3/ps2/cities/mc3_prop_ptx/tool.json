@@ -1,0 +1,19 @@
+{
+  "name": "mc3_prop_ptx",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "cities",
+  "entry": "mc3_prop_ptx.py",
+  "summary": "Extract the prop particle rules compiled into a city's *_props.pck as text .ptx.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

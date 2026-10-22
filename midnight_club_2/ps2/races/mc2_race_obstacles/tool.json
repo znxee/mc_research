@@ -1,0 +1,19 @@
+{
+  "name": "mc2_race_obstacles",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "ps2",
+  "type": "races",
+  "entry": "mc2_race_obstacles.py",
+  "summary": "Route legs of converted MC2 races that run into an MC2 obstacle prop.",
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

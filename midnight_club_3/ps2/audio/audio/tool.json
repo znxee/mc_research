@@ -1,0 +1,17 @@
+{
+  "name": "audio",
+  "kind": "library",
+  "title": "midnight_club_3",
+  "platform": "ps2",
+  "type": "audio",
+  "entry": "",
+  "summary": "helper modules shared by the audio tools (RSTM convert, music core, curve GUIs)",
+  "requires": [],
+  "origin": "mc3-znx-tools @ e6fb603",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}
