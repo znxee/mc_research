@@ -17,6 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 REQUIRED = ("name", "kind", "title", "platform", "type", "entry", "summary", "license", "status")
 KINDS = {"tool", "library", "module", "data", "docs", "research"}
+OSES = {"any", "windows", "linux", "macos"}
 
 
 def manifests():
@@ -73,6 +74,9 @@ def check():
         missing = [k for k in needed if k not in m or m[k] in ("", None)]
         if missing:
             print(f"{m['path']}: missing {', '.join(missing)}")
+            bad += 1
+        if any(o not in OSES for o in m.get("os", ["any"])):
+            print(f"{m['path']}: unknown os {m.get('os')!r}")
             bad += 1
         if m.get("kind") not in KINDS:
             print(f"{m['path']}: unknown kind {m.get('kind')!r}")

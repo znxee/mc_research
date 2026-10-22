@@ -68,6 +68,7 @@ tool into a second title to avoid a dependency: move it to `shared` instead.
   "type": "vehicles",
   "entry": "mc3_perf.py",
   "summary": "one line a search can match: what it does and on what",
+  "os": ["any"],
   "requires": ["python>=3.10"],
   "origin": "where it came from, with a commit if known",
   "license": "GPL-3.0-or-later",
@@ -79,6 +80,9 @@ tool into a second title to avoid a dependency: move it to `shared` instead.
 
 - `kind`: `tool` (has an `entry` that runs), `library` (imported by others),
   `module` (C++, shader, or code run by another program), `data`, `docs`, `research`.
+- `os`: `any` when the tool is plain Python that runs on Windows, Linux and macOS;
+  otherwise the systems it needs (`windows` for a `.cmd`, `.ps1` or a Windows-only
+  GUI). `check` rejects any other value.
 - `name` is unique across the repository. `check` fails on a duplicate.
 - `summary` is what `find` searches. Write it so that someone looking for the
   tool would use the same words.
@@ -91,3 +95,16 @@ tool into a second title to avoid a dependency: move it to `shared` instead.
   document them in the tool's header.
 - No game data. No secrets, tokens or keys. `check` does not scan for them yet:
   look before you commit.
+
+## Portability
+
+The repository must work the same on any operating system and for any agent.
+
+- Python 3.10 or later, standard library only, unless `requires` says otherwise.
+- Forward slashes in every path written to a file, a manifest or a log.
+- Text files are stored with LF endings (`.gitattributes`); `.cmd`, `.bat` and
+  `.ps1` files keep CRLF.
+- Paths come from environment variables or from the tool's own folder
+  (`pathlib.Path(__file__).parent`), never from a drive letter.
+- Do not name a model, a product or a vendor in code, comments or documents.
+  A tool describes what it does, not who runs it.

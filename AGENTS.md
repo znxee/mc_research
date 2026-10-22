@@ -1,8 +1,15 @@
 # Instructions for AI agents
 
+This file is the single source of truth for every AI agent working on this
+repository, whatever model or product it runs on (Claude, GPT, Gemini, Kimi,
+Copilot, Cursor, a local model, or a script). Pointer files such as `CLAUDE.md`,
+`GEMINI.md` and `.github/copilot-instructions.md` only send you here. Do not
+copy these rules into them.
+
 This repository is the shared toolbox for Midnight Club research. Follow this
 order every time you need to do something to the game files, and do not skip
-steps 1 and 2.
+steps 1 and 2. You need only Python 3.10 or later; the runner uses the standard
+library alone, so any agent that can run a shell can use it.
 
 ## 1. Look for an existing tool first
 
@@ -64,12 +71,17 @@ Create it only after step 1 found nothing that does the job, even partly.
 
 ## Commit messages
 
-Describe what the tool does and what changed, in English. End the message with
-the trailer the user's agent is configured to add, for example:
+Describe what the tool does and what changed, in English. Name the agent that
+made the change in a git trailer, so the history shows which assistant worked
+on which tool. Use this form, with the product and model you actually are:
 
 ```
-Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>
+AI-Assisted-By: <agent product> <model id>
 ```
+
+For example `AI-Assisted-By: Claude Code claude-haiku-5-5` or
+`AI-Assisted-By: Gemini CLI gemini-2.5-pro`. If you are a script, write
+`AI-Assisted-By: script <name>`. Do not impersonate another agent.
 
 ## When you are not sure
 

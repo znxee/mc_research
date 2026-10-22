@@ -15,5 +15,8 @@
   "maintainers": [
     "znxee"
   ],
-  "last_verified": null
+  "last_verified": null,
+  "os": [
+    "windows"
+  ]
 }
