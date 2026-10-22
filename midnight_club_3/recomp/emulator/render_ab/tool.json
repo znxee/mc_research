@@ -1,0 +1,22 @@
+{
+  "name": "render_ab",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "recomp",
+  "type": "emulator",
+  "entry": "run_render_ingame.py",
+  "summary": "A/B renderer runners for the XboxXBERecomp: FMV, title and menu captures per profile, in-game race captures with the HUD, and native summaries of the shadow and sun passes",
+  "os": [
+    "windows"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "mc3-alpha-decomp xbox_recomp (our analysis) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

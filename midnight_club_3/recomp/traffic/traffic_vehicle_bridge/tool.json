@@ -1,0 +1,20 @@
+{
+  "name": "traffic_vehicle_bridge",
+  "kind": "research",
+  "title": "midnight_club_3",
+  "platform": "recomp",
+  "type": "traffic",
+  "entry": "",
+  "summary": "investigation of the vp_ vehicle bridge for enhanced traffic on the XboxXBERecomp: lifecycle notes, arcade traffic probe, recorded-run verifier, XBCK inspection",
+  "os": [
+    "windows"
+  ],
+  "requires": [],
+  "origin": "mc3-alpha-decomp xbox_recomp (our analysis) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

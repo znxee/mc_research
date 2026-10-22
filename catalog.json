@@ -1110,21 +1110,6 @@
     "last_verified": null
   },
   {
-    "name": "experimental",
-    "kind": "research",
-    "title": "midnight_club_3",
-    "platform": "ps2",
-    "type": "general",
-    "entry": "",
-    "summary": "experimental package from the live kit",
-    "status": "unverified",
-    "path": "midnight_club_3/ps2/general/experimental",
-    "maintainers": [
-      "znxee"
-    ],
-    "last_verified": null
-  },
-  {
     "name": "graft_sky_group",
     "kind": "tool",
     "title": "midnight_club_3",
@@ -3405,6 +3390,36 @@
     "last_verified": null
   },
   {
+    "name": "render_ab",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "recomp",
+    "type": "emulator",
+    "entry": "run_render_ingame.py",
+    "summary": "A/B renderer runners for the XboxXBERecomp: FMV, title and menu captures per profile, in-game race captures with the HUD, and native summaries of the shadow and sun passes",
+    "status": "unverified",
+    "path": "midnight_club_3/recomp/emulator/render_ab",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "traffic_vehicle_bridge",
+    "kind": "research",
+    "title": "midnight_club_3",
+    "platform": "recomp",
+    "type": "traffic",
+    "entry": "",
+    "summary": "investigation of the vp_ vehicle bridge for enhanced traffic on the XboxXBERecomp: lifecycle notes, arcade traffic probe, recorded-run verifier, XBCK inspection",
+    "status": "unverified",
+    "path": "midnight_club_3/recomp/traffic/traffic_vehicle_bridge",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
     "name": "mc3_xbox_mod",
     "kind": "tool",
     "title": "midnight_club_3",
@@ -3609,6 +3624,21 @@
     "summary": "TASKS.md - canonical work queue shared by the MC3 forks.",
     "status": "unverified",
     "path": "shared/any/general/mc3_tasks",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "experimental",
+    "kind": "research",
+    "title": "shared",
+    "platform": "any",
+    "type": "research",
+    "entry": "",
+    "summary": "scratch library and one-question probes that work on both MC2 and MC3: MC2-to-MC3 mesh and collision conversion, MC2 verification, city round trip and VU probes (see README.md)",
+    "status": "unverified",
+    "path": "shared/any/research/experimental",
     "maintainers": [
       "znxee"
     ],

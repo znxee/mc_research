@@ -111,3 +111,11 @@ The repository must work the same on any operating system and for any agent.
   (`pathlib.Path(__file__).parent`), never from a drive letter.
 - Do not name a model, a product or a vendor in code, comments or documents.
   A tool describes what it does, not who runs it.
+
+## Shared tools and redirect notes
+
+A tool that serves more than one title goes to `shared/any/<type>/<tool>/`, not into
+one title. Every title folder that uses it keeps a note named after the tool:
+`<title>/<tool>.md`, pointing to where the tool lives. The note is how someone
+browsing a game's folder learns that the tool exists and where it is. When a tool
+moves, change or add the note in each title it names.

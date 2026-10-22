@@ -1,0 +1,20 @@
+{
+  "name": "experimental",
+  "kind": "research",
+  "title": "shared",
+  "platform": "any",
+  "type": "research",
+  "entry": "",
+  "summary": "scratch library and one-question probes that work on both MC2 and MC3: MC2-to-MC3 mesh and collision conversion, MC2 verification, city round trip and VU probes (see README.md)",
+  "os": [
+    "any"
+  ],
+  "requires": [],
+  "origin": "mc3-alpha-decomp xbox_recomp (our analysis) @ 2026-10-22",
+  "license": "GPL-3.0-or-later",
+  "status": "unverified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": null
+}

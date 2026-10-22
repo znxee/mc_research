@@ -11,14 +11,14 @@ folder or file it names. Empty means the tool looks in the current folder, so se
 | `LOCALAPPDATA` | see the tools below | `midnight_club_3/ps2/research/scripts/city/shader_route_20260904`, `midnight_club_3/ps2/reverse/mc3_ida` |
 | `MC2_ASSETS` | see the tools below | `midnight_club_2/ps2/cities/mc2_cpv_probe`, `midnight_club_2/ps2/collision/mc2_occluders`, `midnight_club_2/ps2/general/mc2_pillar_legs` |
 | `MC2_PC_ASSETS` | see the tools below | `midnight_club_2/shared/cities/mc2_inventory`, `midnight_club_2/shared/cities/mc2_props_cities`, `midnight_club_3/ps2/research/scripts/city` |
-| `MC2_PC_RESEARCH` | the Midnight Club II (PC) research folder, with its assets_p/ and video/ | `midnight_club_2/pc/cities/mc2_inventario`, `midnight_club_2/pc/races/mc2_career_manifest`, `midnight_club_2/shared/cities/mc2_props_cidades`, `midnight_club_3/ps2/general/experimental` |
+| `MC2_PC_RESEARCH` | the Midnight Club II (PC) research folder, with its assets_p/ and video/ | `midnight_club_2/pc/cities/mc2_inventario`, `midnight_club_2/pc/races/mc2_career_manifest`, `midnight_club_2/shared/cities/mc2_props_cidades`, `shared/any/research/experimental` |
 | `MC2_PS2_ASSETS` | see the tools below | `midnight_club_2/shared/cities/mc2_props_cities`, `midnight_club_3/ps2/mods/losangeles_bound` |
 | `MC2_PS2_RESEARCH` | the Midnight Club II (PS2) research folder, with its assets/ | `midnight_club_2/ps2/cities/mc2_city_install`, `midnight_club_2/ps2/cities/mc2_cpv_probe`, `midnight_club_2/ps2/cities/mc2_pvs`, `midnight_club_2/ps2/collision/mc2_ground_coverage` and 8 more |
 | `MC3BOOT` | see the tools below | `midnight_club_3/ps2/research/scripts/city`, `midnight_club_3/ps2/research/scripts/city/probe_work` |
 | `MC3_ALPHA_HOSTFS` | the HostFS folder of the Alpha 3.2 Remix build | `midnight_club_2/ps2/cities/mc2_pvs_pack`, `midnight_club_3/ps2/emulator/mc3_pin_tour`, `midnight_club_3/ps2/menu/mc3_swf2pck`, `midnight_club_3/ps2/research/city_research` and 5 more |
 | `MC3_ASSETS` | see the tools below | `midnight_club_3/ps2/research/scripts/city` |
 | `MC3_CITIES` | see the tools below | `midnight_club_2/ps2/traffic/mc2_race_shortcut` |
-| `MC3_CLEAN_ASSETS` | an unmodified copy of the game's ASSETS folder, used as a reference | `midnight_club_3/ps2/general/experimental`, `shared/any/general/mc3_docs` |
+| `MC3_CLEAN_ASSETS` | an unmodified copy of the game's ASSETS folder, used as a reference | `shared/any/general/mc3_docs`, `shared/any/research/experimental` |
 | `MC3_ELF` | see the tools below | `midnight_club_3/ps2/research/scripts/city/shader_route_20260904`, `midnight_club_3/ps2/reverse/mc3_fields` |
 | `MC3_ELF_DIR` | the folder holding the retail ELF (SLUS_213.55) and its edits | `midnight_club_3/ps2/emulator/mc3_campos`, `midnight_club_3/ps2/reverse/mc3_parser`, `midnight_club_3/ps2/reverse/mc3_vtables` |
 | `MC3_HOSTFS` | the HostFS folder of the PS2 game (the files the emulator loads as host0:) | `midnight_club_2/ps2/cities/mc2_pvs_pack`, `midnight_club_2/ps2/collision/mc2_bnd_to_mc3`, `midnight_club_2/ps2/general/mc2_map_fit`, `midnight_club_2/ps2/races/mc2_race_modes` and 32 more |
@@ -39,10 +39,10 @@ folder or file it names. Empty means the tool looks in the current folder, so se
 | `MC_RESEARCH_ASSETS` | the research folder that holds the game builds and dumps | `midnight_club_2/xbox/research/mc2_xbox_analysis`, `midnight_club_3/ps2/reverse/mc3_alpha_map`, `midnight_club_la/psp/general/psp_contract_check` |
 | `MC_RESEARCH_AUTHOR` | your name or handle, written into new tools and commits | `scripts` |
 | `MC_RESEARCH_ROOT` | this repository's root (set by `run`; the tools folder when used by hand) | `midnight_club_2/pc/races/mc2_career_manifest`, `midnight_club_2/xbox/research/mc2_xbox_analysis`, `midnight_club_3/ps2/emulator/mc3_pin_tour`, `midnight_club_3/ps2/geometry/mc3_v7_to_current` and 9 more |
-| `MC_SCRATCH_DIR` | a scratch folder for test runs | `midnight_club_3/ps2/general/experimental` |
+| `MC_SCRATCH_DIR` | a scratch folder for test runs | `shared/any/research/experimental` |
 | `MC_WORK_DIR` | the working folder for extracted files and scratch analysis | `midnight_club_2/ps2/races/mc2_race_modes`, `midnight_club_2/ps2/races/mc2_races_to_mc3`, `midnight_club_2/xbox/research/mc2_xbox_analysis`, `midnight_club_3/ps2/cities/mc3_cityref` and 7 more |
 | `MSYS_DIR` | the MSYS2 install folder (bash) | `midnight_club_3/xbox/general/mc3_xbox_mod`, `midnight_club_3/xbox/modloader/mc3_xbox_boot` |
 | `OCC_DEBUG` | see the tools below | `midnight_club_2/ps2/collision/mc2_occluders` |
-| `RECOMP_DIR` | the root of the XboxXBERecomp checkout (the native Xbox recompilation) | `midnight_club_2/xbox/research/mc2_xbox_analysis`, `midnight_club_2/xbox/research/mc2_xbox_analysis/ida_flat`, `midnight_club_3/ps2/races/generate_mc2_career_data`, `midnight_club_3/ps2/research/city_research` and 1 more |
+| `RECOMP_DIR` | the root of the XboxXBERecomp checkout (the native Xbox recompilation) | `midnight_club_2/xbox/research/mc2_xbox_analysis`, `midnight_club_2/xbox/research/mc2_xbox_analysis/ida_flat`, `midnight_club_3/ps2/races/generate_mc2_career_data`, `midnight_club_3/ps2/research/city_research` and 3 more |
 | `RIM_IMPORTER_DIR` | the folder of the external Rim Importer tool | `shared/any/general/mc3_hub` |
 | `SYSTEM_FONTS_DIR` | the system fonts folder | `midnight_club_3/ps2/audio/audio` |
