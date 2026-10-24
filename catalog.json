@@ -3375,6 +3375,21 @@
     "last_verified": null
   },
   {
+    "name": "recomp_findings",
+    "kind": "docs",
+    "title": "midnight_club_3",
+    "platform": "recomp",
+    "type": "docs",
+    "entry": "",
+    "summary": "Findings on the Midnight Club 3 Xbox recompilation: delta time and fixed step, render profiles, render fixes (pedestrians, HUD, clears, signed blend, state blocks), runtime threads and memory, Los Angeles on the MC2 city slot, traffic limits, and capture and test methods",
+    "status": "verified",
+    "path": "midnight_club_3/recomp/docs",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": "2026-10-24, MC3 Remix (USA) Xbox, San Diego cruise and arcade race"
+  },
+  {
     "name": "recomp_harness",
     "kind": "tool",
     "title": "midnight_club_3",
