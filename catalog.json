@@ -2826,7 +2826,7 @@
     "platform": "ps2",
     "type": "reverse",
     "entry": "mc3_alpha_map.py",
-    "summary": "mc3_alpha_map.py - read the October 2004 alpha's linker map (MC.MAP)",
+    "summary": "mc3_alpha_map.py - read the October 2004 alpha's linker map (MC.MAP): census, units, globals, VU, scratchpad; disassemble alpha functions with the map's names and list class vtables with their Xbox (MSVC) slots",
     "status": "unverified",
     "path": "midnight_club_3/ps2/reverse/mc3_alpha_map",
     "maintainers": [
@@ -3461,6 +3461,96 @@
     "path": "midnight_club_3/xbox/modloader/mc3_xbox_boot",
     "maintainers": [
       "znxee"
+    ],
+    "last_verified": null
+  },
+  {
+    "name": "mc3_xbe",
+    "kind": "library",
+    "title": "midnight_club_3",
+    "platform": "xbox",
+    "type": "reverse",
+    "entry": "",
+    "summary": "read MC3's Xbox default.xbe by virtual address: sections, kernel imports, strings, names; the library the mc3_xbe_* tools share",
+    "status": "verified",
+    "path": "midnight_club_3/xbox/reverse/mc3_xbe",
+    "maintainers": [
+      "SaltySasha"
+    ],
+    "last_verified": "2026-10-27, Xbox default.xbe SHA-1 5bca1cf092edaadf876e8f80129900407a4a07b8"
+  },
+  {
+    "name": "mc3_xbe_disasm",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "xbox",
+    "type": "reverse",
+    "entry": "mc3_xbe_disasm.py",
+    "summary": "disassemble functions or address ranges of MC3's Xbox default.xbe with names, imports and strings annotated, flagging x87 arithmetic",
+    "status": "verified",
+    "path": "midnight_club_3/xbox/reverse/mc3_xbe_disasm",
+    "maintainers": [
+      "SaltySasha"
+    ],
+    "last_verified": "2026-10-27, Xbox default.xbe SHA-1 5bca1cf092edaadf876e8f80129900407a4a07b8"
+  },
+  {
+    "name": "mc3_xbe_regdeps",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "xbox",
+    "type": "reverse",
+    "entry": "mc3_xbe_regdeps.py",
+    "summary": "before hooking or replacing an Xbox function: find callers that keep registers across the call and callees that read registers on entry (LTCG conventions)",
+    "status": "verified",
+    "path": "midnight_club_3/xbox/reverse/mc3_xbe_regdeps",
+    "maintainers": [
+      "SaltySasha"
+    ],
+    "last_verified": "2026-10-27, Xbox default.xbe SHA-1 5bca1cf092edaadf876e8f80129900407a4a07b8"
+  },
+  {
+    "name": "mc3_xbe_vtables",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "xbox",
+    "type": "reverse",
+    "entry": "mc3_xbe_vtables.py",
+    "summary": "list the vtables (runs of code pointers) in a range of MC3's Xbox default.xbe, with slot numbers and names",
+    "status": "verified",
+    "path": "midnight_club_3/xbox/reverse/mc3_xbe_vtables",
+    "maintainers": [
+      "SaltySasha"
+    ],
+    "last_verified": "2026-10-27, Xbox default.xbe SHA-1 5bca1cf092edaadf876e8f80129900407a4a07b8"
+  },
+  {
+    "name": "mc3_xbe_xref",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "xbox",
+    "type": "reverse",
+    "entry": "mc3_xbe_xref.py",
+    "summary": "find who references an address in MC3's Xbox default.xbe: call and jmp sites, and data words such as vtable slots",
+    "status": "verified",
+    "path": "midnight_club_3/xbox/reverse/mc3_xbe_xref",
+    "maintainers": [
+      "SaltySasha"
+    ],
+    "last_verified": "2026-10-27, Xbox default.xbe SHA-1 5bca1cf092edaadf876e8f80129900407a4a07b8"
+  },
+  {
+    "name": "mc3_xbox_names",
+    "kind": "data",
+    "title": "midnight_club_3",
+    "platform": "xbox",
+    "type": "reverse",
+    "entry": "",
+    "summary": "function and vtable names for MC3's Xbox default.xbe (address, name, source), from the C++ decompilation, vtable matching and the PS2 alpha map",
+    "status": "experimental",
+    "path": "midnight_club_3/xbox/reverse/mc3_xbox_names",
+    "maintainers": [
+      "SaltySasha"
     ],
     "last_verified": null
   },

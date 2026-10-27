@@ -1,0 +1,23 @@
+{
+  "name": "mc3_xbe_disasm",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "xbox",
+  "type": "reverse",
+  "entry": "mc3_xbe_disasm.py",
+  "summary": "disassemble functions or address ranges of MC3's Xbox default.xbe with names, imports and strings annotated, flagging x87 arithmetic",
+  "os": [
+    "any"
+  ],
+  "requires": [
+    "python>=3.10",
+    "capstone"
+  ],
+  "origin": "the MC3 Xbox C++ decompilation (xdis.py, asmdump.py)",
+  "license": "GPL-3.0-or-later",
+  "status": "verified",
+  "maintainers": [
+    "SaltySasha"
+  ],
+  "last_verified": "2026-10-27, Xbox default.xbe SHA-1 5bca1cf092edaadf876e8f80129900407a4a07b8"
+}
