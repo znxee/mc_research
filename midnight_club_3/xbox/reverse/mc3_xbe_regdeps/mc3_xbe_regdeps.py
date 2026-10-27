@@ -57,6 +57,10 @@ def accesses(cs, ins, watch):
     if ins.mnemonic in ('xorps', 'xorpd', 'pxor', 'xor', 'sub') and len(ops) == 2 and \
             ops[0].type == x86.X86_OP_REG and ops[1].type == x86.X86_OP_REG and ops[0].reg == ops[1].reg:
         reads = set()
+    # "or r, -1" and "and r, 0" set the register whatever it held
+    if ins.mnemonic in ('or', 'and') and len(ops) == 2 and ops[0].type == x86.X86_OP_REG and \
+            ops[1].type == x86.X86_OP_IMM and ops[1].imm & 0xffffffff == (0xffffffff if ins.mnemonic == 'or' else 0):
+        reads -= {reg(cs, ops[0].reg)}
     if ins.mnemonic in WRITE_ONLY and ops and ops[0].type == x86.X86_OP_REG:
         reads -= {reg(cs, ops[0].reg)}
     return reads, writes
