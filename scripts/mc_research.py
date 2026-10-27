@@ -127,6 +127,10 @@ def check():
             print(f"{m['path']}: entry {m['entry']} not found")
             bad += 1
         for py in folder.rglob("*.py"):
+            # `run` puts every tool folder on PYTHONPATH, ahead of the standard library
+            if py.stem in sys.stdlib_module_names:
+                print(f"{py.relative_to(ROOT)}: hides the standard library module {py.stem!r} from every tool; rename it")
+                bad += 1
             try:
                 ast.parse(py.read_bytes(), filename=str(py))
             except SyntaxError as e:
