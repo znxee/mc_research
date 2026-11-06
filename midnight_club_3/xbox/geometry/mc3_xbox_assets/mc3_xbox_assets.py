@@ -81,6 +81,8 @@ class Archive:
         name, off, size, csize = entry
         self.f.seek(off)
         data = self.f.read(csize)
+        if len(data) != csize:
+            raise SystemExit(f'{self.f.name}: truncated at {off} (wanted {csize} bytes, got {len(data)})')
         if csize != size:
             data = zlib.decompress(data, -15)
         return data
@@ -95,6 +97,8 @@ def extract_entries(a, root, prefixes=()):
         if prefixes and not any(name.startswith(p) for p in prefixes):
             continue
         dst = os.path.join(root, *name.split('/'))
+        if os.path.commonpath([os.path.abspath(root), os.path.abspath(dst)]) != os.path.abspath(root):
+            raise SystemExit(f'refusing to write outside {root}: {name!r}')
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         with open(dst, 'wb') as f:
             f.write(a.read(e))
