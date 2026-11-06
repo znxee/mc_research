@@ -3450,6 +3450,21 @@
     "last_verified": null
   },
   {
+    "name": "mc3_xbox_assets",
+    "kind": "tool",
+    "title": "midnight_club_3",
+    "platform": "xbox",
+    "type": "geometry",
+    "entry": "mc3_xbox_assets.py",
+    "summary": "list or extract MC3 Remix's Xbox Dave archives (assets_x.dat, assets_x.dat_1..): packed names, stored or deflated files, a later archive's copy wins",
+    "status": "verified",
+    "path": "midnight_club_3/xbox/geometry/mc3_xbox_assets",
+    "maintainers": [
+      "SaltySasha"
+    ],
+    "last_verified": "2026-11-05, Xbox default.xbe SHA-1 5bca1cf092edaadf876e8f80129900407a4a07b8: 41,591 entries listed from assets_x.dat, unpacked files match what the game loads"
+  },
+  {
     "name": "mc3_xbox_boot",
     "kind": "tool",
     "title": "midnight_club_3",
