@@ -27,11 +27,15 @@ wrongly, and nothing in the output says so. The map draws that line.
     python mc3_alpha_map.py spad
     python mc3_alpha_map.py units --grep mccity
     python mc3_alpha_map.py export --out output/alpha2004
+    python mc3_alpha_map.py disasm vehAutoMgr::Update    MIPS with the map's names (capstone)
+    python mc3_alpha_map.py disasm 553258 553300
+    python mc3_alpha_map.py vtable vehChassis             its slots, and the Xbox (MSVC) slot of each
     python mc3_alpha_map.py state --boot 40        boot the alpha, say where it is
     python mc3_alpha_map.py state FILE.p2s          the same from a savestate
 """
 
 import argparse
+import bisect
 import collections
 import io
 import os
@@ -867,6 +871,141 @@ emit(json.dumps(results, ensure_ascii=True))
     print('Progress: ' + str(dict(counts)), flush=True)
 
 
+# ----- disassembly with the map's names (disasm, vtable)
+
+class AlphaImage:
+    """The alpha ELF by address, with the map's names for any address (function + offset)."""
+
+    def __init__(self, elf, map_path):
+        if not os.path.isfile(elf) and os.path.isfile(elf + '.ELF'):
+            elf += '.ELF'
+        if not os.path.isfile(elf):
+            raise SystemExit('ELF not found: %s' % elf)
+        self.d, self.secs = secoes(elf)
+        syms = named(read_map(map_path))
+        self.order = sorted((s.addr, s.size, s.name) for s in syms if s.addr)
+        self.keys = [x[0] for x in self.order]
+        self.exact = {}
+        for addr, _sz, nm in self.order:
+            self.exact.setdefault(addr, nm)
+
+    def offset(self, va):
+        for _nm, typ, addr, off, size in self.secs:
+            if typ != 8 and addr and addr <= va < addr + size:   # 8 = SHT_NOBITS
+                return off + va - addr
+        return None
+
+    def read(self, va, n):
+        o = self.offset(va)
+        return None if o is None else self.d[o:o + n]
+
+    def u32(self, va):
+        b = self.read(va, 4)
+        return None if b is None or len(b) < 4 else struct.unpack('<I', b)[0]
+
+    def name_of(self, va):
+        """'name' at a symbol, 'name+0x10' inside one, None elsewhere."""
+        if va in self.exact:
+            return self.exact[va]
+        i = bisect.bisect_right(self.keys, va) - 1
+        while i >= 0 and self.order[i][1] == 0:
+            i -= 1
+        if i >= 0 and va < self.order[i][0] + self.order[i][1]:
+            return '%s+0x%x' % (self.order[i][2], va - self.order[i][0])
+        return None
+
+    def cstring(self, va):
+        b = self.read(va, 80)
+        if not b:
+            return None
+        e = b.find(b'\0')
+        if e < 3 or any(c < 0x20 or c > 0x7e for c in b[:e]):
+            return None
+        return b[:e].decode('latin1')
+
+    def find(self, text):
+        """(address, size) of a symbol by exact name, or by a unique part of a name."""
+        hits = [(a, sz, nm) for a, sz, nm in self.order if nm == text]
+        if not hits:
+            hits = [(a, sz, nm) for a, sz, nm in self.order if text in nm and sz]
+        if len(hits) != 1:
+            raise SystemExit('%d symbols match %r%s' % (len(hits), text, ''.join(
+                '\n   %08X %s' % (a, nm) for a, _sz, nm in hits[:20])))
+        return hits[0][0], hits[0][1] or 0x100
+
+
+BRANCHES = ('jal', 'j', 'b', 'beq', 'bne', 'beql', 'bnel', 'blez', 'bgtz', 'bltz', 'bgez', 'beqz', 'bnez',
+            'bc1t', 'bc1f', 'bc1tl', 'bc1fl', 'blezl', 'bgtzl', 'bltzl', 'bgezl')
+LOW_HALF = ('addiu', 'ori', 'lw', 'sw', 'lwc1', 'swc1', 'lh', 'lhu', 'lb', 'lbu', 'sh', 'sb', 'ld', 'sd',
+            'lq', 'sq')
+
+
+def cmd_disasm(a):
+    """MIPS disassembly with call targets, %hi/%lo address pairs and strings named from the map."""
+    try:
+        import capstone
+    except ImportError:
+        raise SystemExit('disasm needs capstone: pip install capstone')
+    img = AlphaImage(a.elf, a.map)
+    if all(c in '0123456789abcdefABCDEFxX' for c in a.what):
+        start = int(a.what, 16)
+        end = int(a.end, 16) if a.end else start + 4 * a.count
+    else:
+        start, size = img.find(a.what)
+        end = start + size
+    md = capstone.Cs(capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS64 | capstone.CS_MODE_LITTLE_ENDIAN)
+    code = img.read(start, end - start)
+    if code is None:
+        raise SystemExit('%08X is not in the ELF' % start)
+    print('; %08X - %08X  %s' % (start, end, img.name_of(start) or ''))
+    hi = {}
+    for k in range(0, len(code) - 3, 4):
+        va = start + k
+        insn = next(md.disasm(code[k:k + 4], va), None)
+        if insn is None:
+            print('%08x  %-8s 0x%08x' % (va, '.word', struct.unpack_from('<I', code, k)[0]))
+            continue
+        note = ''
+        ops = [o.strip() for o in insn.op_str.split(',')]
+        if insn.mnemonic in BRANCHES and ops[-1].startswith('0x'):
+            note = img.name_of(int(ops[-1], 16)) or ''
+        elif insn.mnemonic == 'lui' and len(ops) == 2:
+            hi[ops[0]] = int(ops[1], 16) << 16
+        elif insn.mnemonic in LOW_HALF and len(ops) >= 2:
+            reg = imm = None
+            if '(' in ops[-1]:
+                reg = ops[-1][ops[-1].index('(') + 1:-1]
+                imm = ops[-1][:ops[-1].index('(')] or '0'
+            elif insn.mnemonic in ('addiu', 'ori') and len(ops) == 3:
+                reg, imm = ops[1], ops[2]
+            if reg in hi:
+                v = int(imm, 0)
+                full = (hi[reg] | v) if insn.mnemonic == 'ori' else (hi[reg] + v) & 0xffffffff
+                text = img.cstring(full)
+                note = img.name_of(full) or ('%08x %r' % (full, text) if text else '%08x' % full)
+        # a register written by anything but lui loses its %hi
+        if ops and ops[0] in hi and insn.mnemonic != 'lui' and insn.mnemonic not in ('sw', 'sd', 'swc1', 'sh',
+                                                                                   'sb', 'sq'):
+            hi.pop(ops[0], None)
+        print('%08x  %-8s %s%s' % (va, insn.mnemonic, insn.op_str, ('  ; ' + note) if note else ''))
+
+
+def cmd_vtable(a):
+    """A class's vtable with the functions it holds. GCC 2.x puts two header words first, so slot i + 2 here is
+    slot i of the same class in the MSVC builds (the Xbox)."""
+    img = AlphaImage(a.elf, a.map)
+    want = a.cls + ' virtual table'
+    hit = [(addr, sz) for addr, sz, nm in img.order if nm == want]
+    if not hit:
+        raise SystemExit('no %r in the map' % want)
+    addr, size = hit[0]
+    print('%s at %08X' % (want, addr))
+    for i in range(size // 4):
+        v = img.u32(addr + 4 * i) or 0
+        xbox = '   (Xbox slot %d)' % (i - 2) if i >= 2 and v else ''
+        print('  [%2d] %08X %s%s' % (i, v, (img.name_of(v) or '') if v else '', xbox))
+
+
 def main():
     ap = argparse.ArgumentParser(
         description=__doc__.strip().splitlines()[1],
@@ -899,6 +1038,14 @@ def main():
     vr = sub.add_parser('vuretail', help='carry the VU microcode map to retail')
     vr.add_argument('--alpha', default=ALPHA_ELF)
     vr.add_argument('--retail', default=RETAIL_ELF)
+    da = sub.add_parser('disasm', help="MIPS disassembly with the map's names (needs capstone)")
+    da.add_argument('what', help='a hex address, or a symbol name (exact, or a unique part of one)')
+    da.add_argument('end', nargs='?', help="hex end address (default: the symbol's size, or --count)")
+    da.add_argument('--count', type=int, default=64, help='instructions from a bare address')
+    da.add_argument('--elf', default=ALPHA_ELF)
+    vt = sub.add_parser('vtable', help="a class's vtable with its functions, and the matching Xbox slots")
+    vt.add_argument('cls', help='class name, for example vehEngine')
+    vt.add_argument('--elf', default=ALPHA_ELF)
     st = sub.add_parser('state', help='where the running alpha is, from a savestate')
     st.add_argument('file', nargs='?', help='a .p2s; omit it to boot and take one')
     st.add_argument('--boot', type=float, default=40.0,
@@ -915,7 +1062,7 @@ def main():
     fn = {'census': cmd_census, 'tree': cmd_tree, 'data': cmd_data,
           'spad': cmd_spad, 'vu': cmd_vu, 'units': cmd_units,
           'export': cmd_export, 'vuretail': cmd_vuretail, 'state': cmd_state,
-          'decomp': cmd_decomp}.get(a.acao)
+          'decomp': cmd_decomp, 'disasm': cmd_disasm, 'vtable': cmd_vtable}.get(a.acao)
     if not fn:
         ap.print_help()
         return 2

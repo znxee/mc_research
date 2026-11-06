@@ -1,0 +1,22 @@
+{
+  "name": "mc3_xbe_vtables",
+  "kind": "tool",
+  "title": "midnight_club_3",
+  "platform": "xbox",
+  "type": "reverse",
+  "entry": "mc3_xbe_vtables.py",
+  "summary": "list the vtables (runs of code pointers) in a range of MC3's Xbox default.xbe, with slot numbers and names",
+  "os": [
+    "any"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "the MC3 Xbox C++ decompilation (rdvt.py)",
+  "license": "GPL-3.0-or-later",
+  "status": "verified",
+  "maintainers": [
+    "SaltySasha"
+  ],
+  "last_verified": "2026-10-27, Xbox default.xbe SHA-1 5bca1cf092edaadf876e8f80129900407a4a07b8"
+}

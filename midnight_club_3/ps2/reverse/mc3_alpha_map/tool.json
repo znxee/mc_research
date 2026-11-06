@@ -5,12 +5,13 @@
   "platform": "ps2",
   "type": "reverse",
   "entry": "mc3_alpha_map.py",
-  "summary": "mc3_alpha_map.py - read the October 2004 alpha's linker map (MC.MAP)",
+  "summary": "mc3_alpha_map.py - read the October 2004 alpha's linker map (MC.MAP): census, units, globals, VU, scratchpad; disassemble alpha functions with the map's names and list class vtables with their Xbox (MSVC) slots",
   "os": [
     "windows"
   ],
   "requires": [
-    "python>=3.10"
+    "python>=3.10",
+    "capstone (disasm only)"
   ],
   "origin": "mc3 dev tools (live) @ 2026-10-22",
   "license": "GPL-3.0-or-later",

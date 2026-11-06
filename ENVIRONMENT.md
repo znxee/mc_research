@@ -34,11 +34,13 @@ folder or file it names. Empty means the tool looks in the current folder, so se
 | `MC3_STRTBL` | see the tools below | `midnight_club_2/shared/races/mc2_race_names` |
 | `MC3_TRAFFIC_TEST_MANIFEST` | see the tools below | `midnight_club_3/ps2/traffic/test_traffic_opponents` |
 | `MC3_WORK` | see the tools below | `midnight_club_3/ps2/research/scripts/city` |
+| `MC3_XBOX_NAMES` | optional name files for the Xbox default.xbe, separated by the path separator | `midnight_club_3/xbox/reverse/mc3_xbe` |
+| `MC3_XBOX_XBE` | the Xbox default.xbe of Midnight Club 3: DUB Edition Remix (SHA-1 5bca1cf0...) | `midnight_club_3/xbox/reverse/mc3_xbe` |
 | `MC_OUTPUT_DIR` | where tools write their results | `midnight_club_2/ps2/geometry/mc2_vu_blob`, `midnight_club_3/ps2/menu/mc3_flash_add_showroom_car`, `midnight_club_3/ps2/menu/mc3_flash_insert_button_demo`, `midnight_club_3/ps2/menu/mc3_flash_insert_button_positioned_demo` and 1 more |
 | `MC_RESEARCH_AGENT` | the agent and model you run with, written as the AI-Assisted-By trailer | `scripts` |
 | `MC_RESEARCH_ASSETS` | the research folder that holds the game builds and dumps | `midnight_club_2/xbox/research/mc2_xbox_analysis`, `midnight_club_3/ps2/reverse/mc3_alpha_map`, `midnight_club_la/psp/general/psp_contract_check` |
 | `MC_RESEARCH_AUTHOR` | your name or handle, written into new tools and commits | `scripts` |
-| `MC_RESEARCH_ROOT` | this repository's root (set by `run`; the tools folder when used by hand) | `midnight_club_2/pc/races/mc2_career_manifest`, `midnight_club_2/xbox/research/mc2_xbox_analysis`, `midnight_club_3/ps2/emulator/mc3_pin_tour`, `midnight_club_3/ps2/geometry/mc3_v7_to_current` and 9 more |
+| `MC_RESEARCH_ROOT` | this repository's root (set by `run`; the tools folder when used by hand) | `midnight_club_2/pc/races/mc2_career_manifest`, `midnight_club_2/xbox/research/mc2_xbox_analysis`, `midnight_club_3/ps2/emulator/mc3_pin_tour`, `midnight_club_3/ps2/geometry/mc3_v7_to_current` and 10 more |
 | `MC_SCRATCH_DIR` | a scratch folder for test runs | `shared/any/research/experimental` |
 | `MC_WORK_DIR` | the working folder for extracted files and scratch analysis | `midnight_club_2/ps2/races/mc2_race_modes`, `midnight_club_2/ps2/races/mc2_races_to_mc3`, `midnight_club_2/xbox/research/mc2_xbox_analysis`, `midnight_club_3/ps2/cities/mc3_cityref` and 7 more |
 | `MSYS_DIR` | the MSYS2 install folder (bash) | `midnight_club_3/xbox/general/mc3_xbox_mod`, `midnight_club_3/xbox/modloader/mc3_xbox_boot` |

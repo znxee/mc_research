@@ -1,0 +1,20 @@
+{
+  "name": "mc3_xbox_names",
+  "kind": "data",
+  "title": "midnight_club_3",
+  "platform": "xbox",
+  "type": "reverse",
+  "entry": "",
+  "summary": "function and vtable names for MC3's Xbox default.xbe (address, name, source), from the C++ decompilation, vtable matching and the PS2 alpha map",
+  "os": [
+    "any"
+  ],
+  "requires": [],
+  "origin": "the MC3 Xbox C++ decompilation (names/*.txt, tools/names/from_source.py)",
+  "license": "GPL-3.0-or-later",
+  "status": "experimental",
+  "maintainers": [
+    "SaltySasha"
+  ],
+  "last_verified": null
+}

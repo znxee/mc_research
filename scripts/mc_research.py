@@ -127,6 +127,10 @@ def check():
             print(f"{m['path']}: entry {m['entry']} not found")
             bad += 1
         for py in folder.rglob("*.py"):
+            # `run` puts every tool folder on PYTHONPATH, ahead of the standard library
+            if py.stem in sys.stdlib_module_names:
+                print(f"{py.relative_to(ROOT)}: hides the standard library module {py.stem!r} from every tool; rename it")
+                bad += 1
             try:
                 ast.parse(py.read_bytes(), filename=str(py))
             except SyntaxError as e:
@@ -190,6 +194,8 @@ ENV_MEANING = {
     "MC3_ELF_DIR": "the folder holding the retail ELF (SLUS_213.55) and its edits",
     "MC3_CLEAN_ASSETS": "an unmodified copy of the game's ASSETS folder, used as a reference",
     "MC3_ISO_SOURCE": "the source folder for building a modded ISO",
+    "MC3_XBOX_XBE": "the Xbox default.xbe of Midnight Club 3: DUB Edition Remix (SHA-1 5bca1cf0...)",
+    "MC3_XBOX_NAMES": "optional name files for the Xbox default.xbe, separated by the path separator",
     "MC3_PCSX2_DIR": "the folder with pcsx2-qt.exe",
     "MC3_PCSX2_DATA": "PCSX2's own data folder (the one with inis/, logs/ and sstates/)",
     "MC2_PC_RESEARCH": "the Midnight Club II (PC) research folder, with its assets_p/ and video/",

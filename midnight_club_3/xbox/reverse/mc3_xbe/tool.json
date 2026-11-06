@@ -1,0 +1,22 @@
+{
+  "name": "mc3_xbe",
+  "kind": "library",
+  "title": "midnight_club_3",
+  "platform": "xbox",
+  "type": "reverse",
+  "entry": "",
+  "summary": "read MC3's Xbox default.xbe by virtual address: sections, kernel imports, strings, names; the library the mc3_xbe_* tools share",
+  "os": [
+    "any"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "the MC3 Xbox C++ decompilation (xbe2pe.py, xdis.py)",
+  "license": "GPL-3.0-or-later",
+  "status": "verified",
+  "maintainers": [
+    "SaltySasha"
+  ],
+  "last_verified": "2026-10-27, Xbox default.xbe SHA-1 5bca1cf092edaadf876e8f80129900407a4a07b8"
+}
