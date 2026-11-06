@@ -50,6 +50,8 @@ def main():
         while xbe.is_code(xbe.u32(va)):
             run.append((va, xbe.u32(va)))
             va += 4
+        if not run:
+            ap.error(f'no vtable at {start:08x}: the word there is not a code address')
         show(xbe, run)
         return
     if len(a.range) != 2:
