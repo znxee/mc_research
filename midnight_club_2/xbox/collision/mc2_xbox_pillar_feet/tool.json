@@ -1,0 +1,22 @@
+{
+  "name": "mc2_xbox_pillar_feet",
+  "kind": "tool",
+  "title": "midnight_club_2",
+  "platform": "xbox",
+  "type": "collision",
+  "entry": "mc2_xbox_pillar_feet.py",
+  "summary": "pillar feet MC2 left without a dummybound (hoods, models and props of the Xbox/PC assets_p) -> <city>_pillars.txt for the recomp host",
+  "os": [
+    "any"
+  ],
+  "requires": [
+    "python>=3.10"
+  ],
+  "origin": "the PS2 tool mc2_pillar_legs (rule and NOT_PILLAR), ported to the text files of the Xbox/PC assets_p",
+  "license": "GPL-3.0-or-later",
+  "status": "verified",
+  "maintainers": [
+    "znxee"
+  ],
+  "last_verified": "2026-11-06, MC2 PC/Xbox assets_p: Los Angeles 80 feet, Paris 0, Tokyo 412 (same as the PS2 tool)"
+}

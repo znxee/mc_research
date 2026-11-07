@@ -480,6 +480,21 @@
     "last_verified": null
   },
   {
+    "name": "mc2_xbox_pillar_feet",
+    "kind": "tool",
+    "title": "midnight_club_2",
+    "platform": "xbox",
+    "type": "collision",
+    "entry": "mc2_xbox_pillar_feet.py",
+    "summary": "pillar feet MC2 left without a dummybound (hoods, models and props of the Xbox/PC assets_p) -> <city>_pillars.txt for the recomp host",
+    "status": "verified",
+    "path": "midnight_club_2/xbox/collision/mc2_xbox_pillar_feet",
+    "maintainers": [
+      "znxee"
+    ],
+    "last_verified": "2026-11-06, MC2 PC/Xbox assets_p: Los Angeles 80 feet, Paris 0, Tokyo 412 (same as the PS2 tool)"
+  },
+  {
     "name": "mc2_xbox_analysis",
     "kind": "research",
     "title": "midnight_club_2",
