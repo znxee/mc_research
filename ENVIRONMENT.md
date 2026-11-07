@@ -11,7 +11,7 @@ folder or file it names. Empty means the tool looks in the current folder, so se
 | `LOCALAPPDATA` | see the tools below | `midnight_club_3/ps2/research/scripts/city/shader_route_20260904`, `midnight_club_3/ps2/reverse/mc3_ida` |
 | `MC2_ASSETS` | see the tools below | `midnight_club_2/ps2/cities/mc2_cpv_probe`, `midnight_club_2/ps2/collision/mc2_occluders`, `midnight_club_2/ps2/general/mc2_pillar_legs` |
 | `MC2_PC_ASSETS` | see the tools below | `midnight_club_2/shared/cities/mc2_inventory`, `midnight_club_2/shared/cities/mc2_props_cities`, `midnight_club_3/ps2/research/scripts/city` |
-| `MC2_PC_RESEARCH` | the Midnight Club II (PC) research folder, with its assets_p/ and video/ | `midnight_club_2/pc/cities/mc2_inventario`, `midnight_club_2/pc/races/mc2_career_manifest`, `midnight_club_2/shared/cities/mc2_props_cidades`, `shared/any/research/experimental` |
+| `MC2_PC_RESEARCH` | the Midnight Club II (PC) research folder, with its assets_p/ and video/ | `midnight_club_2/pc/cities/mc2_inventario`, `midnight_club_2/pc/races/mc2_career_manifest`, `midnight_club_2/shared/cities/mc2_props_cidades`, `midnight_club_2/xbox/collision/mc2_xbox_pillar_feet` and 1 more |
 | `MC2_PS2_ASSETS` | see the tools below | `midnight_club_2/shared/cities/mc2_props_cities`, `midnight_club_3/ps2/mods/losangeles_bound` |
 | `MC2_PS2_RESEARCH` | the Midnight Club II (PS2) research folder, with its assets/ | `midnight_club_2/ps2/cities/mc2_city_install`, `midnight_club_2/ps2/cities/mc2_cpv_probe`, `midnight_club_2/ps2/cities/mc2_pvs`, `midnight_club_2/ps2/collision/mc2_ground_coverage` and 8 more |
 | `MC3BOOT` | see the tools below | `midnight_club_3/ps2/research/scripts/city`, `midnight_club_3/ps2/research/scripts/city/probe_work` |
