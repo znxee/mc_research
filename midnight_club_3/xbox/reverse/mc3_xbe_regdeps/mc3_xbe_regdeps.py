@@ -58,7 +58,8 @@ def accesses(cs, ins, watch):
     reads = {reg(cs, r) for r in rd} & watch
     writes = {reg(cs, r) for r in wr} & watch
     ops = ins.operands
-    if ins.mnemonic in ('xorps', 'xorpd', 'pxor', 'xor', 'sub') and len(ops) == 2 and \
+    # xor/sub r, r give 0 and sbb r, r gives 0 or -1 by the carry: writes only (the CRT's stricmp starts "sbb cl, cl")
+    if ins.mnemonic in ('xorps', 'xorpd', 'pxor', 'xor', 'sub', 'sbb') and len(ops) == 2 and \
             ops[0].type == x86.X86_OP_REG and ops[1].type == x86.X86_OP_REG and ops[0].reg == ops[1].reg:
         reads = set()
     # "or r, -1" and "and r, 0" set the register whatever it held, at the register's own size ("or dl, 0xff" too)
