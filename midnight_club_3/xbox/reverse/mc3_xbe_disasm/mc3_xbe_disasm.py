@@ -12,6 +12,17 @@ hides.
     mc3_xbe_disasm.py --bytes 2c9aa0         also print the instruction bytes
     mc3_xbe_disasm.py --floats 71a10         also print the value of each float the code reads from a fixed
                                              address (as the file holds it: a global set at run time shows 0)
+    mc3_xbe_disasm.py --exprs 343450         instead of the listing, each store of an SSE register as the
+                                             expression it holds, operands in the code's order (see below)
+
+--exprs is for matching float code bit for bit. addss/mulss keep their destination register's operand first, and
+when both operands are NaN the first one's payload wins, so a rewrite in C that lets its compiler swap a + or *
+gives other NaNs than the game. Each store prints as an expression built from the loads and ops before it
+(destination first); a stack slot is named by its offset from the function's entry esp (`sp-0x10`), defined where
+it is stored; a call forgets every xmm register; branches and compares print where they come, but the registers
+are followed in address order, not along each path. Two limits: a callee that pops its own arguments (thiscall,
+stdcall) leaves later stack slots named 4 bytes per argument too low, and loads print by address, so check the
+raw listing where a value is stored and read back.
 
 Environment variables this tool reads (set them, do not edit the code):
     MC3_XBOX_XBE    the game's default.xbe
@@ -87,6 +98,74 @@ def show(xbe, insns, title, with_bytes, floats=False):
     print()
 
 
+SSE_OPS = {'addss': '+', 'subss': '-', 'mulss': '*', 'divss': '/'}
+SSE_FUNCS = {'sqrtss': 'sqrt', 'rsqrtss': 'rsqrt', 'rcpss': 'rcp'}
+
+
+def sse_exprs(xbe, insns):
+    """Print each store of an xmm register as an expression in the code's operand order (see --exprs)."""
+    regs = {}
+    depth = 0   # bytes below the entry esp
+
+    def slot(op):
+        m = re.match(r'dword ptr \[esp(?: \+ (0x[0-9a-f]+|\d+))?\]$', op)
+        return int(m.group(1), 0) - depth if m and m.group(1) else (-depth if m else None)
+
+    def name(op):
+        if op.startswith('xmm'):
+            return regs.get(op, op + '?')
+        k = slot(op)
+        if k is not None:
+            return f'sp{k:+#x}'
+        m = re.match(r'dword ptr \[(.*)\]$', op)
+        if not m:
+            return op
+        inner = m.group(1).replace(' ', '')
+        if re.fullmatch(r'0x[0-9a-f]+', inner):
+            a = int(inner, 16)
+            return xbe.name(a) or f'{xbe.f32(a):g}@{a:x}'
+        return f'[{inner}]'
+
+    for i in insns:
+        mn = i.mnemonic
+        ops = [o.strip() for o in i.op_str.split(',')] if i.op_str else []
+        at = f'{i.address:08x}'
+        if mn == 'push':
+            depth += 4
+        elif mn == 'pop':
+            depth -= 4
+        elif mn in ('sub', 'add') and ops and ops[0] == 'esp' and re.fullmatch(r'0x[0-9a-f]+|\d+', ops[1]):
+            depth += int(ops[1], 0) * (1 if mn == 'sub' else -1)
+        if mn in ('movss', 'movaps', 'movups', 'movd') and len(ops) == 2:
+            if ops[0].startswith('xmm'):
+                regs[ops[0]] = name(ops[1])
+            else:
+                k = slot(ops[0])
+                print(f'{at}  {f"sp{k:+#x}" if k is not None else name(ops[0])} = {regs.get(ops[1], ops[1] + "?")}')
+        elif mn in SSE_OPS:
+            regs[ops[0]] = f'({regs.get(ops[0], ops[0] + "?")} {SSE_OPS[mn]} {name(ops[1])})'
+        elif mn in SSE_FUNCS:
+            regs[ops[0]] = f'{SSE_FUNCS[mn]}({name(ops[1])})'
+        elif mn in ('minss', 'maxss'):
+            regs[ops[0]] = f'{mn[:3]}({regs.get(ops[0], ops[0] + "?")}, {name(ops[1])})'
+        elif mn in ('xorps', 'pxor') and ops[0] == ops[1]:
+            regs[ops[0]] = '0'
+        elif mn in ('andps', 'orps', 'xorps', 'andnps'):
+            regs[ops[0]] = f'{mn}({regs.get(ops[0], ops[0] + "?")}, {name(ops[1])})'
+        elif mn in ('comiss', 'ucomiss'):
+            print(f'{at}  {mn} {name(ops[0])} , {name(ops[1])}')
+        elif mn == 'cvtsi2ss':
+            regs[ops[0]] = f'float({ops[1]})'
+        elif mn.startswith('j') or mn in ('ret', 'retn'):
+            print(f'{at}  {mn} {i.op_str}')
+        elif mn == 'call':
+            print(f'{at}  call {i.op_str}{annotate(xbe, i)}')
+            regs.clear()
+        elif mn.startswith('f') and mn.startswith(X87_ARITH + ('fld', 'fst')):
+            print(f'{at}  (x87) {mn} {i.op_str}')
+    print()
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('addresses', nargs='*', help='hex addresses of functions')
@@ -94,6 +173,7 @@ def main():
     ap.add_argument('--count', type=int, help='a fixed number of instructions from each address')
     ap.add_argument('--bytes', action='store_true', help='print the instruction bytes')
     ap.add_argument('--floats', action='store_true', help='print the value of each float read from a fixed address')
+    ap.add_argument('--exprs', action='store_true', help='print SSE stores as expressions in operand order instead')
     ap.add_argument('--xbe', help='default.xbe (default: MC3_XBOX_XBE)')
     a = ap.parse_args()
     xbe = mc3_xbe.open_xbe(a.xbe)
@@ -107,7 +187,11 @@ def main():
             insns = list(md.disasm(xbe.read(va, a.count * 15), va))[:a.count]
         else:
             insns = function(xbe, md, va)
-        show(xbe, insns, f'{va:08x} {xbe.name(va, "")}'.rstrip(), a.bytes, a.floats)
+        if a.exprs:
+            print(f'==== {va:08x} {xbe.name(va, "")}'.rstrip())
+            sse_exprs(xbe, insns)
+        else:
+            show(xbe, insns, f'{va:08x} {xbe.name(va, "")}'.rstrip(), a.bytes, a.floats)
 
 
 if __name__ == '__main__':

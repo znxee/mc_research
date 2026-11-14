@@ -3501,13 +3501,13 @@
     "platform": "xbox",
     "type": "reverse",
     "entry": "mc3_xbe_disasm.py",
-    "summary": "disassemble functions or address ranges of MC3's Xbox default.xbe with names, imports and strings annotated, flagging x87 arithmetic",
+    "summary": "disassemble functions or address ranges of MC3's Xbox default.xbe with names, imports and strings annotated, flagging x87 arithmetic; or print its SSE float stores as expressions in operand order (for NaN-exact rewrites)",
     "status": "verified",
     "path": "midnight_club_3/xbox/reverse/mc3_xbe_disasm",
     "maintainers": [
       "SaltySasha"
     ],
-    "last_verified": "2026-10-27, Xbox default.xbe SHA-1 5bca1cf092edaadf876e8f80129900407a4a07b8"
+    "last_verified": "2026-11-14, Xbox default.xbe SHA-1 5bca1cf092edaadf876e8f80129900407a4a07b8"
   },
   {
     "name": "mc3_xbe_regdeps",
